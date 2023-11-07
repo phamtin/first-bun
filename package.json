@@ -1,0 +1,30 @@
+{
+  "name": "bun-trial",
+  "version": "1.0.50",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun tsc --noEmit && bun run --watch src/index.ts",
+    "dcu": "docker compose -f ./docker-compose.dev.yaml up -d",
+    "dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^0.7.2",
+    "@elysiajs/cron": "^0.7.0",
+    "bullmq": "4.14.3",
+    "dayjs": "^1.11.10",
+    "elysia": "0.7.29",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.3.0",
+    "pino": "^8.16.2",
+    "redis": "4.6.11",
+    "redis-om": "0.4.3",
+    "slugify": "^1.6.6",
+    "typescript": "^5.3.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.3.3",
+    "@types/jsonwebtoken": "^9.0.5",
+    "bun-types": "^1.0.14"
+  },
+  "module": "src/index.js"
+}
