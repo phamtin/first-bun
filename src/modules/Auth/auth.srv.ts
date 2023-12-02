@@ -98,7 +98,6 @@ const generateAuthTokens = async (userId: string) => {
 const signToken = (accountId: string): string => {
 	const payload = {
 		accountId: accountId,
-		iat: new Date().getTime(),
 	};
 	return jwt.sign(payload, Bun.env.JWT_SECRET, {
 		expiresIn: "6 minutes", // 6 minutes

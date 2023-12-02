@@ -59,8 +59,6 @@ export const tokenParser = (app: Elysia) =>
 				lastname: currentUser.lastname,
 			};
 		} catch (err: any) {
-			console.log("Error tokenParser = ", err);
-
 			(store as Context)["user"] = {
 				_id: "",
 				email: "",
@@ -69,12 +67,12 @@ export const tokenParser = (app: Elysia) =>
 				fullname: "",
 			};
 
-			if (err.message === "invalid token" || err.message === "jwt malformed" || err.message === "invalid signature") {
-				throw new AppError("FORBIDDEN");
-			}
 			if (err.message === "jwt expired") {
 				set.status = 401;
 				throw new AppError("UNAUTHORIZED");
+			}
+			if (err.message === "invalid token" || err.message === "jwt malformed" || err.message === "invalid signature") {
+				throw new AppError("FORBIDDEN");
 			}
 		}
 

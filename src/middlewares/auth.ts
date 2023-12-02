@@ -9,7 +9,6 @@ export const isAuthenticated = (app: Elysia) =>
 	// @ts-ignore
 	app.derive(async ({ set, store }) => {
 		const appStore: Context = store as Context;
-		console.log("appStore", appStore);
 
 		if (!appStore.user._id) {
 			set.status = 401;

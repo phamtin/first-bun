@@ -5,9 +5,11 @@ type ErrorCode =
 	| "FORBIDDEN"
 	| "METHOD_NOT_SUPPORTED"
 	| "TIMEOUT"
-	| "TOO_MANY_REQUESTS";
+	| "TOO_MANY_REQUESTS"
+	| "NOT_FOUND";
 
 const ErrorMap: Record<ErrorCode, number> = {
+	NOT_FOUND: 404,
 	BAD_REQUEST: 400,
 	UNAUTHORIZED: 401,
 	FORBIDDEN: 403,

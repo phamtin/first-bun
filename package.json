@@ -10,7 +10,7 @@
   "dependencies": {
     "@elysiajs/cors": "^0.7.2",
     "@elysiajs/cron": "^0.7.0",
-    "bullmq": "4.14.3",
+    "bullmq": "^4.14.4",
     "dayjs": "^1.11.10",
     "elysia": "0.7.29",
     "jsonwebtoken": "^9.0.2",

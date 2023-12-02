@@ -25,7 +25,7 @@ const WithAppRouter = (app: Elysia): Elysia => {
 			.group("/accounts", (app) =>
 				app
 					.use(isAuthenticated)
-					.get("/tasks", (c) => AccountApp.getMyTasks(c.store as Context, c.body))
+					.get("/tasks", (c) => AccountApp.getMyTasks(c.store as Context, c.query))
 					.get("/profile", (c) => AccountApp.getProfile(c.store as Context, c.body))
 					.patch("/profile", (c) => AccountApp.updateProfile(c.store as Context, c.body))
 			)

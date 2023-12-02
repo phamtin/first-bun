@@ -10,7 +10,7 @@ services:
         ports:
             - "27017:27017"
 
-    redis:
+    redis-stack-server:
         image: redis/redis-stack-server:latest
         container_name: "redis"
         volumes:

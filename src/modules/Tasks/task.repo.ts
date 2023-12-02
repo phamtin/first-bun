@@ -10,7 +10,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	const data: TaskModel = {
 		_id: new ObjectId(),
 		title: request.title,
-		ownerId: new ObjectId(),
+		ownerId: new ObjectId(ctx.user._id),
 		description: request.description,
 		status: request.status,
 		timing: {
@@ -22,9 +22,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 		updatedAt: new Date(),
 	};
 
-	const inserted = await TaskColl.insertMany([data]);
-
-	console.log(inserted.insertedCount);
+	await TaskColl.insertMany([data]);
 
 	return {
 		...data,
