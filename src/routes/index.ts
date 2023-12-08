@@ -6,6 +6,7 @@ import { signinGoogleRequest, signoutGoogleRequest } from "@/modules/Auth/auth.v
 import { createTaskRequest } from "@/modules/Tasks/task.validator";
 import { isAuthenticated } from "@/middlewares/auth";
 import { Context } from "@/types/app.type";
+import { getMyTasksRequest } from "@/modules/Accounts/account.validator";
 
 const WithAppRouter = (app: Elysia): Elysia => {
 	return app.group("/v1", (app) =>
@@ -33,13 +34,13 @@ const WithAppRouter = (app: Elysia): Elysia => {
 			.group("/tasks", (app) =>
 				app
 					.use(isAuthenticated)
-					.get("/:id", (c) => TaskApp.TaskSrv.getTask(c.store as Context, c.body))
+					.get("/:id", (c) => TaskApp.TaskSrv.getTask(c.store as Context))
 					.post("/create", (c) => TaskApp.TaskSrv.createTask(c.store as Context, c.body), {
 						body: createTaskRequest,
 					})
-					.patch("/:id", (c) => TaskApp.TaskSrv.updateTransaction(c.store as Context, c.body))
+					.patch("/:id", (c) => TaskApp.TaskSrv.updateTask(c.store as Context, c.body))
 					.post("/sync-external-to-redis", (c) => TaskApp.TaskSrv.syncExternalToRedis(c.store as Context, c.body))
-					.post("/sync-redis-to-db", (c) => TaskApp.TaskSrv.syncTransactionToDb(c.store as Context, c.body))
+					.post("/sync-redis-to-db", (c) => TaskApp.TaskSrv.syncTaskToDb(c.store as Context, c.body))
 			)
 	);
 };

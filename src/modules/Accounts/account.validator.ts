@@ -1,6 +1,18 @@
 import { t, Static } from "elysia";
 import { accountModel } from "./account.model";
-import { taskStatus } from "../Tasks/task.model";
+import { taskPriority, taskStatus } from "../Tasks/task.model";
+
+export const createTaskResponse = t.Object({
+	taskId: t.String(),
+});
+
+export const getMyTasksRequest = t.Object({
+	query: t.Optional(t.String()),
+	status: t.Optional(t.Array(taskStatus)),
+	priorities: t.Optional(t.Array(taskPriority)),
+	startDate: t.Optional(t.String()),
+	endDate: t.Optional(t.String()),
+});
 
 export const getMyTasksResponse = t.Array(
 	t.Object({
@@ -10,14 +22,6 @@ export const getMyTasksResponse = t.Array(
 		status: taskStatus,
 	})
 );
-
-export const createTaskResponse = t.Object({
-	taskId: t.String(),
-});
-
-export const getMyTasksRequest = t.Object({
-	query: t.Optional(t.String()),
-});
 
 export const getMyProfileResponse = accountModel;
 

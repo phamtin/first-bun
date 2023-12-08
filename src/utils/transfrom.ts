@@ -13,7 +13,7 @@ export function sanitize<T>(obj: T): T {
 export {};
 
 export function classifyError(code: string): number {
-	let status = 401;
+	let status = 400;
 	switch (code) {
 		case "INTERNAL_SERVER_ERROR":
 			status = 500;
@@ -25,7 +25,7 @@ export function classifyError(code: string): number {
 			status = 400;
 			break;
 		case "INVALID_COOKIE_SIGNATURE":
-			status = 403;
+			status = 401;
 			break;
 		case "PARSE":
 			status = 400;

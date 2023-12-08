@@ -4,7 +4,7 @@ import { GetMyProfileResponse, GetMyTasksResponse, GetMyTasksRequest } from "./a
 import { AccountColl, TaskColl } from "@/loaders/mongo";
 import AppError from "@/pkgs/appError/Error";
 import { ObjectId } from "mongodb";
-import { TaskStatus } from "../Tasks/task.model";
+import { TaskPriority } from "../Tasks/task.model";
 import { StringId } from "@/types/common.type";
 
 const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
@@ -21,44 +21,87 @@ const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 };
 
 const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<GetMyTasksResponse> => {
-	const { query = "" } = request;
+	const { query = "", startDate, endDate } = request;
 
-	const ignoreStatus: TaskStatus = "Archived";
+	const statusFilter = request.status?.filter((t) => t !== "Archived") || [];
 
-	let tasks: StringId<GetMyTasksResponse> = (await TaskColl.aggregate([
+	const priorities: TaskPriority[] = request.priorities || [];
+
+	const tasks: StringId<GetMyTasksResponse> = (await TaskColl.aggregate([
 		{
 			$match: {
 				ownerId: new ObjectId(ctx.user._id),
 
-				//	exclude `Archived` type
-				status: {
-					$ne: ignoreStatus,
-				},
-
-				//	Apply when search task
 				$expr: {
-					$cond: {
-						if: { $gt: [query.length, 2] },
-						then: {
-							$or: [
-								{
-									$regexMatch: {
-										input: "$title",
-										regex: query,
-										options: "i",
-									},
+					$and: [
+						//	Apply filter task priority
+						{
+							$cond: {
+								if: {
+									$gte: [priorities.length, 1],
 								},
-								{
-									$regexMatch: {
-										input: "$description",
-										regex: query,
-										options: "i",
-									},
+								then: {
+									$in: ["$priority", priorities],
 								},
-							],
+								else: {},
+							},
 						},
-						else: {}, //	No apply filetr
-					},
+						//	Apply filter task status
+						{
+							$cond: {
+								if: {
+									$gte: [statusFilter.length, 1],
+								},
+								then: {
+									$in: ["$status", statusFilter],
+								},
+								else: {},
+							},
+						},
+						//	Apply search task
+						{
+							$cond: {
+								if: {
+									$gt: [query.length, 2],
+								},
+								then: {
+									$or: [
+										{
+											$regexMatch: { input: "$title", regex: query, options: "i" },
+										},
+										{
+											$regexMatch: { input: "$description", regex: query, options: "i" },
+										},
+									],
+								},
+								else: {},
+							},
+						},
+						//	Apply filter has startDate
+						{
+							$cond: {
+								if: {
+									$ne: [startDate, undefined],
+								},
+								then: {
+									$gte: ["$timing.startDate", { $toDate: startDate }],
+								},
+								else: {},
+							},
+						},
+						//	Apply filter has endDate
+						{
+							$cond: {
+								if: {
+									$ne: [endDate, undefined],
+								},
+								then: {
+									$lte: ["$timing.endDate", { $toDate: startDate }],
+								},
+								else: {},
+							},
+						},
+					],
 				},
 			},
 		},
@@ -68,11 +111,7 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 			},
 		},
 		{
-			$project: {
-				title: 1,
-				description: 1,
-				status: 1,
-			},
+			$project: { title: 1, description: 1, status: 1 },
 		},
 	]).toArray()) as any[];
 

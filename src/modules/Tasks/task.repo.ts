@@ -27,7 +27,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	return {
 		...data,
 		_id: data._id.toHexString(),
-		ownerId: data._id.toHexString(),
+		ownerId: ctx.user._id,
 	};
 };
 

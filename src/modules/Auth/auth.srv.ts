@@ -100,7 +100,7 @@ const signToken = (accountId: string): string => {
 		accountId: accountId,
 	};
 	return jwt.sign(payload, Bun.env.JWT_SECRET, {
-		expiresIn: "6 minutes", // 6 minutes
+		expiresIn: `${Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE} minutes`, // 6 minutes
 	});
 };
 
