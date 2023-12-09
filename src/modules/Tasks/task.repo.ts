@@ -1,28 +1,38 @@
 import { ObjectId } from "mongodb";
-import dayjs from "dayjs";
 import { TaskColl } from "@/loaders/mongo";
 import { CreateTaskRequest, CreateTaskResponse } from "./task.validator";
 
-import { TaskModel } from "./task.model";
+import { TaskModel, TaskTiming } from "./task.model";
 import { Context } from "@/types/app.type";
+import { Undefined } from "@/types/common.type";
 
 const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<CreateTaskResponse> => {
+	let parsedTiming: Undefined<TaskTiming> = undefined;
+
+	if (request.timing) {
+		parsedTiming = {};
+		parsedTiming.startDate = new Date(request.timing.startDate);
+
+		if (request.timing.endDate) {
+			parsedTiming.endDate = new Date(request.timing.endDate);
+		}
+	}
+
+	const now = new Date();
+
 	const data: TaskModel = {
 		_id: new ObjectId(),
 		title: request.title,
+		status: request.status,
 		ownerId: new ObjectId(ctx.user._id),
 		description: request.description,
-		status: request.status,
-		timing: {
-			startDate: dayjs().toDate(),
-			endDate: dayjs().add(1).toDate(),
-			estimation: "1d.0h",
-		},
-		createdAt: new Date(),
-		updatedAt: new Date(),
+		additionalInfo: request.additionalInfo,
+		timing: parsedTiming,
+		createdAt: now,
+		updatedAt: now,
 	};
 
-	await TaskColl.insertMany([data]);
+	await TaskColl.insertOne(data);
 
 	return {
 		...data,

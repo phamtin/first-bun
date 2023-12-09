@@ -1,10 +1,6 @@
 import { t, Static } from "elysia";
-import { accountModel } from "./account.model";
+import { accountModel, colorTheme } from "./account.model";
 import { taskPriority, taskStatus } from "../Tasks/task.model";
-
-export const createTaskResponse = t.Object({
-	taskId: t.String(),
-});
 
 export const getMyTasksRequest = t.Object({
 	query: t.Optional(t.String()),
@@ -14,6 +10,8 @@ export const getMyTasksRequest = t.Object({
 	endDate: t.Optional(t.String()),
 });
 
+export const getMyProfileResponse = accountModel;
+
 export const getMyTasksResponse = t.Array(
 	t.Object({
 		_id: t.String(),
@@ -22,10 +20,25 @@ export const getMyTasksResponse = t.Array(
 		status: taskStatus,
 	})
 );
+export const updateProfileRequest = t.Object({
+	fullname: t.Optional(t.String()),
+	firstname: t.Optional(t.String()),
+	lastname: t.Optional(t.String()),
+	avatar: t.Optional(t.String()),
+	profileInfo: t.Optional(
+		t.Object({
+			phoneNumber: t.Optional(t.Array(t.String())),
+		})
+	),
+	accountSetting: t.Optional(
+		t.Object({
+			theme: t.Optional(colorTheme),
+			isPrivateAccount: t.Optional(t.Boolean()),
+		})
+	),
+});
 
-export const getMyProfileResponse = accountModel;
-
-export type CreateTaskResponse = Static<typeof createTaskResponse>;
 export type GetMyTasksResponse = Static<typeof getMyTasksResponse>;
 export type GetMyProfileResponse = Static<typeof getMyProfileResponse>;
 export type GetMyTasksRequest = Static<typeof getMyTasksRequest>;
+export type UpdateProfileRequest = Static<typeof updateProfileRequest>;

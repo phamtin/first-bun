@@ -7,3 +7,5 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isSameOrBefore);
 dayjs.tz.setDefault("Asia/Hanoi");
+
+export default dayjs;

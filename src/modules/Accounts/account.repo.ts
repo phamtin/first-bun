@@ -1,6 +1,6 @@
 import { Context } from "@/types/app.type";
 
-import { GetMyProfileResponse, GetMyTasksResponse, GetMyTasksRequest } from "./account.validator";
+import { GetMyProfileResponse, GetMyTasksResponse, GetMyTasksRequest, UpdateProfileRequest } from "./account.validator";
 import { AccountColl, TaskColl } from "@/loaders/mongo";
 import AppError from "@/pkgs/appError/Error";
 import { ObjectId } from "mongodb";
@@ -16,7 +16,7 @@ const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 
 	return {
 		...profile,
-		_id: profile._id.toHexString(),
+		_id: ctx.user._id,
 	};
 };
 
@@ -34,14 +34,21 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 
 				$expr: {
 					$and: [
-						//	Apply filter task priority
+						//	Apply search task
 						{
 							$cond: {
 								if: {
-									$gte: [priorities.length, 1],
+									$gt: [query.length, 2],
 								},
 								then: {
-									$in: ["$priority", priorities],
+									$or: [
+										{
+											$regexMatch: { input: "$title", regex: query, options: "i" },
+										},
+										{
+											$regexMatch: { input: "$description", regex: query, options: "i" },
+										},
+									],
 								},
 								else: {},
 							},
@@ -58,21 +65,14 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 								else: {},
 							},
 						},
-						//	Apply search task
+						//	Apply filter task priority
 						{
 							$cond: {
 								if: {
-									$gt: [query.length, 2],
+									$gte: [priorities.length, 1],
 								},
 								then: {
-									$or: [
-										{
-											$regexMatch: { input: "$title", regex: query, options: "i" },
-										},
-										{
-											$regexMatch: { input: "$description", regex: query, options: "i" },
-										},
-									],
+									$in: ["$priority", priorities],
 								},
 								else: {},
 							},
@@ -118,7 +118,29 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 	return tasks;
 };
 
-const updateProfile = (ctx: Context, request: any) => {};
+const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promise<boolean> => {
+	await AccountColl.findOneAndUpdate(
+		{
+			_id: new ObjectId(ctx.user._id),
+		},
+		{
+			$set: {
+				fullname: request.fullname,
+				firstname: request.firstname,
+				lastname: request.lastname,
+				avatar: request.avatar,
+				"profileInfo.phoneNumber": request.profileInfo?.phoneNumber,
+				"accountSetting.theme": request.accountSetting?.theme,
+				"accountSetting.isPrivateAccount": request.accountSetting?.isPrivateAccount,
+			},
+		},
+		{
+			ignoreUndefined: true,
+		}
+	);
+
+	return true;
+};
 
 const AccountRepo = {
 	getMyTasks,

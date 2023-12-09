@@ -6,7 +6,7 @@ import { signinGoogleRequest, signoutGoogleRequest } from "@/modules/Auth/auth.v
 import { createTaskRequest } from "@/modules/Tasks/task.validator";
 import { isAuthenticated } from "@/middlewares/auth";
 import { Context } from "@/types/app.type";
-import { getMyTasksRequest } from "@/modules/Accounts/account.validator";
+import { updateProfileRequest } from "@/modules/Accounts/account.validator";
 
 const WithAppRouter = (app: Elysia): Elysia => {
 	return app.group("/v1", (app) =>
@@ -27,8 +27,10 @@ const WithAppRouter = (app: Elysia): Elysia => {
 				app
 					.use(isAuthenticated)
 					.get("/tasks", (c) => AccountApp.getMyTasks(c.store as Context, c.query))
-					.get("/profile", (c) => AccountApp.getProfile(c.store as Context, c.body))
-					.patch("/profile", (c) => AccountApp.updateProfile(c.store as Context, c.body))
+					.get("/profile", (c) => AccountApp.getProfile(c.store as Context))
+					.patch("/profile", (c) => AccountApp.updateProfile(c.store as Context, c.body), {
+						body: updateProfileRequest,
+					})
 			)
 
 			.group("/tasks", (app) =>

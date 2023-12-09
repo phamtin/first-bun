@@ -65,10 +65,10 @@ export type TaskModel = {
 
 	title: string;
 	status: TaskStatus;
-	timing?: TaskTiming;
 	ownerId: ObjectId;
-	priority?: TaskPriority;
 	description?: string;
+	timing?: TaskTiming;
+	priority?: TaskPriority;
 	additionalInfo?: AttributePattern[];
 
 	createdAt: Date;

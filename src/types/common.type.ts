@@ -1,6 +1,10 @@
 import { t } from "elysia";
 import { ObjectId } from "mongodb";
 
+export type Null<T> = T | null;
+
+export type Undefined<T> = T | undefined;
+
 /**
  *  Attribute pattern support MongoDb store
  */
@@ -23,5 +27,3 @@ export type StringId<T> = T extends ObjectId
 			[K in keyof T]: StringId<T[K]>;
 	  }
 	: T;
-
-export type Null<T> = T | null;
