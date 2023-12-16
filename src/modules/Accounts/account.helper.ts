@@ -1,37 +1,45 @@
-import { Undefined } from "@/types/common.type";
-import { AccountSetting, ProfileInfo } from "./account.model";
+import { StringId, Undefined } from "@/types/common.type";
+import { AccountModel, AccountSetting, ProfileInfo } from "./account.model";
+import { UpdateProfileRequest } from "./account.validator";
 
-export const getProfileInfoUpdate = (payload: Undefined<Partial<ProfileInfo>>): Undefined<Partial<ProfileInfo>> => {
-	if (!payload) return undefined;
+export const mergeProfileInfoWithDb = (model: StringId<AccountModel>, request: UpdateProfileRequest["profileInfo"]): Undefined<ProfileInfo> => {
+	let res: Undefined<ProfileInfo> = undefined;
 
-	const res: Partial<ProfileInfo> = {};
+	if (!request) return res;
 
-	if (payload.phoneNumber) {
-		res.phoneNumber = payload.phoneNumber;
+	res = {
+		phoneNumber: model.profileInfo.phoneNumber,
+		birthday: model.profileInfo.birthday as Date,
+		locale: model.profileInfo.locale,
+	};
+	const { phoneNumber, birthday } = request;
+
+	if (phoneNumber) {
+		res.phoneNumber = phoneNumber as string[];
 	}
-
-	if (payload.locale) {
-		res.locale = payload.locale;
-	}
-
-	if (payload.locale) {
-		res.locale = payload.locale;
+	if (birthday) {
+		res.birthday = new Date(birthday);
 	}
 
 	return res;
 };
 
-export const getAccountSettingUpdate = (payload: Undefined<Partial<AccountSetting>>): Undefined<Partial<AccountSetting>> => {
-	if (!payload) return undefined;
+export const mergeAccountSettingWithDb = (model: StringId<AccountModel>, request: UpdateProfileRequest["accountSetting"]): Undefined<AccountSetting> => {
+	let res: Undefined<AccountSetting> = undefined;
 
-	const res: Partial<AccountSetting> = {};
+	if (!request) return res;
 
-	if (payload.theme) {
-		res.theme = payload.theme;
+	res = {
+		theme: model.accountSetting.theme,
+		isPrivateAccount: model.accountSetting.isPrivateAccount,
+	};
+	const { theme, isPrivateAccount } = request;
+
+	if (theme) {
+		res.theme = theme;
 	}
-
-	if (payload.isPrivateAccount) {
-		res.isPrivateAccount = payload.isPrivateAccount;
+	if (isPrivateAccount) {
+		res.isPrivateAccount = isPrivateAccount;
 	}
 
 	return res;

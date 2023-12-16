@@ -69,6 +69,7 @@ export type TaskModel = {
 	description?: string;
 	timing?: TaskTiming;
 	priority?: TaskPriority;
+	tagIds?: ObjectId[];
 	additionalInfo?: AttributePattern[];
 
 	createdAt: Date;
@@ -84,6 +85,7 @@ export const taskModel = t.Object({
 	priority: t.Optional(taskPriority),
 	timing: t.Optional(taskTiming),
 	description: t.Optional(t.String()),
+	tagIds: t.Optional(t.Array(t.String())),
 	additionalInfo: t.Optional(t.Array(attributePattern)),
 
 	createdAt: t.Date(),

@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 import { ObjectId } from "mongodb";
 import jwt from "jsonwebtoken";
 import systemLog from "@/pkgs/systemLog";

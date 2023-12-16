@@ -28,6 +28,7 @@ export const updateProfileRequest = t.Object({
 	profileInfo: t.Optional(
 		t.Object({
 			phoneNumber: t.Optional(t.Array(t.String())),
+			birthday: t.Optional(t.String()),
 		})
 	),
 	accountSetting: t.Optional(

@@ -1,9 +1,10 @@
 import { Context } from "@/types/app.type";
 import AccountRepo from "./account.repo";
 import { GetMyProfileResponse, GetMyTasksRequest, UpdateProfileRequest, GetMyTasksResponse } from "./account.validator";
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 import AppError from "@/pkgs/appError/Error";
-import { getAccountSettingUpdate, getProfileInfoUpdate } from "./account.helper";
+import { AccountModel } from "./account.model";
+import { mergeAccountSettingWithDb, mergeProfileInfoWithDb } from "./account.helper";
 
 const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 	const myProfile = await AccountRepo.getProfile(ctx);
@@ -25,17 +26,30 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 };
 
 const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promise<boolean> => {
-	const payload: UpdateProfileRequest = {};
+	if (request.profileInfo?.birthday) {
+		if (!dayjs(request.profileInfo.birthday).isValid()) {
+			throw new AppError("BAD_REQUEST");
+		}
+	}
 
-	payload.fullname = request.fullname ?? undefined;
-	payload.firstname = request.firstname ?? undefined;
-	payload.lastname = request.lastname ?? undefined;
-	payload.avatar = request.avatar ?? undefined;
+	const currentProfile = await AccountRepo.getProfile(ctx);
 
-	payload.profileInfo = getProfileInfoUpdate(request.profileInfo);
-	payload.accountSetting = getAccountSettingUpdate(request.accountSetting);
+	if (!currentProfile) throw new AppError("BAD_REQUEST");
 
-	const res = await AccountRepo.updateProfile(ctx, payload);
+	const updator: Partial<AccountModel> = {
+		avatar: request.avatar,
+		firstname: request.firstname,
+		lastname: request.lastname,
+		fullname: request.fullname,
+	};
+	if (request.profileInfo) {
+		updator.profileInfo = mergeProfileInfoWithDb(currentProfile, request.profileInfo);
+	}
+	if (request.accountSetting) {
+		updator.accountSetting = mergeAccountSettingWithDb(currentProfile, request.accountSetting);
+	}
+
+	const res = await AccountRepo.updateProfile(ctx, updator);
 
 	return res;
 };

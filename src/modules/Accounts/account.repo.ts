@@ -5,7 +5,9 @@ import { AccountColl, TaskColl } from "@/loaders/mongo";
 import AppError from "@/pkgs/appError/Error";
 import { ObjectId } from "mongodb";
 import { TaskPriority } from "../Tasks/task.model";
-import { StringId } from "@/types/common.type";
+import { DeepPartial, StringId } from "@/types/common.type";
+import { mergeAccountSettingWithDb, mergeProfileInfoWithDb } from "./account.helper";
+import { AccountModel } from "./account.model";
 
 const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 	let profile = await AccountColl.findOne({
@@ -118,20 +120,20 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 	return tasks;
 };
 
-const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promise<boolean> => {
-	await AccountColl.findOneAndUpdate(
+const updateProfile = async (ctx: Context, request: Partial<AccountModel>): Promise<boolean> => {
+	await AccountColl.updateOne(
 		{
-			_id: new ObjectId(ctx.user._id),
+			email: ctx.user.email,
 		},
 		{
 			$set: {
+				avatar: request.avatar,
 				fullname: request.fullname,
 				firstname: request.firstname,
 				lastname: request.lastname,
-				avatar: request.avatar,
-				"profileInfo.phoneNumber": request.profileInfo?.phoneNumber,
-				"accountSetting.theme": request.accountSetting?.theme,
-				"accountSetting.isPrivateAccount": request.accountSetting?.isPrivateAccount,
+
+				profileInfo: request.profileInfo,
+				accountSetting: request.accountSetting,
 			},
 		},
 		{

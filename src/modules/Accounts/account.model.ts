@@ -73,7 +73,7 @@ export const accountModel = t.Object({
 	accountSetting: accountSetting,
 
 	createdAt: t.Date(),
-	updatedAt: t.Optional(t.Date()),
+	updatedAt: t.Date(),
 	isDeleted: t.Optional(t.Boolean()),
 	deletedAt: t.Optional(t.Date()),
 });

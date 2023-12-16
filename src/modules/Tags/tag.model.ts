@@ -1,5 +1,5 @@
-import {t} from "elysia";
-import {ObjectId} from "mongodb";
+import { t } from "elysia";
+import { ObjectId } from "mongodb";
 
 /**
  *  -----------------------------
@@ -9,22 +9,22 @@ import {ObjectId} from "mongodb";
  * 	-----------------------------
  */
 export type TagModel = {
-  _id: ObjectId;
+	_id: ObjectId;
 
-  title: string;
-  color: string;
-  ownerId: ObjectId;
+	title: string;
+	color: string;
+	ownerId: ObjectId;
 
-  createdAt: Date;
-  updatedAt: Date;
+	createdAt: Date;
+	updatedAt: Date;
 };
 
 export const tagModel = t.Object({
-  _id: t.String(),
-  title: t.String(),
-  ownerId: t.String(),
-  color: t.String(),
+	_id: t.String(),
+	title: t.String(),
+	ownerId: t.String(),
+	color: t.String(),
 
-  createdAt: t.Date(),
-  updatedAt: t.Date(),
-})
+	createdAt: t.Date(),
+	updatedAt: t.Date(),
+});

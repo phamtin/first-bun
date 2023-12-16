@@ -1,9 +1,9 @@
-import {Static, t} from "elysia";
-import {tagModel} from "./tag.model";
+import { Static, t } from "elysia";
+import { tagModel } from "./tag.model";
 
 export const createTagRequest = t.Object({
-  title: t.String(),
-  color: t.String()
+	title: t.String(),
+	color: t.String(),
 });
 
 export const createTagResponse = tagModel;

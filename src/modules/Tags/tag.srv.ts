@@ -1,18 +1,18 @@
-import {Context} from "@/types/app.type";
-import {CreateTagRequest, CreateTagResponse} from "./tag.validator";
+import { Context } from "@/types/app.type";
+import { CreateTagRequest, CreateTagResponse } from "./tag.validator";
 import systemLog from "@/pkgs/systemLog";
 import TagRepo from "./tag.repo";
 
 const createTag = async (ctx: Context, request: CreateTagRequest): Promise<CreateTagResponse> => {
-  systemLog.info("createTag - START");
+	systemLog.info("createTag - START");
 
-  const created = await TagRepo.createTag(ctx, request)
+	const created = await TagRepo.createTag(ctx, request);
 
-  return created;
-}
+	return created;
+};
 
 const TagSrv = {
-  createTag
-}
+	createTag,
+};
 
 export default TagSrv;

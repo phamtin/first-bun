@@ -2,13 +2,13 @@ import Elysia from "elysia";
 import AuthApp from "@/modules/Auth";
 import TaskApp from "@/modules/Tasks";
 import AccountApp from "@/modules/Accounts";
-import {signinGoogleRequest, signoutGoogleRequest} from "@/modules/Auth/auth.validator";
-import {createTaskRequest} from "@/modules/Tasks/task.validator";
-import {isAuthenticated} from "@/middlewares/auth";
-import {Context} from "@/types/app.type";
-import {updateProfileRequest} from "@/modules/Accounts/account.validator";
+import { signinGoogleRequest, signoutGoogleRequest } from "@/modules/Auth/auth.validator";
+import { createTaskRequest, updateTasksRequest } from "@/modules/Tasks/task.validator";
+import { isAuthenticated } from "@/middlewares/auth";
+import { Context } from "@/types/app.type";
+import { updateProfileRequest } from "@/modules/Accounts/account.validator";
 import TagApp from "@/modules/Tags";
-import {createTagRequest} from "@/modules/Tags/tag.validator";
+import { createTagRequest } from "@/modules/Tags/tag.validator";
 
 const WithAppRouter = (app: Elysia): Elysia => {
 	return app.group("/v1", (app) =>
@@ -42,17 +42,18 @@ const WithAppRouter = (app: Elysia): Elysia => {
 					.post("/create", (c) => TaskApp.TaskSrv.createTask(c.store as Context, c.body), {
 						body: createTaskRequest,
 					})
-					.patch("/:id", (c) => TaskApp.TaskSrv.updateTask(c.store as Context, c.body))
+					.patch("/:id", (c) => TaskApp.TaskSrv.updateTask(c.store as Context, c.params["id"], c.body), {
+						body: updateTasksRequest,
+					})
 					.post("/sync-external-to-redis", (c) => TaskApp.TaskSrv.syncExternalToRedis(c.store as Context, c.body))
 					.post("/sync-redis-to-db", (c) => TaskApp.TaskSrv.syncTaskToDb(c.store as Context, c.body))
 			)
 
 			.group("/tags", (app) =>
-				app
-					.use(isAuthenticated)
-					.post("/create", (c) => TagApp.TagSrv.createTag(c.store as Context, c.body), {
-						body: createTagRequest
-					}))
+				app.use(isAuthenticated).post("/create", (c) => TagApp.TagSrv.createTag(c.store as Context, c.body), {
+					body: createTagRequest,
+				})
+			)
 	);
 };
 
