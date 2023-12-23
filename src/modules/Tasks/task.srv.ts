@@ -8,9 +8,11 @@ import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
 import { ObjectId } from "mongodb";
 import { TaskModel } from "./task.model";
+import { Null, StringId } from "@/types/common.type";
 
-const getTask = async (ctx: Context) => {
-	return [];
+const getTaskById = async (ctx: Context, id: string): Promise<Null<StringId<TaskModel>>> => {
+	const task = await TaskRepo.getTaskById(ctx, id);
+	return task;
 };
 
 const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<CreateTaskResponse> => {
@@ -31,6 +33,9 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 			}
 		}
 	}
+	if (!request.status) {
+		request.status = "NotStartYet";
+	}
 
 	const created = await TaskRepo.createTask(ctx, request);
 
@@ -38,6 +43,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 
 	return created;
 };
+
 const updateTask = async (ctx: Context, taskId: string, request: UpdateTasksRequest): Promise<boolean> => {
 	systemLog.info("updateTask - START");
 
@@ -74,6 +80,8 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTasksRequ
 
 	if (!res?._id) throw new AppError("INTERNAL_SERVER_ERROR");
 
+	systemLog.info("updateTask - END");
+
 	return true;
 };
 
@@ -86,7 +94,7 @@ const TaskSrv = {
 	updateTask,
 	syncExternalToRedis,
 	createTask,
-	getTask,
+	getTaskById,
 };
 
 export default TaskSrv;

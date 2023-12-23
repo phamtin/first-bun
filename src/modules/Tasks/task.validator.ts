@@ -6,7 +6,7 @@ import { attributePattern } from "@/types/common.type";
 export const createTaskRequest = t.Object({
 	title: t.String(),
 	description: t.Optional(t.String()),
-	status: taskStatus,
+	status: t.Optional(taskStatus),
 	timing: t.Optional(
 		t.Object({
 			startDate: t.String(),

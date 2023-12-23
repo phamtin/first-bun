@@ -6,7 +6,7 @@ export const getMyTasksRequest = t.Object({
 	query: t.Optional(t.String()),
 	status: t.Optional(t.Array(taskStatus)),
 	priorities: t.Optional(t.Array(taskPriority)),
-	startDate: t.Optional(t.String()),
+	startDate: t.Optional(t.Array(t.String())),
 	endDate: t.Optional(t.String()),
 });
 
@@ -18,6 +18,7 @@ export const getMyTasksResponse = t.Array(
 		title: t.String(),
 		description: t.String(),
 		status: taskStatus,
+		priorities: t.Optional(taskPriority),
 	})
 );
 export const updateProfileRequest = t.Object({

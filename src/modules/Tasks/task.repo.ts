@@ -4,9 +4,23 @@ import { CreateTaskRequest, CreateTaskResponse } from "./task.validator";
 
 import { TaskModel, TaskTiming } from "./task.model";
 import { Context } from "@/types/app.type";
-import { Null, Undefined } from "@/types/common.type";
+import { Null, StringId, Undefined } from "@/types/common.type";
 
-const getTask = (ctx: Context, request: any) => {};
+const getTaskById = async (ctx: Context, id: string): Promise<Null<StringId<TaskModel>>> => {
+	const res = await TaskColl.findOne({
+		_id: new ObjectId(id),
+	});
+
+	if (!res) return null;
+
+	return {
+		...res,
+		_id: id,
+		title: res.title,
+		ownerId: res.ownerId.toHexString(),
+		tagIds: res.tagIds?.map((id) => id.toHexString()),
+	};
+};
 
 const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<CreateTaskResponse> => {
 	let parsedTiming: Undefined<TaskTiming> = undefined;
@@ -27,7 +41,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	const data: TaskModel = {
 		_id: new ObjectId(),
 		title: request.title,
-		status: request.status,
+		status: request.status!,
 		ownerId: new ObjectId(ctx.user._id),
 		description: request.description,
 		additionalInfo: request.additionalInfo,
@@ -76,7 +90,7 @@ const updateTask = async (ctx: Context, taskId: ObjectId, request: Partial<TaskM
 
 const TaskRepo = {
 	createTask,
-	getTask,
+	getTaskById,
 	updateTask,
 };
 

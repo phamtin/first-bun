@@ -1,12 +1,10 @@
 import { Context } from "@/types/app.type";
 
-import { GetMyProfileResponse, GetMyTasksResponse, GetMyTasksRequest, UpdateProfileRequest } from "./account.validator";
+import { GetMyProfileResponse, GetMyTasksRequest } from "./account.validator";
 import { AccountColl, TaskColl } from "@/loaders/mongo";
 import AppError from "@/pkgs/appError/Error";
 import { ObjectId } from "mongodb";
-import { TaskPriority } from "../Tasks/task.model";
-import { DeepPartial, StringId } from "@/types/common.type";
-import { mergeAccountSettingWithDb, mergeProfileInfoWithDb } from "./account.helper";
+import { TaskModel, TaskPriority } from "../Tasks/task.model";
 import { AccountModel } from "./account.model";
 
 const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
@@ -22,14 +20,16 @@ const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 	};
 };
 
-const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<GetMyTasksResponse> => {
-	const { query = "", startDate, endDate } = request;
+const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<TaskModel[]> => {
+	const { query = "", startDate = [], endDate } = request;
 
-	const statusFilter = request.status?.filter((t) => t !== "Archived") || [];
+	const excludedStatus = "Archived";
+
+	const statusFilter = request.status?.filter((t) => t !== excludedStatus) || [];
 
 	const priorities: TaskPriority[] = request.priorities || [];
 
-	const tasks: StringId<GetMyTasksResponse> = (await TaskColl.aggregate([
+	const tasks: TaskModel[] = (await TaskColl.aggregate([
 		{
 			$match: {
 				ownerId: new ObjectId(ctx.user._id),
@@ -81,14 +81,27 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 						},
 						//	Apply filter has startDate
 						{
-							$cond: {
-								if: {
-									$ne: [startDate, undefined],
-								},
-								then: {
-									$gte: ["$timing.startDate", { $toDate: startDate }],
-								},
-								else: {},
+							$switch: {
+								branches: [
+									{
+										case: { $eq: [startDate.length, 1] },
+										then: { $gte: ["$timing.startDate", { $toDate: startDate[0] }] },
+									},
+									{
+										case: { $eq: [startDate.length, 2] },
+										then: {
+											$and: [
+												{
+													$gte: ["$timing.startDate", { $toDate: startDate[0] }],
+												},
+												{
+													$lte: ["$timing.startDate", { $toDate: startDate[1] }],
+												},
+											],
+										},
+									},
+								],
+								default: {},
 							},
 						},
 						//	Apply filter has endDate
@@ -98,7 +111,7 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 									$ne: [endDate, undefined],
 								},
 								then: {
-									$lte: ["$timing.endDate", { $toDate: startDate }],
+									$lte: ["$timing.endDate", { $toDate: endDate }],
 								},
 								else: {},
 							},
@@ -108,20 +121,15 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 			},
 		},
 		{
-			$addFields: {
-				_id: { $toString: "$_id" },
-			},
+			$project: { title: 1, description: 1, status: 1, priority: 1 },
 		},
-		{
-			$project: { title: 1, description: 1, status: 1 },
-		},
-	]).toArray()) as any[];
+	]).toArray()) as TaskModel[];
 
 	return tasks;
 };
 
-const updateProfile = async (ctx: Context, request: Partial<AccountModel>): Promise<boolean> => {
-	await AccountColl.updateOne(
+const updateProfile = async (ctx: Context, request: Partial<AccountModel>): Promise<AccountModel> => {
+	const updated = await AccountColl.findOneAndUpdate(
 		{
 			email: ctx.user.email,
 		},
@@ -138,10 +146,13 @@ const updateProfile = async (ctx: Context, request: Partial<AccountModel>): Prom
 		},
 		{
 			ignoreUndefined: true,
+			returnDocument: "after",
 		}
 	);
 
-	return true;
+	if (!updated) throw new AppError("INTERNAL_SERVER_ERROR");
+
+	return updated;
 };
 
 const AccountRepo = {

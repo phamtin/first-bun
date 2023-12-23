@@ -38,7 +38,7 @@ const WithAppRouter = (app: Elysia): Elysia => {
 			.group("/tasks", (app) =>
 				app
 					.use(isAuthenticated)
-					.get("/:id", (c) => TaskApp.TaskSrv.getTask(c.store as Context))
+					.get("/:id", (c) => TaskApp.TaskSrv.getTaskById(c.store as Context, c.params["id"]))
 					.post("/create", (c) => TaskApp.TaskSrv.createTask(c.store as Context, c.body), {
 						body: createTaskRequest,
 					})
