@@ -40,7 +40,7 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 						{
 							$cond: {
 								if: {
-									$gt: [query.length, 2],
+									$gte: [query.length, 3],
 								},
 								then: {
 									$or: [

@@ -5,6 +5,7 @@ import { CreateTaskRequest, CreateTaskResponse } from "./task.validator";
 import { TaskModel, TaskTiming } from "./task.model";
 import { Context } from "@/types/app.type";
 import { Null, StringId, Undefined } from "@/types/common.type";
+import AppError from "@/pkgs/appError/Error";
 
 const getTaskById = async (ctx: Context, id: string): Promise<Null<StringId<TaskModel>>> => {
 	const res = await TaskColl.findOne({
@@ -53,7 +54,9 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 		updatedAt: now,
 	};
 
-	await TaskColl.insertOne(data);
+	const { acknowledged } = await TaskColl.insertOne(data);
+
+	if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR");
 
 	return {
 		...data,

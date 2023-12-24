@@ -22,8 +22,13 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 		if (![1, 2].includes(startDate.length)) {
 			throw new AppError("BAD_REQUEST");
 		}
-		if (dayjs(endDate).isSameOrBefore(startDate[0], "minute")) {
+		if (dayjs(startDate[1]).isSameOrBefore(startDate[0], "minute")) {
 			throw new AppError("BAD_REQUEST");
+		}
+		if (endDate) {
+			if (dayjs(endDate).isSameOrBefore(startDate[0], "minute")) {
+				throw new AppError("BAD_REQUEST");
+			}
 		}
 	}
 
@@ -57,6 +62,7 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 		fullname: request.fullname,
 		avatar: request.avatar,
 	};
+
 	if (request.profileInfo) {
 		updator.profileInfo = mergeProfileInfoWithDb(currentProfile, request.profileInfo);
 	}
