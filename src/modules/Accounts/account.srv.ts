@@ -22,11 +22,11 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 		if (![1, 2].includes(startDate.length)) {
 			throw new AppError("BAD_REQUEST");
 		}
-		if (dayjs(startDate[1]).isSameOrBefore(startDate[0], "minute")) {
+		if (dayjs(startDate[1]).isSameOrBefore(startDate[0], "second")) {
 			throw new AppError("BAD_REQUEST");
 		}
 		if (endDate) {
-			if (dayjs(endDate).isSameOrBefore(startDate[0], "minute")) {
+			if (dayjs(endDate).isSameOrBefore(startDate[0], "second")) {
 				throw new AppError("BAD_REQUEST");
 			}
 		}

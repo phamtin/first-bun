@@ -27,17 +27,20 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	let parsedTiming: Undefined<TaskTiming> = undefined;
 
 	if (request.timing) {
+		const { startDate, endDate } = request.timing;
 		parsedTiming = {};
-		parsedTiming.startDate = new Date(request.timing.startDate);
 
-		if (request.timing.endDate) {
-			parsedTiming.endDate = new Date(request.timing.endDate);
+		if (startDate) {
+			parsedTiming.startDate = new Date(startDate);
+		}
+		if (endDate) {
+			parsedTiming.endDate = new Date(endDate);
 		}
 	}
 
-	const now = new Date();
-
 	const tagIdsObjectId = (request.tagIds ?? []).map((t) => new ObjectId(t));
+
+	const now = new Date();
 
 	const data: TaskModel = {
 		_id: new ObjectId(),

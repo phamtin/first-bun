@@ -9,7 +9,7 @@ export const createTaskRequest = t.Object({
 	status: t.Optional(taskStatus),
 	timing: t.Optional(
 		t.Object({
-			startDate: t.String(),
+			startDate: t.Optional(t.String()),
 			endDate: t.Optional(t.String()),
 			estimation: t.Optional(t.String()),
 		})
@@ -34,7 +34,13 @@ export const getTasksResponse = taskModel;
 export const updateTasksRequest = t.Object({
 	title: t.Optional(t.String()),
 	status: t.Optional(taskStatus),
-	timing: t.Optional(taskTiming),
+	timing: t.Optional(
+		t.Object({
+			startDate: t.Optional(t.String()),
+			endDate: t.Optional(t.String()),
+			estimation: t.Optional(t.String()),
+		})
+	),
 	tagIds: t.Optional(t.Array(t.String())),
 	priority: t.Optional(taskPriority),
 	description: t.Optional(t.String()),

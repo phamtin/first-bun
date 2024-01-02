@@ -21,14 +21,18 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 
-		if (!dayjs(startDate).isValid()) {
-			throw new AppError("BAD_REQUEST", "Timing need a start date");
+		if (startDate) {
+			if (!dayjs(startDate).isValid()) {
+				throw new AppError("BAD_REQUEST");
+			}
 		}
 		if (endDate) {
+			const headOfTime = startDate ?? new Date();
+
 			if (!dayjs(endDate).isValid()) {
 				throw new AppError("BAD_REQUEST");
 			}
-			if (dayjs(endDate).isSameOrBefore(startDate, "minute")) {
+			if (dayjs(endDate).isSameOrBefore(headOfTime, "second")) {
 				throw new AppError("BAD_REQUEST");
 			}
 		}
@@ -49,29 +53,34 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTasksRequ
 
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
+		const headOfTime = startDate ?? new Date();
 
 		if (!dayjs(startDate).isValid()) {
 			throw new AppError("BAD_REQUEST", "Timing need a start date");
 		}
-		if (!dayjs(endDate).isValid() || dayjs(endDate).isSameOrBefore(startDate, "minute")) {
+		if (!dayjs(endDate).isValid() || dayjs(endDate).isSameOrBefore(headOfTime, "second")) {
 			throw new AppError("BAD_REQUEST");
 		}
 	}
 
 	const taskObjectId = new ObjectId(taskId);
 
-	const currentTask = await TaskColl.findOne({ _id: taskObjectId });
-
-	if (!currentTask) throw new AppError("BAD_REQUEST");
+	if (!(await TaskColl.findOne({ _id: taskObjectId }))) throw new AppError("NOT_FOUND");
 
 	const updator: Partial<TaskModel> = {
 		title: request.title,
 		description: request.description,
 		priority: request.priority,
 		status: request.status,
-		timing: request.timing,
 		additionalInfo: request.additionalInfo,
 	};
+	if (request.timing) {
+		updator.timing = {};
+		const { startDate, endDate } = request.timing;
+
+		if (startDate) updator.timing.startDate = new Date(startDate);
+		if (endDate) updator.timing.endDate = new Date(endDate);
+	}
 	if (request.tagIds) {
 		updator.tagIds = request.tagIds.map((id) => new ObjectId(id));
 	}
