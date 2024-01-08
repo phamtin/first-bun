@@ -21,7 +21,7 @@ const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 };
 
 const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<TaskModel[]> => {
-	const { query = "", startDate = [], endDate } = request;
+	const { query = "", startDate = [], endDate = [] } = request;
 
 	const excludedStatus = "Archived";
 
@@ -106,14 +106,27 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 						},
 						//	Apply filter has endDate
 						{
-							$cond: {
-								if: {
-									$ne: [endDate, undefined],
-								},
-								then: {
-									$lte: ["$timing.endDate", { $toDate: endDate }],
-								},
-								else: {},
+							$switch: {
+								branches: [
+									{
+										case: { $eq: [endDate.length, 1] },
+										then: { $lte: ["$timing.endDate", { $toDate: endDate[0] }] },
+									},
+									{
+										case: { $eq: [endDate.length, 2] },
+										then: {
+											$and: [
+												{
+													$gte: ["$timing.endDate", { $toDate: endDate[0] }],
+												},
+												{
+													$lte: ["$timing.endDate", { $toDate: endDate[1] }],
+												},
+											],
+										},
+									},
+								],
+								default: {},
 							},
 						},
 					],

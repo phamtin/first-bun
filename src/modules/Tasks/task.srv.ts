@@ -33,7 +33,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 				throw new AppError("BAD_REQUEST");
 			}
 			if (dayjs(endDate).isSameOrBefore(headOfTime, "second")) {
-				throw new AppError("BAD_REQUEST");
+				throw new AppError("BAD_REQUEST", "End start is invalid");
 			}
 		}
 	}

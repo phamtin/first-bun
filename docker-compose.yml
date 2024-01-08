@@ -13,7 +13,7 @@ services:
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - JWT_SECRET=abc123
-            - ACCESS_TOKEN_EXPIRE_MINUTE=6
+            - ACCESS_TOKEN_EXPIRE_MINUTE=720
 
         # override default entrypoint allows us to do `bun install` before serving
         entrypoint: []

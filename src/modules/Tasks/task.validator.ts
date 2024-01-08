@@ -22,11 +22,11 @@ export const createTaskRequest = t.Object({
 export const createTaskResponse = taskModel;
 
 export const getTasksRequest = t.Object({
-	title: t.String(),
-	status: taskStatus,
-	timing: t.Optional(taskTiming),
-	description: t.Optional(t.String()),
-	additionalInfo: t.Optional(t.Array(attributePattern)),
+	query: t.Optional(t.String()),
+	status: t.Optional(t.Array(taskStatus)),
+	priorities: t.Optional(t.Array(taskPriority)),
+	startDate: t.Optional(t.Array(t.String())),
+	endDate: t.Optional(t.Array(t.String())),
 });
 
 export const getTasksResponse = taskModel;
