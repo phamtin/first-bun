@@ -7,7 +7,7 @@ export const getMyTasksRequest = t.Object({
 	status: t.Optional(t.Array(taskStatus)),
 	priorities: t.Optional(t.Array(taskPriority)),
 	startDate: t.Optional(t.Array(t.String())),
-	endDate: t.Optional(t.String()),
+	endDate: t.Optional(t.Array(t.String())),
 });
 
 export const getMyProfileResponse = accountModel;

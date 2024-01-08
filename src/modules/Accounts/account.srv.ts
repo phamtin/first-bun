@@ -17,17 +17,25 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 	let res = Value.Create(getMyTasksResponse);
 
 	if (request.startDate) {
+		if (![1, 2].includes(request.startDate.length)) {
+			throw new AppError("BAD_REQUEST", "Start date range must have 2 values");
+		}
+		if (dayjs(request.startDate[1]).isSameOrBefore(request.startDate[0], "second")) {
+			throw new AppError("BAD_REQUEST", "Start date range is invalid");
+		}
+	}
+	if (request.endDate) {
 		const { startDate, endDate } = request;
 
-		if (![1, 2].includes(startDate.length)) {
+		if (![1, 2].includes(endDate.length)) {
 			throw new AppError("BAD_REQUEST");
 		}
-		if (dayjs(startDate[1]).isSameOrBefore(startDate[0], "second")) {
+		if (dayjs(endDate[1]).isSameOrBefore(endDate[0], "second")) {
 			throw new AppError("BAD_REQUEST");
 		}
-		if (endDate) {
-			if (dayjs(endDate).isSameOrBefore(startDate[0], "second")) {
-				throw new AppError("BAD_REQUEST");
+		if (startDate) {
+			if (dayjs(endDate[0]).isSameOrBefore(startDate[1], "second")) {
+				throw new AppError("BAD_REQUEST", "Start date - end date range is invalid");
 			}
 		}
 	}
