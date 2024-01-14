@@ -2,6 +2,7 @@ import { t, Static } from "elysia";
 import { ObjectId } from "mongodb";
 
 import { AttributePattern, attributePattern } from "../../types/common.type";
+import { TaskTagModel, taskTagModel } from "../Tags/tag.model";
 
 //  week | day | hour
 export const timeFrame = t.Enum({
@@ -13,7 +14,7 @@ export const timeFrame = t.Enum({
 	h: "h",
 });
 
-export const dateTimeString = t.TemplateLiteral(`${t.Number() || ""}${t.Number()}${timeFrame}.${t.Number()}${t.Number()}${timeFrame}`); //  2d.4h
+export const dateTimeString = t.TemplateLiteral(`${t.Number() || ""}${t.Number()}${timeFrame}.${t.Number()}${t.Number()}${timeFrame}`); //  2h.30p
 
 export const taskTiming = t.Object({
 	startDate: t.Optional(t.Date()),
@@ -69,7 +70,7 @@ export type TaskModel = {
 	description?: string;
 	timing?: TaskTiming;
 	priority?: TaskPriority;
-	tagIds?: ObjectId[];
+	tags?: TaskTagModel[];
 	additionalInfo?: AttributePattern[];
 
 	createdAt: Date;
@@ -85,7 +86,7 @@ export const taskModel = t.Object({
 	priority: t.Optional(taskPriority),
 	timing: t.Optional(taskTiming),
 	description: t.Optional(t.String()),
-	tagIds: t.Optional(t.Array(t.String())),
+	tags: t.Optional(t.Array(taskTagModel)),
 	additionalInfo: t.Optional(t.Array(attributePattern)),
 
 	createdAt: t.Date(),

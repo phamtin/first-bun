@@ -11,14 +11,18 @@ export const mergeProfileInfoWithDb = (model: StringId<AccountModel>, request: U
 		phoneNumber: model.profileInfo.phoneNumber,
 		birthday: model.profileInfo.birthday as Date,
 		locale: model.profileInfo.locale,
+		tags: model.profileInfo.tags,
 	};
-	const { phoneNumber, birthday } = request;
+	const { phoneNumber, birthday, tags } = request;
 
 	if (phoneNumber) {
 		res.phoneNumber = phoneNumber as string[];
 	}
 	if (birthday) {
 		res.birthday = new Date(birthday);
+	}
+	if (tags) {
+		res.tags = tags;
 	}
 
 	return res;

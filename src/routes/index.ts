@@ -8,7 +8,7 @@ import { isAuthenticated } from "@/middlewares/auth";
 import { Context } from "@/types/app.type";
 import { updateProfileRequest } from "@/modules/Accounts/account.validator";
 import TagApp from "@/modules/Tags";
-import { createTagRequest } from "@/modules/Tags/tag.validator";
+import { createTagRequest, deleteTagRequest, updateTagRequest } from "@/modules/Tags/tag.validator";
 
 const WithAppRouter = (app: Elysia): Elysia => {
 	return app.group("/v1", (app) =>
@@ -50,9 +50,23 @@ const WithAppRouter = (app: Elysia): Elysia => {
 			)
 
 			.group("/tags", (app) =>
-				app.use(isAuthenticated).post("/create", (c) => TagApp.TagSrv.createTag(c.store as Context, c.body), {
-					body: createTagRequest,
-				})
+				app
+					.use(isAuthenticated)
+					.post("/create", (c) => TagApp.TagSrv.createTag(c.store as Context, c.body), {
+						body: createTagRequest,
+					})
+					.patch("/:id", (c) => TagApp.TagSrv.updateTag(c.store as Context, c.body), {
+						body: updateTagRequest,
+					})
+					.delete(
+						"/:id",
+						(c) => {
+							return TagApp.TagSrv.deleteTag(c.store as Context, c.body);
+						},
+						{
+							body: deleteTagRequest,
+						}
+					)
 			)
 	);
 };

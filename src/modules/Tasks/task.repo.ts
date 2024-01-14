@@ -19,7 +19,7 @@ const getTaskById = async (ctx: Context, id: string): Promise<Null<StringId<Task
 		_id: id,
 		title: res.title,
 		ownerId: res.ownerId.toHexString(),
-		tagIds: res.tagIds?.map((id) => id.toHexString()),
+		tags: res.tags?.map((item) => ({ ...item, _id: item._id.toHexString() })),
 	};
 };
 
@@ -27,7 +27,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	let parsedTiming: Undefined<TaskTiming> = undefined;
 
 	if (request.timing) {
-		const { startDate, endDate } = request.timing;
+		const { startDate, endDate, estimation } = request.timing;
 		parsedTiming = {};
 
 		if (startDate) {
@@ -36,9 +36,12 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 		if (endDate) {
 			parsedTiming.endDate = new Date(endDate);
 		}
+		if (estimation) {
+			parsedTiming.estimation = estimation as TaskTiming["estimation"];
+		}
 	}
 
-	const tagIdsObjectId = (request.tagIds ?? []).map((t) => new ObjectId(t));
+	const ObjectIdTags = (request.tags ?? []).map((t) => ({ ...t, _id: new ObjectId(t._id) }));
 
 	const now = new Date();
 
@@ -52,7 +55,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 		priority: request.priority,
 
 		timing: parsedTiming,
-		tagIds: tagIdsObjectId,
+		tags: ObjectIdTags,
 		createdAt: now,
 		updatedAt: now,
 	};
@@ -65,7 +68,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 		...data,
 		_id: data._id.toHexString(),
 		ownerId: ctx.user._id,
-		tagIds: request.tagIds,
+		tags: request.tags,
 	};
 };
 
@@ -79,7 +82,7 @@ const updateTask = async (ctx: Context, taskId: ObjectId, request: Partial<TaskM
 				title: request.title,
 				status: request.status,
 				timing: request.timing,
-				tagIds: request.tagIds,
+				tags: request.tags,
 				priority: request.priority,
 				description: request.description,
 				additionalInfo: request.additionalInfo,

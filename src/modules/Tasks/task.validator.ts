@@ -1,7 +1,8 @@
 import { t, Static } from "elysia";
 
-import { taskModel, taskPriority, taskStatus, taskTiming } from "./task.model";
+import { taskModel, taskPriority, taskStatus } from "./task.model";
 import { attributePattern } from "@/types/common.type";
+import { taskTagModel } from "../Tags/tag.model";
 
 export const createTaskRequest = t.Object({
 	title: t.String(),
@@ -14,7 +15,7 @@ export const createTaskRequest = t.Object({
 			estimation: t.Optional(t.String()),
 		})
 	),
-	tagIds: t.Optional(t.Array(t.String())),
+	tags: t.Optional(t.Array(taskTagModel)),
 	priority: t.Optional(taskPriority),
 	additionalInfo: t.Optional(t.Array(attributePattern)),
 });
@@ -41,7 +42,7 @@ export const updateTasksRequest = t.Object({
 			estimation: t.Optional(t.String()),
 		})
 	),
-	tagIds: t.Optional(t.Array(t.String())),
+	tags: t.Optional(t.Array(taskTagModel)),
 	priority: t.Optional(taskPriority),
 	description: t.Optional(t.String()),
 	additionalInfo: t.Optional(t.Array(attributePattern)),

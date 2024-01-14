@@ -7,8 +7,10 @@ import AppError from "@/pkgs/appError/Error";
 import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
 import { ObjectId } from "mongodb";
-import { TaskModel } from "./task.model";
+import { TaskModel, TaskTiming } from "./task.model";
 import { Null, StringId } from "@/types/common.type";
+import AccountSrv from "../Accounts/account.srv";
+import { TaskTagModel } from "../Tags/tag.model";
 
 const getTaskById = async (ctx: Context, id: string): Promise<Null<StringId<TaskModel>>> => {
 	const task = await TaskRepo.getTaskById(ctx, id);
@@ -51,6 +53,10 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 const updateTask = async (ctx: Context, taskId: string, request: UpdateTasksRequest): Promise<boolean> => {
 	systemLog.info("updateTask - START");
 
+	const [userProfile, task] = await Promise.all([AccountSrv.getProfile(ctx), TaskColl.findOne({ _id: new ObjectId(taskId) })]);
+
+	if (!userProfile || !task) throw new AppError("NOT_FOUND");
+
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 		const headOfTime = startDate ?? new Date();
@@ -62,11 +68,6 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTasksRequ
 			throw new AppError("BAD_REQUEST");
 		}
 	}
-
-	const taskObjectId = new ObjectId(taskId);
-
-	if (!(await TaskColl.findOne({ _id: taskObjectId }))) throw new AppError("NOT_FOUND");
-
 	const updator: Partial<TaskModel> = {
 		title: request.title,
 		description: request.description,
@@ -76,16 +77,23 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTasksRequ
 	};
 	if (request.timing) {
 		updator.timing = {};
-		const { startDate, endDate } = request.timing;
+		const { startDate, endDate, estimation } = request.timing;
 
 		if (startDate) updator.timing.startDate = new Date(startDate);
 		if (endDate) updator.timing.endDate = new Date(endDate);
+		if (estimation) updator.timing.estimation = estimation as TaskTiming["estimation"];
 	}
-	if (request.tagIds) {
-		updator.tagIds = request.tagIds.map((id) => new ObjectId(id));
+	if (Array.isArray(request.tags)) {
+		const tagsToUpdate: TaskTagModel[] = [];
+		request.tags.forEach((tag) => {
+			if (!userProfile.profileInfo.tags?.[tag._id]) return;
+			const { _id, title, color } = userProfile.profileInfo.tags[tag._id];
+			tagsToUpdate.push({ _id: new ObjectId(_id), title, color });
+		});
+		updator.tags = tagsToUpdate;
 	}
 
-	const res = await TaskRepo.updateTask(ctx, taskObjectId, updator);
+	const res = await TaskRepo.updateTask(ctx, new ObjectId(taskId), updator);
 
 	if (!res?._id) throw new AppError("INTERNAL_SERVER_ERROR");
 

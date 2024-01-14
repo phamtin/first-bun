@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.4.1",
-    "@types/bun": "^1.0.0",
+    "@types/bun": "^1.0.1",
     "@types/jsonwebtoken": "^9.0.5"
   },
   "module": "src/index.js"

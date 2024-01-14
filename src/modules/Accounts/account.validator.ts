@@ -1,6 +1,7 @@
 import { t, Static } from "elysia";
 import { accountModel, colorTheme } from "./account.model";
 import { taskPriority, taskStatus } from "../Tasks/task.model";
+import { taskTagModel } from "../Tags/tag.model";
 
 export const getMyTasksRequest = t.Object({
 	query: t.Optional(t.String()),
@@ -30,6 +31,7 @@ export const updateProfileRequest = t.Object({
 		t.Object({
 			phoneNumber: t.Optional(t.Array(t.String())),
 			birthday: t.Optional(t.String()),
+			tags: t.Optional(t.Record(t.String(), taskTagModel)),
 		})
 	),
 	accountSetting: t.Optional(

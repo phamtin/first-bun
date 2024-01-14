@@ -1,11 +1,12 @@
 import { Context } from "@/types/app.type";
 import AccountRepo from "./account.repo";
-import { GetMyProfileResponse, GetMyTasksRequest, UpdateProfileRequest, GetMyTasksResponse, getMyTasksResponse } from "./account.validator";
+import { GetMyProfileResponse, GetMyTasksRequest, UpdateProfileRequest, GetMyTasksResponse } from "./account.validator";
 import dayjs from "@/utils/dayjs";
 import AppError from "@/pkgs/appError/Error";
 import { AccountModel } from "./account.model";
 import { mergeAccountSettingWithDb, mergeProfileInfoWithDb } from "./account.helper";
 import { TaskModel } from "../Tasks/task.model";
+import systemLog from "@/pkgs/systemLog";
 
 const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 	const myProfile = await AccountRepo.getProfile(ctx);
@@ -53,6 +54,8 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 };
 
 const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promise<boolean> => {
+	systemLog.info("updateProfile - START");
+
 	if (request.profileInfo?.birthday) {
 		if (!dayjs(request.profileInfo.birthday).isValid()) {
 			throw new AppError("BAD_REQUEST");
@@ -69,7 +72,6 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 		fullname: request.fullname,
 		avatar: request.avatar,
 	};
-
 	if (request.profileInfo) {
 		updator.profileInfo = mergeProfileInfoWithDb(currentProfile, request.profileInfo);
 	}
@@ -80,6 +82,8 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 	const res = await AccountRepo.updateProfile(ctx, updator);
 
 	if (!res) throw new AppError("INTERNAL_SERVER_ERROR");
+
+	systemLog.info("updateProfile - END");
 
 	return true;
 };

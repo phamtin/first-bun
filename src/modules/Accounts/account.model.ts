@@ -1,5 +1,6 @@
 import { Static, t } from "elysia";
 import { ObjectId } from "mongodb";
+import { taskTagModel } from "../Tags/tag.model";
 
 export const colorTheme = t.Enum({
 	Light: "Light",
@@ -21,6 +22,7 @@ export const profileInfo = t.Object({
 	locale: locale,
 	phoneNumber: t.Optional(t.Array(t.String())),
 	birthday: t.Optional(t.Date()),
+	tags: t.Record(t.String(), taskTagModel),
 });
 
 export const signinMethod = t.Enum({
@@ -28,6 +30,7 @@ export const signinMethod = t.Enum({
 	Apple: "Apple",
 });
 
+export type TaskTag = Static<typeof taskTagModel>;
 export type Locale = Static<typeof locale>;
 export type ColorTheme = Static<typeof colorTheme>;
 export type ProfileInfo = Static<typeof profileInfo>;

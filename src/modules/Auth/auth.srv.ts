@@ -5,13 +5,7 @@ import systemLog from "@/pkgs/systemLog";
 import { AccountColl, TokenColl } from "@/loaders/mongo";
 import { Value } from "@sinclair/typebox/value";
 
-import {
-	SigninGoogleRequest,
-	SigninGoogleResponse,
-	SignoutGoogleRequest,
-	SignoutGoogleResponse,
-	signinGoogleResponse,
-} from "./auth.validator";
+import { SigninGoogleRequest, SigninGoogleResponse, SignoutGoogleRequest, SignoutGoogleResponse, signinGoogleResponse } from "./auth.validator";
 import { AccountSetting, ProfileInfo, SigninMethod } from "../Accounts/account.model";
 import { Context } from "@/types/app.type";
 import AppError from "@/pkgs/appError/Error";
@@ -30,16 +24,17 @@ const signinWithGoogle = async (ctx: Context, request: SigninGoogleRequest): Pro
 	const account = await AccountColl.findOne({ email });
 
 	if (!account) {
-		const now = new Date();
 		const signinMethod: SigninMethod = "Google";
 		const profileInfo: ProfileInfo = {
 			locale: "Vi",
 			phoneNumber: [],
+			tags: {},
 		};
 		const accountSetting: AccountSetting = {
 			theme: "Light",
 			isPrivateAccount: false,
 		};
+		const now = new Date();
 		const { acknowledged, insertedId } = await AccountColl.insertOne({
 			_id: new ObjectId(),
 			email,
