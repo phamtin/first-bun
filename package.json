@@ -10,7 +10,7 @@
   "dependencies": {
     "@elysiajs/cors": "0.8.0",
     "@elysiajs/cron": "0.8.0",
-    "bullmq": "5.1.1",
+    "bullmq": "^5.1.4",
     "dayjs": "1.11.10",
     "elysia": "0.8.6",
     "jsonwebtoken": "^9.0.2",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.4.1",
-    "@types/bun": "^1.0.1",
+    "@types/bun": "^1.0.3",
     "@types/jsonwebtoken": "^9.0.5"
   },
   "module": "src/index.js"

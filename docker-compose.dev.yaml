@@ -1,15 +1,6 @@
 version: "3.9"
 
 services:
-    mongodb:
-        image: bitnami/mongodb:latest
-        container_name: "mongodb"
-        volumes:
-            - ./data/mongodb:/bitnami/mongodb
-        restart: always
-        ports:
-            - "27017:27017"
-
     redis-stack-server:
         image: redis/redis-stack-server:latest
         container_name: "redis"
