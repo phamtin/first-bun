@@ -1,82 +1,59 @@
-import { Elysia } from "elysia";
-import jwt from "jsonwebtoken";
+import { verify } from "hono/jwt";
 import { ObjectId } from "mongodb";
 
-import { Context, UserCheckParser } from "@/types/app.type";
+import type { UserCheckParser } from "@/types/app.type";
 import { AccountColl, TokenColl } from "../loaders/mongo";
-import { JwtDecode } from "@/types/app.type";
-import AppError from "@/pkgs/appError/Error";
+import { createMiddleware } from "hono/factory";
+import { responseError } from "@/utils/response";
+import { toObjectId } from "@/pkgs/mongodb/helper";
 
-const verifyToken = (token: string, secret: string) =>
-	new Promise((resolve, reject) =>
-		jwt.verify(token, secret, (err, decoded) => {
-			if (err) return reject(err);
-			return resolve(decoded);
-		})
-	);
+export const tokenParser = createMiddleware(async (c, next) => {
+	let token = "";
+	const authorization = c.req.header("authorization");
 
-export const tokenParser = (app: Elysia) =>
-	app.derive(async ({ request, store, set, headers }) => {
-		let token;
-		const authorization = headers["authorization"];
+	let user: UserCheckParser = { _id: "", email: "", firstname: "", lastname: "", fullname: "" };
 
-		let user: UserCheckParser = { _id: "", email: "", firstname: "", lastname: "", fullname: "" };
+	if (authorization?.startsWith("Bearer")) {
+		token = authorization.split(" ")[1];
+	}
 
-		if (authorization?.startsWith("Bearer")) {
-			token = authorization.split(" ")[1];
+	if (c.req.url.includes("/auth/signout")) {
+		await next();
+	}
+	if (c.req.url.includes("/auth/signin/google")) {
+		await next();
+	}
+	if (!token) {
+		return responseError(c, "UNAUTHORIZED", "Unauthorized");
+	}
+
+	try {
+		const decoded = await verify(token, Bun.env.JWT_SECRET);
+
+		const [currentUser, storedToken] = await Promise.all([
+			AccountColl.findOne({
+				_id: toObjectId(decoded.accountId as string),
+			}),
+			TokenColl.findOne({ value: token }),
+		]);
+
+		if (!currentUser?._id || !storedToken?.isPrimary) {
+			return responseError(c, "FORBIDDEN", "Hack CC");
 		}
+		user = {
+			_id: decoded.accountId as string,
+			email: currentUser.profileInfo.email,
+			fullname: currentUser.profileInfo.fullname,
+			firstname: currentUser.profileInfo.firstname,
+			lastname: currentUser.profileInfo.lastname,
+		};
+	} catch (e) {
+		c.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
 
-		if (request.url.includes("/auth/signout")) {
-			return;
-		}
-		if (request.url.includes("/auth/signin/google")) {
-			return;
-		}
-		if (!token && !request.url.includes("/auth/signin/google") && !request.url.includes("/auth/signout")) {
-			set.status = 401;
-			throw new AppError("UNAUTHORIZED");
-		}
+		return responseError(c, "UNAUTHORIZED", "Unauthorized");
+	}
 
-		try {
-			const decoded: JwtDecode = (await verifyToken(token!, Bun.env.JWT_SECRET)) as JwtDecode;
+	c.set("user", user);
 
-			const [storedToken, currentUser] = await Promise.all([
-				TokenColl.findOne({ token }),
-				AccountColl.findOne({
-					_id: new ObjectId(decoded.accountId),
-				}),
-			]);
-
-			if (!storedToken || !currentUser?._id) {
-				set.status = 403;
-				throw new AppError("FORBIDDEN");
-			}
-			user = {
-				_id: decoded.accountId,
-				email: currentUser.email,
-				fullname: currentUser.fullname,
-				firstname: currentUser.firstname,
-				lastname: currentUser.lastname,
-			};
-		} catch (err: any) {
-			(store as Context)["user"] = {
-				_id: "",
-				email: "",
-				firstname: "",
-				lastname: "",
-				fullname: "",
-			};
-
-			if (err.message === "jwt expired") {
-				set.status = 401;
-				throw new AppError("UNAUTHORIZED");
-			}
-			if (err.message === "invalid token" || err.message === "jwt malformed" || err.message === "invalid signature") {
-				throw new AppError("FORBIDDEN");
-			}
-		}
-
-		(store as Context)["user"] = user;
-
-		return;
-	});
+	await next();
+});

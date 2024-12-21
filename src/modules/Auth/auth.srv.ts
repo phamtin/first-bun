@@ -1,129 +1,130 @@
+import { sign } from "hono/jwt";
 import dayjs from "@/utils/dayjs";
 import { ObjectId } from "mongodb";
-import jwt from "jsonwebtoken";
-import systemLog from "@/pkgs/systemLog";
 import { AccountColl, TokenColl } from "@/loaders/mongo";
-import { Value } from "@sinclair/typebox/value";
 
-import { SigninGoogleRequest, SigninGoogleResponse, SignoutGoogleRequest, SignoutGoogleResponse, signinGoogleResponse } from "./auth.validator";
-import { AccountSetting, ProfileInfo, SigninMethod } from "../Accounts/account.model";
-import { Context } from "@/types/app.type";
-import AppError from "@/pkgs/appError/Error";
+import type { LoginGoogleRequest, LoginGoogleResponse } from "./auth.validator";
+import { type AccountSettings, type ProfileInfo, SigninMethod, Theme } from "../../database/model/account/account.model";
+import type { JWTPayload } from "hono/utils/jwt/types";
+import type { Context } from "@/types/app.type";
+import { AppError } from "@/utils/error";
+import { toObjectId, toStringId } from "@/pkgs/mongodb/helper";
 
-const signinWithGoogle = async (ctx: Context, request: SigninGoogleRequest): Promise<SigninGoogleResponse> => {
-	systemLog.info("Sign in with Google - START");
-
-	const res: SigninGoogleResponse = Value.Create(signinGoogleResponse);
-
-	const { email, accessToken, fullname, firstname, lastname, locale, avatar = "" } = request;
-
-	if (!email || !accessToken || !firstname) {
-		throw new AppError("BAD_REQUEST");
-	}
-
-	const account = await AccountColl.findOne({ email });
-
-	if (!account) {
-		const signinMethod: SigninMethod = "Google";
-		const profileInfo: ProfileInfo = {
-			locale: "Vi",
+const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
+	const res: LoginGoogleResponse = {
+		_id: "",
+		jwt: "",
+		profileInfo: {
+			email: "",
+			fullname: "",
+			firstname: "",
+			lastname: "",
 			phoneNumber: [],
-			tags: {},
-		};
-		const accountSetting: AccountSetting = {
+			locale: "",
+			avatar: "",
+		},
+		accountSettings: {
 			theme: "Light",
 			isPrivateAccount: false,
-		};
+		},
+	};
+
+	const { email, fullname, firstname, lastname, avatar = "" } = request;
+
+	const account = await AccountColl.findOne({ "profileInfo.email": email });
+
+	if (!account) {
 		const now = new Date();
-		const { acknowledged, insertedId } = await AccountColl.insertOne({
-			_id: new ObjectId(),
+		const signinMethod: SigninMethod = SigninMethod.Google;
+		const profileInfo: ProfileInfo = {
 			email,
+			fullname,
 			firstname,
 			lastname,
-			fullname,
 			avatar,
+			locale: "Vi",
+			phoneNumber: [],
+		};
+		const accountSettings: AccountSettings = {
+			theme: Theme.Light,
+			isPrivateAccount: false,
+		};
+		const { acknowledged, insertedId } = await AccountColl.insertOne({
+			_id: new ObjectId(),
 			profileInfo,
 			signinMethod,
-			accountSetting,
+			accountSettings,
 			createdAt: now,
 			updatedAt: now,
 		});
-		if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR");
 
-		res._id = insertedId.toHexString();
-		res.email = email;
-		res.avatar = avatar;
-		res.firstname = firstname;
-		res.fullname = fullname;
-		res.lastname = lastname;
+		if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
+
+		res._id = toStringId(insertedId);
 		res.profileInfo = profileInfo;
-		res.accountSetting = accountSetting;
-		res.signinMethod = "Google";
+		res.accountSettings = accountSettings;
 	} else {
-		res._id = account._id.toHexString();
-		res.email = account.email;
-		res.avatar = account.avatar;
-		res.firstname = account.firstname;
-		res.fullname = account.fullname;
-		res.lastname = account.lastname;
+		res._id = toStringId(account._id);
 		res.profileInfo = account.profileInfo;
-		res.accountSetting = account.accountSetting;
-		res.signinMethod = "Google";
+		res.accountSettings = account.accountSettings;
 	}
 
-	const jwt = await generateAuthTokens(account?._id.toHexString() ?? res._id);
-	res.jwt = jwt;
-
-	systemLog.info("Sign in with Google - END");
+	res.jwt = await generateAuthTokens(res._id);
 
 	return res;
 };
 
-const generateAuthTokens = async (userId: string) => {
-	const accessToken = signToken(userId);
-	const accessTokenExpires = dayjs().add(+Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE, "minute").toDate(); // 6 minutes
-	await saveToken(accessToken, userId, accessTokenExpires);
-
-	return {
-		token: accessToken,
-		expiredAt: accessTokenExpires,
+const signToken = async (accountId: string) => {
+	const payload: JWTPayload = {
+		accountId,
+		exp: dayjs().add(+Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE, "minute").unix(),
 	};
+	const res = await sign(payload, Bun.env.JWT_SECRET);
+
+	return res;
 };
 
-const signToken = (accountId: string): string => {
-	const payload = {
-		accountId: accountId,
-	};
-	return jwt.sign(payload, Bun.env.JWT_SECRET, {
-		expiresIn: `${Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE} minutes`, // 6 minutes
-	});
-};
-
-const saveToken = async (token: string, accountId: string, expiredAt: Date) => {
-	const tokenDoc = await TokenColl.insertOne({
-		isPrimary: true,
-		userId: new ObjectId(accountId),
-		token,
-		expiredAt: expiredAt,
-		createdAt: new Date(),
-	});
+const saveToken = async (value: string, accountId: string, expiredAt: Date) => {
+	const [tokenDoc, _] = await Promise.all([
+		TokenColl.insertOne({
+			_id: ObjectId.createFromTime(Date.now()),
+			isPrimary: true,
+			accountId: new ObjectId(accountId),
+			value,
+			expiredAt: expiredAt,
+			createdAt: new Date(),
+		}),
+		TokenColl.updateMany(
+			{
+				accountId: new ObjectId(accountId),
+				value: {
+					$ne: value,
+				},
+			},
+			{
+				$set: {
+					isPrimary: false,
+				},
+			}
+		),
+	]);
 	return tokenDoc;
 };
 
-const logout = async (ctx: Context, payload: SignoutGoogleRequest): Promise<SignoutGoogleResponse> => {
+const generateAuthTokens = async (userId: string) => {
+	const accessToken = await signToken(userId);
+	const accessTokenExpires = dayjs().add(+Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE, "minute").toDate(); // 5 minutes
+	await saveToken(accessToken, userId, accessTokenExpires);
+
+	return accessToken;
+};
+
+const logout = async (ctx: Context): Promise<boolean> => {
 	await TokenColl.deleteMany({
-		userId: new ObjectId(payload.userId),
+		accountId: toObjectId(ctx.get("user")._id),
 	});
 
-	ctx.user = {
-		_id: "",
-		email: "",
-		firstname: "",
-		lastname: "",
-		fullname: "",
-	};
-
-	systemLog.info("logout - END");
+	ctx.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
 
 	return true;
 };

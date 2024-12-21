@@ -1,7 +1,7 @@
-export type JwtDecode = {
+import type { Context as HonoContext } from "hono";
+
+export type JwtDecoded = {
 	accountId: string;
-	iat: number;
-	exp: number;
 };
 
 export type UserCheckParser = {
@@ -12,4 +12,4 @@ export type UserCheckParser = {
 	lastname: string;
 };
 
-export type Context = Record<"user", UserCheckParser>;
+export type Context = HonoContext;

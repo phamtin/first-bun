@@ -1,48 +1,66 @@
-import { t, Static } from "elysia";
-import { accountModel, colorTheme } from "./account.model";
-import { taskPriority, taskStatus } from "../Tasks/task.model";
-import { taskTagModel } from "../Tags/tag.model";
+import * as v from "valibot";
+import type { InferInput } from "valibot";
+import { objectId, stringObjectId } from "@/types/common.type";
 
-export const getMyTasksRequest = t.Object({
-	query: t.Optional(t.String()),
-	status: t.Optional(t.Array(taskStatus)),
-	priorities: t.Optional(t.Array(taskPriority)),
-	startDate: t.Optional(t.Array(t.String())),
-	endDate: t.Optional(t.Array(t.String())),
-});
+import { type AccountModel, SigninMethod, Theme } from "../../database/model/account/account.model";
 
-export const getMyProfileResponse = accountModel;
+export const vAccountProfile = v.strictObject({
+	_id: objectId,
+	signinMethod: v.enum(SigninMethod),
+	profileInfo: v.strictObject({
+		email: v.string(),
+		fullname: v.string(),
+		firstname: v.string(),
+		lastname: v.string(),
+		phoneNumber: v.array(v.string()),
+		birthday: v.optional(v.date()),
+		locale: v.string(),
+		avatar: v.string(),
+	}),
+	accountSettings: v.strictObject({
+		theme: v.enum(Theme),
+		isPrivateAccount: v.boolean(),
+	}),
+	createdAt: v.date(),
+	createdBy: v.optional(objectId),
+	updatedAt: v.optional(v.date()),
+	deletedAt: v.optional(v.date()),
+	deletedBy: v.optional(objectId),
+}) satisfies v.BaseSchema<AccountModel, AccountModel, v.BaseIssue<unknown>>;
 
-export const getMyTasksResponse = t.Array(
-	t.Object({
-		_id: t.String(),
-		title: t.String(),
-		description: t.String(),
-		status: taskStatus,
-		priority: t.Optional(taskPriority),
-	})
-);
-export const updateProfileRequest = t.Object({
-	fullname: t.Optional(t.String()),
-	firstname: t.Optional(t.String()),
-	lastname: t.Optional(t.String()),
-	avatar: t.Optional(t.String()),
-	profileInfo: t.Optional(
-		t.Object({
-			phoneNumber: t.Optional(t.Array(t.String())),
-			birthday: t.Optional(t.String()),
-			tags: t.Optional(t.Record(t.String(), taskTagModel)),
+export const getMyProfileResponse = vAccountProfile;
+
+export const updateProfileRequest = v.strictObject({
+	signinMethod: v.optional(v.enum(SigninMethod)),
+	profileInfo: v.optional(
+		v.strictObject({
+			email: v.optional(v.string()),
+			fullname: v.optional(v.string()),
+			firstname: v.optional(v.string()),
+			lastname: v.optional(v.string()),
+			phoneNumber: v.optional(v.array(v.string())),
+			birthday: v.optional(v.string()),
+			locale: v.optional(v.string()),
+			avatar: v.optional(v.string()),
 		})
 	),
-	accountSetting: t.Optional(
-		t.Object({
-			theme: t.Optional(colorTheme),
-			isPrivateAccount: t.Optional(t.Boolean()),
+	accountSettings: v.optional(
+		v.strictObject({
+			theme: v.optional(v.enum(Theme)),
+			isPrivateAccount: v.optional(v.boolean()),
 		})
 	),
+	updatedAt: v.optional(v.string()),
 });
 
-export type GetMyTasksResponse = Static<typeof getMyTasksResponse>;
-export type GetMyProfileResponse = Static<typeof getMyProfileResponse>;
-export type GetMyTasksRequest = Static<typeof getMyTasksRequest>;
-export type UpdateProfileRequest = Static<typeof updateProfileRequest>;
+export const getAccountProfileRequest = v.strictObject({
+	accountId: v.optional(stringObjectId),
+	email: v.optional(v.string()),
+});
+
+export const getAccountProfileResponse = vAccountProfile satisfies v.BaseSchema<AccountModel, AccountModel, v.BaseIssue<unknown>>;
+
+export type GetMyProfileResponse = InferInput<typeof getMyProfileResponse>;
+export type UpdateProfileRequest = InferInput<typeof updateProfileRequest>;
+export type GetAccountProfileRequest = InferInput<typeof getAccountProfileRequest>;
+export type GetAccountProfileResponse = InferInput<typeof getAccountProfileResponse>;

@@ -1,8 +1,8 @@
-import { StringId, Undefined } from "@/types/common.type";
-import { AccountModel, AccountSetting, ProfileInfo } from "./account.model";
-import { UpdateProfileRequest } from "./account.validator";
+import type { Undefined } from "@/types/common.type";
+import type { UpdateProfileRequest } from "./account.validator";
+import type { AccountModel, AccountSettings, ProfileInfo } from "../../database/model/account/account.model";
 
-export const mergeProfileInfoWithDb = (model: StringId<AccountModel>, request: UpdateProfileRequest["profileInfo"]): Undefined<ProfileInfo> => {
+export const mergeProfileInfoWithDb = (model: AccountModel, request: UpdateProfileRequest["profileInfo"]): Undefined<ProfileInfo> => {
 	let res: Undefined<ProfileInfo> = undefined;
 
 	if (!request) return res;
@@ -11,31 +11,33 @@ export const mergeProfileInfoWithDb = (model: StringId<AccountModel>, request: U
 		phoneNumber: model.profileInfo.phoneNumber,
 		birthday: model.profileInfo.birthday as Date,
 		locale: model.profileInfo.locale,
-		tags: model.profileInfo.tags,
-	};
-	const { phoneNumber, birthday, tags } = request;
+		avatar: model.profileInfo.avatar,
+		email: model.profileInfo.email,
+		fullname: model.profileInfo.fullname,
+		firstname: model.profileInfo.firstname,
+		lastname: model.profileInfo.lastname,
+	} satisfies ProfileInfo;
+
+	const { phoneNumber, birthday } = request;
 
 	if (phoneNumber) {
-		res.phoneNumber = phoneNumber as string[];
+		res.phoneNumber = phoneNumber;
 	}
 	if (birthday) {
 		res.birthday = new Date(birthday);
-	}
-	if (tags) {
-		res.tags = tags;
 	}
 
 	return res;
 };
 
-export const mergeAccountSettingWithDb = (model: StringId<AccountModel>, request: UpdateProfileRequest["accountSetting"]): Undefined<AccountSetting> => {
-	let res: Undefined<AccountSetting> = undefined;
+export const mergeAccountSettingWithDb = (model: AccountModel, request: UpdateProfileRequest["accountSettings"]): Undefined<AccountSettings> => {
+	let res: Undefined<AccountSettings> = undefined;
 
 	if (!request) return res;
 
 	res = {
-		theme: model.accountSetting.theme,
-		isPrivateAccount: model.accountSetting.isPrivateAccount,
+		theme: model.accountSettings.theme,
+		isPrivateAccount: model.accountSettings.isPrivateAccount,
 	};
 	const { theme, isPrivateAccount } = request;
 

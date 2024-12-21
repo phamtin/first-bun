@@ -1,39 +1,32 @@
-import { t, Static } from "elysia";
-import { accountSetting, profileInfo, signinMethod } from "../Accounts/account.model";
+import * as v from "valibot";
+import type { InferInput } from "valibot";
 
-export const signinGoogleRequest = t.Object({
-	email: t.String(),
-	accessToken: t.String(),
-	fullname: t.String(),
-	firstname: t.String(),
-	lastname: t.String(),
-	avatar: t.String(),
-	locale: t.Optional(t.String()),
+export const LoginGoogleRequestSchema = v.strictObject({
+	email: v.pipe(v.string(), v.trim(), v.email()),
+	fullname: v.pipe(v.string(), v.trim(), v.minLength(4)),
+	firstname: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	lastname: v.pipe(v.string(), v.trim(), v.minLength(2)),
+	avatar: v.pipe(v.optional(v.string())),
 });
 
-export const signinGoogleResponse = t.Object({
-	_id: t.String(),
-	email: t.String(),
-	fullname: t.String(),
-	firstname: t.String(),
-	lastname: t.String(),
-	avatar: t.String(),
-	jwt: t.Object({
-		token: t.String(),
-		expiredAt: t.Date(),
+export const LoginGoogleResponseSchema = v.strictObject({
+	_id: v.string(),
+	jwt: v.string(),
+	profileInfo: v.strictObject({
+		avatar: v.string(),
+		email: v.string(),
+		fullname: v.string(),
+		firstname: v.string(),
+		lastname: v.string(),
+		phoneNumber: v.array(v.string()),
+		birthday: v.optional(v.date()),
+		locale: v.string(),
 	}),
-	profileInfo: profileInfo,
-	accountSetting: accountSetting,
-	signinMethod: signinMethod,
+	accountSettings: v.strictObject({
+		theme: v.string(),
+		isPrivateAccount: v.boolean(),
+	}),
 });
 
-export const signoutGoogleRequest = t.Object({
-	userId: t.String(),
-});
-
-export const signoutGoogleResponse = t.Boolean();
-
-export type SignoutGoogleRequest = Static<typeof signoutGoogleRequest>;
-export type SignoutGoogleResponse = Static<typeof signoutGoogleResponse>;
-export type SigninGoogleRequest = Static<typeof signinGoogleRequest>;
-export type SigninGoogleResponse = Static<typeof signinGoogleResponse>;
+export type LoginGoogleRequest = InferInput<typeof LoginGoogleRequestSchema>;
+export type LoginGoogleResponse = InferInput<typeof LoginGoogleResponseSchema>;

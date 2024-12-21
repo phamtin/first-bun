@@ -2,29 +2,26 @@
   "name": "bun-trial",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun tsc --noEmit && bun run --watch src/index.ts",
+    "lint": "bun tsc --noEmit && bunx biome lint --write ./src",
+    "dev": "bun lint && bun run --watch src/index.ts",
+    "dev-m1": "bun tsc --noEmit && bun run --watch src/index.ts",
     "dcu": "docker compose -f ./docker-compose.dev.yaml up -d",
     "dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans"
   },
   "dependencies": {
-    "@elysiajs/cors": "0.8.0",
-    "@elysiajs/cron": "0.8.0",
-    "bullmq": "^5.1.4",
-    "dayjs": "1.11.10",
-    "elysia": "0.8.6",
-    "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.3.0",
-    "pino": "^8.17.2",
-    "redis": "4.6.12",
-    "redis-om": "0.4.3",
+    "@hono/valibot-validator": "^0.5.1",
+    "bullmq": "^5.34.5",
+    "dayjs": "^1.11.13",
+    "hono": "^4.6.15",
+    "mongodb": "^6.12.0",
+    "redis": "^4.7.0",
     "slugify": "^1.6.6",
-    "typescript": "5.3.3"
+    "valibot": "^1.0.0-beta.9"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.4.1",
-    "@types/bun": "^1.0.3",
-    "@types/jsonwebtoken": "^9.0.5"
+    "@biomejs/biome": "1.9.4",
+    "@types/bun": "^1.1.14",
+    "typescript": "^5.7.2"
   },
   "module": "src/index.js"
 }

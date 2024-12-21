@@ -1,161 +1,66 @@
-import { Context } from "@/types/app.type";
+import dayjs from "dayjs";
+import type { GetAccountProfileRequest, GetAccountProfileResponse, GetMyProfileResponse, UpdateProfileRequest } from "./account.validator";
+import { AccountColl } from "@/loaders/mongo";
+import { type Filter, ObjectId } from "mongodb";
+import { AppError } from "@/utils/error";
+import type { AccountModel } from "../../database/model/account/account.model";
+import type { Context } from "hono";
+import type { DeepPartial } from "@/types/common.type";
+import { toPayloadUpdate } from "@/utils/transfrom";
+import { toObjectId } from "@/pkgs/mongodb/helper";
 
-import { GetMyProfileResponse, GetMyTasksRequest } from "./account.validator";
-import { AccountColl, TaskColl } from "@/loaders/mongo";
-import AppError from "@/pkgs/appError/Error";
-import { ObjectId } from "mongodb";
-import { TaskModel, TaskPriority } from "../Tasks/task.model";
-import { AccountModel } from "./account.model";
-
-const getProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
-	let profile = await AccountColl.findOne({
-		email: ctx.user.email,
+const getMyProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
+	const profile = await AccountColl.findOne({
+		"profileInfo.email": ctx.get("user").email,
 	});
 
-	if (!profile) throw new AppError("NOT_FOUND");
+	if (!profile) throw new AppError("NOT_FOUND", "Profile not found");
 
 	return {
 		...profile,
-		_id: ctx.user._id,
+		_id: toObjectId(ctx.get("user")._id),
 	};
 };
 
-const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<TaskModel[]> => {
-	const { query = "", startDate = [], endDate = [] } = request;
-
-	const excludedStatus = "Archived";
-
-	const statusFilter = request.status?.filter((t) => t !== excludedStatus) || [];
-
-	const priorities: TaskPriority[] = request.priorities || [];
-
-	const tasks: TaskModel[] = (await TaskColl.aggregate([
-		{
-			$match: {
-				ownerId: new ObjectId(ctx.user._id),
-
-				$expr: {
-					$and: [
-						//	Apply search task
-						{
-							$cond: {
-								if: {
-									$gte: [query.length, 3],
-								},
-								then: {
-									$or: [
-										{
-											$regexMatch: { input: "$title", regex: query, options: "i" },
-										},
-										{
-											$regexMatch: { input: "$description", regex: query, options: "i" },
-										},
-									],
-								},
-								else: {},
-							},
-						},
-						//	Apply filter task status
-						{
-							$cond: {
-								if: {
-									$gte: [statusFilter.length, 1],
-								},
-								then: {
-									$in: ["$status", statusFilter],
-								},
-								else: {},
-							},
-						},
-						//	Apply filter task priority
-						{
-							$cond: {
-								if: {
-									$gte: [priorities.length, 1],
-								},
-								then: {
-									$in: ["$priority", priorities],
-								},
-								else: {},
-							},
-						},
-						//	Apply filter has startDate
-						{
-							$switch: {
-								branches: [
-									{
-										case: { $eq: [startDate.length, 1] },
-										then: { $gte: ["$timing.startDate", { $toDate: startDate[0] }] },
-									},
-									{
-										case: { $eq: [startDate.length, 2] },
-										then: {
-											$and: [
-												{
-													$gte: ["$timing.startDate", { $toDate: startDate[0] }],
-												},
-												{
-													$lte: ["$timing.startDate", { $toDate: startDate[1] }],
-												},
-											],
-										},
-									},
-								],
-								default: {},
-							},
-						},
-						//	Apply filter has endDate
-						{
-							$switch: {
-								branches: [
-									{
-										case: { $eq: [endDate.length, 1] },
-										then: { $lte: ["$timing.endDate", { $toDate: endDate[0] }] },
-									},
-									{
-										case: { $eq: [endDate.length, 2] },
-										then: {
-											$and: [
-												{
-													$gte: ["$timing.endDate", { $toDate: endDate[0] }],
-												},
-												{
-													$lte: ["$timing.endDate", { $toDate: endDate[1] }],
-												},
-											],
-										},
-									},
-								],
-								default: {},
-							},
-						},
-					],
-				},
-			},
+const findAccountProfile = async (ctx: Context, request: GetAccountProfileRequest): Promise<GetAccountProfileResponse> => {
+	if (request.accountId && request.email) {
+		throw new AppError("BAD_REQUEST", "Should use one criteria");
+	}
+	const filter: Filter<AccountModel> = {
+		deletedAt: {
+			$exists: false,
 		},
-		{
-			$project: { title: 1, description: 1, status: 1, priority: 1 },
-		},
-	]).toArray()) as TaskModel[];
+	};
+	if (request.accountId) {
+		filter._id = toObjectId(request.accountId);
+	}
+	if (request.email) {
+		filter["profileInfo.email"] = request.email;
+	}
 
-	return tasks;
+	const account = await AccountColl.findOne(filter);
+
+	if (!account) throw new AppError("NOT_FOUND", "Account not found");
+
+	return account;
 };
 
-const updateProfile = async (ctx: Context, request: Partial<AccountModel>): Promise<AccountModel> => {
+const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promise<AccountModel> => {
+	const updator: DeepPartial<AccountModel> = {
+		...request,
+		profileInfo: {
+			...request.profileInfo,
+			birthday: request.profileInfo?.birthday ? dayjs(request.profileInfo.birthday).toDate() : undefined,
+		},
+		updatedAt: request.updatedAt ? dayjs(request.updatedAt).toDate() : undefined,
+	};
+
 	const updated = await AccountColl.findOneAndUpdate(
 		{
-			email: ctx.user.email,
+			_id: toObjectId(ctx.get("user")._id),
 		},
 		{
-			$set: {
-				avatar: request.avatar,
-				fullname: request.fullname,
-				firstname: request.firstname,
-				lastname: request.lastname,
-
-				profileInfo: request.profileInfo,
-				accountSetting: request.accountSetting,
-			},
+			$set: toPayloadUpdate(updator),
 		},
 		{
 			ignoreUndefined: true,
@@ -169,8 +74,8 @@ const updateProfile = async (ctx: Context, request: Partial<AccountModel>): Prom
 };
 
 const AccountRepo = {
-	getMyTasks,
-	getProfile,
+	getMyProfile,
+	findAccountProfile,
 	updateProfile,
 };
 

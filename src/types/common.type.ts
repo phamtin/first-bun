@@ -1,5 +1,5 @@
-import { t } from "elysia";
 import { ObjectId } from "mongodb";
+import { custom } from "valibot";
 
 export type Null<T> = T | null;
 
@@ -12,17 +12,13 @@ export type AttributePattern = {
 	k: string;
 	v: string;
 };
-export const attributePattern = t.Object({
-	k: t.String(),
-	v: t.String(),
-});
 
 /**
  *  recursively map a type with ObjectId to string
  */
 export type StringId<T> = T extends ObjectId
 	? string
-	: T extends Record<any, any>
+	: T extends object
 	? {
 			[K in keyof T]: StringId<T[K]>;
 	  }
@@ -51,3 +47,26 @@ export type DeepPartial<T> = T extends string | number | bigint | boolean | null
 	  {
 			[K in keyof T]?: DeepPartial<T[K]>;
 	  };
+
+export const objectId = custom<ObjectId>((value) => {
+	if (typeof value !== "string") {
+		return false;
+	}
+	if (!ObjectId.isValid(value)) {
+		return false;
+	}
+
+	return true;
+});
+
+export const stringObjectId = custom<string>((value) => {
+	if (typeof value !== "string") {
+		return false;
+	}
+	const objectIdPattern = /^[a-f\d]{24}$/i; // Regex to match valid ObjectId format
+	if (!objectIdPattern.test(value)) {
+		return false;
+	}
+
+	return true;
+});

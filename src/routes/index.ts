@@ -1,74 +1,18 @@
-import Elysia from "elysia";
-import AuthApp from "@/modules/Auth";
-import TaskApp from "@/modules/Tasks";
-import AccountApp from "@/modules/Accounts";
-import { signinGoogleRequest, signoutGoogleRequest } from "@/modules/Auth/auth.validator";
-import { createTaskRequest, updateTasksRequest } from "@/modules/Tasks/task.validator";
-import { isAuthenticated } from "@/middlewares/auth";
-import { Context } from "@/types/app.type";
-import { updateProfileRequest } from "@/modules/Accounts/account.validator";
-import TagApp from "@/modules/Tags";
-import { createTagRequest, deleteTagRequest, updateTagRequest } from "@/modules/Tags/tag.validator";
+import { Hono } from "hono";
 
-const WithAppRouter = (app: Elysia): Elysia => {
-	return app.group("/v1", (app) =>
-		app
-			.get("/", () => "Using v1")
+import authRoute from "../modules/Auth/auth.route";
+import accountRoute from "../modules/Accounts/account.route";
+import { tokenParser } from "@/middlewares/auth.parser";
+import taskRoute from "../modules/Tasks/task.route";
 
-			.group("/auth", (app) =>
-				app
-					.post("/signin/google", (c) => AuthApp.signinWithGoogle(c.store as Context, c.body), {
-						body: signinGoogleRequest,
-					})
-					.post("/signout", (c) => AuthApp.logout(c.store as Context, c.body), {
-						body: signoutGoogleRequest,
-					})
-			)
+const routes = new Hono();
 
-			.group("/accounts", (app) =>
-				app
-					.use(isAuthenticated)
-					.get("/tasks", (c) => AccountApp.getMyTasks(c.store as Context, c.query))
-					.get("/profile", (c) => AccountApp.getProfile(c.store as Context))
-					.patch("/profile", (c) => AccountApp.updateProfile(c.store as Context, c.body), {
-						body: updateProfileRequest,
-					})
-			)
+routes.use(tokenParser);
 
-			.group("/tasks", (app) =>
-				app
-					.use(isAuthenticated)
-					.get("/:id", (c) => TaskApp.TaskSrv.getTaskById(c.store as Context, c.params["id"]))
-					.post("/create", (c) => TaskApp.TaskSrv.createTask(c.store as Context, c.body), {
-						body: createTaskRequest,
-					})
-					.patch("/:id", (c) => TaskApp.TaskSrv.updateTask(c.store as Context, c.params["id"], c.body), {
-						body: updateTasksRequest,
-					})
-					.post("/sync-external-to-redis", (c) => TaskApp.TaskSrv.syncExternalToRedis(c.store as Context, c.body))
-					.post("/sync-redis-to-db", (c) => TaskApp.TaskSrv.syncTaskToDb(c.store as Context, c.body))
-			)
+routes.route("/auth", authRoute);
 
-			.group("/tags", (app) =>
-				app
-					.use(isAuthenticated)
-					.post("/create", (c) => TagApp.TagSrv.createTag(c.store as Context, c.body), {
-						body: createTagRequest,
-					})
-					.patch("/:id", (c) => TagApp.TagSrv.updateTag(c.store as Context, c.body), {
-						body: updateTagRequest,
-					})
-					.delete(
-						"/:id",
-						(c) => {
-							return TagApp.TagSrv.deleteTag(c.store as Context, c.body);
-						},
-						{
-							body: deleteTagRequest,
-						}
-					)
-			)
-	);
-};
+routes.route("/accounts", accountRoute);
 
-export default WithAppRouter;
+routes.route("/tasks", taskRoute);
+
+export default routes;

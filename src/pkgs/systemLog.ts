@@ -1,46 +1,22 @@
-import pino, { BaseLogger } from "pino";
-
-const isProd = process.env.BUN_ENV === "prod";
-
 class Logger {
 	logger: Console;
-	transport: any;
+	transport: unknown;
 
 	constructor() {
 		this.logger = console;
 	}
 
-	info(args: any) {
+	info(args: unknown) {
 		this.logger.log(args);
 	}
 
-	warn(args: any) {
+	warn(args: unknown) {
 		this.logger.log(args);
 	}
 
-	error(args: any) {
+	error(args: unknown) {
 		this.logger.log(args);
 	}
 }
-class LoggerProd {
-	logger: BaseLogger;
-	transport: any;
 
-	constructor() {
-		this.logger = pino();
-	}
-
-	info(args: any) {
-		this.logger.info(args);
-	}
-
-	warn(args: any) {
-		this.logger.warn(args);
-	}
-
-	error(args: any) {
-		this.logger.error(args);
-	}
-}
-
-export default isProd ? new LoggerProd() : new Logger();
+export default new Logger();

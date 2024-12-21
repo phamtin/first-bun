@@ -1,20 +1,50 @@
-import { CreateTaskRequest, CreateTaskResponse, UpdateTasksRequest } from "./task.validator";
-
+import type { Context } from "hono";
+import type { CreateTaskRequest, CreateTaskResponse, GetMyTasksRequest, GetMyTasksResponse, GetTaskByIdResponse, UpdateTaskRequest, UpdateTaskResponse } from "./task.validator";
+import { toObjectId, toStringId } from "@/pkgs/mongodb/helper";
 import systemLog from "@/pkgs/systemLog";
 import TaskRepo from "./task.repo";
-import { Context } from "@/types/app.type";
-import AppError from "@/pkgs/appError/Error";
 import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
-import { ObjectId } from "mongodb";
-import { TaskModel, TaskTiming } from "./task.model";
-import { Null, StringId } from "@/types/common.type";
-import AccountSrv from "../Accounts/account.srv";
-import { TaskTagModel } from "../Tags/tag.model";
+import type { TaskModel, TaskTiming } from "../../database/model/task/task.model";
+import type { AccountModel } from "../../database/model/account/account.model";
+import { AppError } from "@/utils/error";
+import AccountSrv from "../Accounts";
 
-const getTaskById = async (ctx: Context, id: string): Promise<Null<StringId<TaskModel>>> => {
+const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
 	const task = await TaskRepo.getTaskById(ctx, id);
 	return task;
+};
+
+const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<GetMyTasksResponse> => {
+	if (request.startDate) {
+		const { startDate } = request;
+
+		if (![1, 2].includes(startDate.length)) {
+			throw new AppError("BAD_REQUEST", "Start date range must have 1 or 2 values");
+		}
+		if (dayjs(startDate[1]).isSameOrBefore(startDate[0], "second")) {
+			throw new AppError("BAD_REQUEST", "Start date range is invalid");
+		}
+	}
+	if (request.endDate) {
+		const { startDate, endDate } = request;
+
+		if (![1, 2].includes(endDate.length)) {
+			throw new AppError("BAD_REQUEST", "Bad request");
+		}
+		if (dayjs(endDate[1]).isSameOrBefore(endDate[0], "second")) {
+			throw new AppError("BAD_REQUEST", "Bad request");
+		}
+		if (startDate) {
+			if (dayjs(endDate[0]).isSameOrBefore(startDate[1], "second")) {
+				throw new AppError("BAD_REQUEST", "Start date - end date range is invalid");
+			}
+		}
+	}
+
+	const tasks: TaskModel[] = await TaskRepo.getMyTasks(ctx, request);
+
+	return tasks;
 };
 
 const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<CreateTaskResponse> => {
@@ -39,8 +69,18 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 			}
 		}
 	}
-	if (!request.status) {
-		request.status = "NotStartYet";
+
+	if (request.assigneeId) {
+		const account = await AccountSrv.findAccountProfile(ctx, {
+			accountId: request.assigneeId,
+		});
+
+		if (!account) {
+			throw new AppError("NOT_FOUND", "Account not found");
+		}
+		request.assigneeId = toStringId(account._id);
+	} else {
+		request.assigneeId = ctx.get("user")._id;
 	}
 
 	const created = await TaskRepo.createTask(ctx, request);
@@ -50,68 +90,120 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	return created;
 };
 
-const updateTask = async (ctx: Context, taskId: string, request: UpdateTasksRequest): Promise<boolean> => {
-	systemLog.info("updateTask - START");
+const validateDateRange = (timingDb?: TaskTiming, timingRequest?: UpdateTaskRequest["timing"]): boolean => {
+	if (!timingRequest) return true;
 
-	const [userProfile, task] = await Promise.all([AccountSrv.getProfile(ctx), TaskColl.findOne({ _id: new ObjectId(taskId) })]);
+	let isValid = true;
 
-	if (!userProfile || !task) throw new AppError("NOT_FOUND");
+	const { startDate, endDate } = timingRequest;
 
+	if (!startDate && !endDate) {
+		return isValid;
+	}
+
+	if (timingDb?.endDate) {
+		if (startDate && !endDate) {
+			if (dayjs(startDate).isAfter(timingDb.endDate, "second")) {
+				isValid = false;
+			}
+		}
+	}
+	if (timingDb?.startDate) {
+		if (!startDate && endDate) {
+			if (dayjs(startDate).isAfter(timingDb.endDate, "second")) {
+				isValid = false;
+			}
+		}
+	}
+
+	return isValid;
+};
+
+const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskRequest): Promise<UpdateTaskResponse> => {
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
-		const headOfTime = startDate ?? new Date();
 
-		if (!dayjs(startDate).isValid()) {
-			throw new AppError("BAD_REQUEST", "Timing need a start date");
+		if (!dayjs(startDate).isValid() || !dayjs(endDate).isValid()) {
+			throw new AppError("BAD_REQUEST", "Invalid date");
 		}
-		if (!dayjs(endDate).isValid() || dayjs(endDate).isSameOrBefore(headOfTime, "second")) {
-			throw new AppError("BAD_REQUEST");
+
+		if (startDate && endDate) {
+			if (dayjs(endDate).isSameOrBefore(startDate, "second")) {
+				throw new AppError("BAD_REQUEST", "Invalid end date");
+			}
 		}
 	}
-	const updator: Partial<TaskModel> = {
-		title: request.title,
-		description: request.description,
-		priority: request.priority,
-		status: request.status,
-		additionalInfo: request.additionalInfo,
-	};
-	if (request.timing) {
-		updator.timing = {};
-		const { startDate, endDate, estimation } = request.timing;
 
-		if (startDate) updator.timing.startDate = new Date(startDate);
-		if (endDate) updator.timing.endDate = new Date(endDate);
-		if (estimation) updator.timing.estimation = estimation as TaskTiming["estimation"];
-	}
-	if (Array.isArray(request.tags)) {
-		const tagsToUpdate: TaskTagModel[] = [];
-		request.tags.forEach((tag) => {
-			if (!userProfile.profileInfo.tags?.[tag._id]) return;
-			const { _id, title, color } = userProfile.profileInfo.tags[tag._id];
-			tagsToUpdate.push({ _id: new ObjectId(_id), title, color });
-		});
-		updator.tags = tagsToUpdate;
+	const promisors: Promise<TaskModel | AccountModel | null>[] = [
+		TaskColl.findOne({
+			_id: toObjectId(taskId),
+			deletedAt: {
+				$exists: false,
+			},
+		}),
+	];
+	if (request.assigneeId) {
+		promisors.push(
+			AccountSrv.findAccountProfile(ctx, {
+				accountId: request.assigneeId,
+			})
+		);
 	}
 
-	const res = await TaskRepo.updateTask(ctx, new ObjectId(taskId), updator);
+	const [task, account] = await Promise.all(promisors);
 
-	if (!res?._id) throw new AppError("INTERNAL_SERVER_ERROR");
+	if (!task) throw new AppError("NOT_FOUND", "Yask not found");
 
-	systemLog.info("updateTask - END");
+	if (request.assigneeId && !account) {
+		throw new AppError("NOT_FOUND", "Assignee not found");
+	}
+
+	const isValidDate = validateDateRange((task as TaskModel).timing, request.timing);
+
+	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
+
+	const res = await TaskRepo.updateTask(ctx, taskId, request);
+
+	if (!res?._id) {
+		throw new AppError("INTERNAL_SERVER_ERROR");
+	}
+
+	return res;
+};
+
+const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
+	const accountId = toObjectId(ctx.get("user")._id);
+
+	const taskCount = await TaskColl.countDocuments({
+		_id: toObjectId(taskId),
+		$or: [
+			{
+				createdBy: accountId,
+			},
+			{
+				assigneeId: accountId,
+			},
+		],
+		deletedAt: {
+			$exists: false,
+		},
+	});
+
+	if (taskCount === 0) throw new AppError("BAD_REQUEST", "Can't delete task");
+
+	const isDeleted = await TaskRepo.deleteTask(ctx, taskId);
+
+	if (!isDeleted) throw new AppError("INTERNAL_SERVER_ERROR");
 
 	return true;
 };
 
-const syncExternalToRedis = (ctx: Context, request: any) => {};
-
-const syncTaskToDb = (ctx: Context, request: any) => {};
-
 const TaskSrv = {
-	syncTaskToDb,
 	updateTask,
-	syncExternalToRedis,
 	createTask,
 	getTaskById,
+	getMyTasks,
+	deleteTask,
 };
 
 export default TaskSrv;

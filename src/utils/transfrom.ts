@@ -1,3 +1,5 @@
+import { ObjectId } from "mongodb";
+
 export function sanitize<T>(obj: T): T {
 	for (const propName in obj) {
 		if (typeof obj[propName] === "undefined") {
@@ -9,8 +11,6 @@ export function sanitize<T>(obj: T): T {
 
 	return obj;
 }
-
-export {};
 
 export function classifyError(code: string): number {
 	let status = 500;
@@ -45,3 +45,45 @@ export function classifyError(code: string): number {
 
 	return status;
 }
+
+type FlattenedObject = Record<string, unknown>;
+
+export const toPayloadUpdate = (obj: FlattenedObject, parentKey = "", result: FlattenedObject = {}): FlattenedObject => {
+	if (obj === null || typeof obj !== "object") {
+		throw new Error("Input must be a non-null object");
+	}
+
+	for (const key in obj) {
+		if (Object.hasOwn(obj, key)) {
+			const value = obj[key];
+			const newKey = parentKey ? `${parentKey}.${key}` : key;
+
+			// Keep valid MongoDB ObjectId as-is
+			if (value instanceof ObjectId) {
+				result[newKey] = value;
+			}
+
+			//	Data is Date
+			else if (value instanceof Date) {
+				result[newKey] = value;
+			}
+
+			//	Data is Array
+			else if (Array.isArray(value)) {
+				result[newKey] = value;
+			}
+
+			//	Data is object
+			else if (typeof value === "object") {
+				toPayloadUpdate(value as FlattenedObject, newKey, result);
+			}
+
+			// Data is primitive
+			else {
+				result[newKey] = value;
+			}
+		}
+	}
+
+	return result;
+};
