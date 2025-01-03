@@ -1,5 +1,5 @@
+import { custom, type CustomSchema, string, strictObject } from "valibot";
 import { ObjectId } from "mongodb";
-import { custom } from "valibot";
 
 export type Null<T> = T | null;
 
@@ -48,16 +48,14 @@ export type DeepPartial<T> = T extends string | number | bigint | boolean | null
 			[K in keyof T]?: DeepPartial<T[K]>;
 	  };
 
-export const objectId = custom<ObjectId>((value) => {
-	if (typeof value !== "string") {
-		return false;
-	}
-	if (!ObjectId.isValid(value)) {
-		return false;
-	}
-
-	return true;
+export const vAttributePattern = strictObject({
+	k: string(),
+	v: string(),
 });
+
+export const objectId = custom((value): value is ObjectId => {
+	return typeof value === "string" && ObjectId.isValid(value);
+}) as CustomSchema<ObjectId, undefined>;
 
 export const stringObjectId = custom<string>((value) => {
 	if (typeof value !== "string") {

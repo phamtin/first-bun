@@ -1,10 +1,9 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, type WithoutId } from "mongodb";
 import dayjs from "dayjs";
 import { TaskColl } from "@/loaders/mongo";
-import type { CreateTaskRequest, CreateTaskResponse, GetMyTasksRequest, GetTaskByIdResponse, UpdateTaskRequest, UpdateTaskResponse } from "./task.validator";
+import type { CreateTaskRequest, CreateTaskResponse, GetMyTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 
-import type { ExtendTaskModel, TaskModel, TaskPriority, TaskTiming } from "../../database/model/task/task.model";
-import type { Undefined } from "@/types/common.type";
+import type { ExtendTaskModel, TaskModel, TaskPriority } from "../../database/model/task/task.model";
 import { AppError } from "@/utils/error";
 import type { Context } from "hono";
 import { toObjectId } from "@/pkgs/mongodb/helper";
@@ -15,18 +14,10 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 	const res = (await TaskColl.aggregate([
 		{
 			$match: {
-				_id: new ObjectId(id),
+				_id: toObjectId(id),
 				deletedAt: {
 					$exists: false,
 				},
-			},
-		},
-		{
-			$lookup: {
-				from: "accounts",
-				localField: "assigneeId",
-				foreignField: "_id",
-				as: "assignee",
 			},
 		},
 		{
@@ -49,99 +40,40 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 	return res[0];
 };
 
-const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<CreateTaskResponse> => {
-	let parsedTiming: Undefined<TaskTiming> = undefined;
-	let parsedAssigneeId: Undefined<ObjectId> = undefined;
+const createTask = async (ctx: Context, request: CreateTaskRequest, payload: WithoutId<TaskModel>): Promise<CreateTaskResponse> => {
+	const data: WithoutId<TaskModel> = {
+		...payload,
 
-	const currentUserId = toObjectId(ctx.get("user")._id);
-	const now = dayjs().toDate();
-
-	if (request.assigneeId) {
-		parsedAssigneeId = toObjectId(request.assigneeId);
-	}
-
-	if (request.timing) {
-		const { startDate, endDate, estimation } = request.timing;
-		parsedTiming = {};
-
-		if (startDate) {
-			parsedTiming.startDate = dayjs(startDate).toDate();
-		}
-		if (endDate) {
-			parsedTiming.endDate = dayjs(endDate).toDate();
-		}
-		if (estimation) {
-			parsedTiming.estimation = estimation as TaskTiming["estimation"];
-		}
-	}
-
-	const data: TaskModel = {
-		_id: new ObjectId(),
-		title: request.title,
-		status: request.status,
-		priority: request.priority,
-		description: request.description,
-		additionalInfo: request.additionalInfo,
-
-		assigneeId: parsedAssigneeId,
-		timing: parsedTiming,
-		createdAt: now,
-		updatedAt: now,
-		createdBy: currentUserId,
+		createdAt: new Date(),
+		createdBy: toObjectId(ctx.get("user")._id),
 	};
 
-	const { acknowledged } = await TaskColl.insertOne(data);
+	const { acknowledged, insertedId } = await TaskColl.insertOne(data);
 
 	if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR");
 
 	return {
+		_id: insertedId,
 		...data,
-		_id: data._id,
-		assigneeId: parsedAssigneeId as ObjectId,
-		createdBy: currentUserId,
 	};
 };
 
-const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskRequest): Promise<UpdateTaskResponse> => {
-	const updator: Partial<TaskModel> = {
-		title: request.title,
-		description: request.description,
-		priority: request.priority,
-		status: request.status,
-		additionalInfo: request.additionalInfo,
-		assigneeId: request.assigneeId ? toObjectId(request.assigneeId) : undefined,
-		subTasks: request.subTasks,
-	};
-
-	if (request.timing) {
-		updator.timing = {};
-		const { startDate, endDate, estimation } = request.timing;
-
-		if (startDate) {
-			updator.timing.startDate = dayjs(startDate).toDate();
-		}
-		if (endDate) {
-			updator.timing.endDate = dayjs(endDate).toDate();
-		}
-		if (estimation) {
-			updator.timing.estimation = estimation as TaskTiming["estimation"];
-		}
-	}
-
-	updator.updatedAt = dayjs().toDate();
+const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskModel>): Promise<UpdateTaskResponse> => {
+	payload.updatedAt = dayjs().toDate();
 
 	const updated = await TaskColl.findOneAndUpdate(
 		{
 			_id: toObjectId(taskId),
 		},
 		{
-			$set: toPayloadUpdate(updator),
+			$set: toPayloadUpdate(payload),
 		},
 		{
 			ignoreUndefined: true,
 			returnDocument: "after",
 		}
 	);
+
 	if (!updated) throw new AppError("INTERNAL_SERVER_ERROR");
 
 	return getTaskById(ctx, taskId);

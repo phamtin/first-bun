@@ -1,4 +1,6 @@
+import { objectId } from "@/types/common.type";
 import type { ObjectId } from "mongodb";
+import * as v from "valibot";
 
 export enum SigninMethod {
 	Google = "Google",
@@ -18,12 +20,12 @@ export type ProfileInfo = {
 	phoneNumber: string[];
 	locale: string;
 	avatar: string;
+	isPrivateAccount: boolean;
 	birthday?: Date;
 };
 
 export type AccountSettings = {
 	theme: Theme;
-	isPrivateAccount: boolean;
 };
 
 /**
@@ -46,3 +48,36 @@ export type AccountModel = {
 	deletedAt?: Date;
 	deletedBy?: ObjectId;
 };
+
+/**
+ * =============================
+ *
+ *  Account Validation Schema
+ *
+ * =============================
+ */
+
+export const vAccountProfile = v.strictObject({
+	_id: objectId,
+	signinMethod: v.enum(SigninMethod),
+	profileInfo: v.strictObject({
+		email: v.string(),
+		fullname: v.string(),
+		firstname: v.string(),
+		lastname: v.string(),
+		phoneNumber: v.array(v.string()),
+		birthday: v.optional(v.date()),
+		locale: v.string(),
+		avatar: v.string(),
+		isPrivateAccount: v.boolean(),
+	}),
+	accountSettings: v.strictObject({
+		theme: v.enum(Theme),
+	}),
+
+	createdAt: v.date(),
+	createdBy: v.optional(objectId),
+	updatedAt: v.optional(v.date()),
+	deletedAt: v.optional(v.date()),
+	deletedBy: v.optional(objectId),
+}) satisfies v.BaseSchema<AccountModel, AccountModel, v.BaseIssue<unknown>>;

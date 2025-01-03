@@ -1,6 +1,5 @@
 import { sign } from "hono/jwt";
 import dayjs from "@/utils/dayjs";
-import { ObjectId } from "mongodb";
 import { AccountColl, TokenColl } from "@/loaders/mongo";
 
 import type { LoginGoogleRequest, LoginGoogleResponse } from "./auth.validator";
@@ -22,10 +21,10 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 			phoneNumber: [],
 			locale: "",
 			avatar: "",
+			isPrivateAccount: false,
 		},
 		accountSettings: {
 			theme: "Light",
-			isPrivateAccount: false,
 		},
 	};
 
@@ -44,13 +43,12 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 			avatar,
 			locale: "Vi",
 			phoneNumber: [],
+			isPrivateAccount: false,
 		};
 		const accountSettings: AccountSettings = {
 			theme: Theme.Light,
-			isPrivateAccount: false,
 		};
 		const { acknowledged, insertedId } = await AccountColl.insertOne({
-			_id: new ObjectId(),
 			profileInfo,
 			signinMethod,
 			accountSettings,
@@ -87,16 +85,15 @@ const signToken = async (accountId: string) => {
 const saveToken = async (value: string, accountId: string, expiredAt: Date) => {
 	const [tokenDoc, _] = await Promise.all([
 		TokenColl.insertOne({
-			_id: ObjectId.createFromTime(Date.now()),
 			isPrimary: true,
-			accountId: new ObjectId(accountId),
+			accountId: toObjectId(accountId),
 			value,
 			expiredAt: expiredAt,
 			createdAt: new Date(),
 		}),
 		TokenColl.updateMany(
 			{
-				accountId: new ObjectId(accountId),
+				accountId: toObjectId(accountId),
 				value: {
 					$ne: value,
 				},

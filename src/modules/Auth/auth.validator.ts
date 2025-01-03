@@ -21,10 +21,10 @@ export const LoginGoogleResponseSchema = v.strictObject({
 		phoneNumber: v.array(v.string()),
 		birthday: v.optional(v.date()),
 		locale: v.string(),
+		isPrivateAccount: v.boolean(),
 	}),
 	accountSettings: v.strictObject({
 		theme: v.string(),
-		isPrivateAccount: v.boolean(),
 	}),
 });
 

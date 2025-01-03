@@ -1,4 +1,4 @@
-import { MongoClient, type Db, type Collection, type Document } from "mongodb";
+import { MongoClient, type Db, type Collection, type Document, type WithoutId } from "mongodb";
 import type { TaskModel } from "../database/model/task/task.model";
 import type { AccountModel } from "../database/model/account/account.model";
 import type { TokenModel } from "../database/model/token/token.schema";
@@ -62,11 +62,11 @@ connectToDatabase().then((db) => {
 	if (!db) {
 		throw new Error("Failed to connect to database");
 	}
-	AccountColl = db.collection<AccountModel>("accounts");
-	TaskColl = db.collection<TaskModel>("tasks");
-	TokenColl = db.collection<TokenModel>("tokens");
+	AccountColl = db.collection<WithoutId<AccountModel>>("accounts");
+	TaskColl = db.collection<WithoutId<TaskModel>>("tasks");
+	TokenColl = db.collection<WithoutId<TokenModel>>("tokens");
 });
 
-export let TokenColl: CollectionType<TokenModel>;
-export let AccountColl: CollectionType<AccountModel>;
-export let TaskColl: CollectionType<TaskModel>;
+export let TokenColl: CollectionType<WithoutId<TokenModel>>;
+export let AccountColl: CollectionType<WithoutId<AccountModel>>;
+export let TaskColl: CollectionType<WithoutId<TaskModel>>;

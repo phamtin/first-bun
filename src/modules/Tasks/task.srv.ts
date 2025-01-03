@@ -1,11 +1,12 @@
 import type { Context } from "hono";
+import type { WithoutId } from "mongodb";
 import type { CreateTaskRequest, CreateTaskResponse, GetMyTasksRequest, GetMyTasksResponse, GetTaskByIdResponse, UpdateTaskRequest, UpdateTaskResponse } from "./task.validator";
-import { toObjectId, toStringId } from "@/pkgs/mongodb/helper";
+import { toObjectId } from "@/pkgs/mongodb/helper";
 import systemLog from "@/pkgs/systemLog";
 import TaskRepo from "./task.repo";
 import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
-import type { TaskModel, TaskTiming } from "../../database/model/task/task.model";
+import { TaskStatus, type TaskModel, type TaskTiming } from "../../database/model/task/task.model";
 import type { AccountModel } from "../../database/model/account/account.model";
 import { AppError } from "@/utils/error";
 import AccountSrv from "../Accounts";
@@ -50,8 +51,20 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<CreateTaskResponse> => {
 	systemLog.info("createTask - START");
 
+	const payload: WithoutId<TaskModel> = {
+		title: request.title,
+		priority: request.priority,
+		description: request.description,
+		additionalInfo: request.additionalInfo,
+		subTasks: request.subTasks,
+		createdAt: new Date(),
+		createdBy: toObjectId(ctx.get("user")._id),
+
+		status: request.status ?? TaskStatus.NotStartYet,
+	};
+
 	if (request.timing) {
-		const { startDate, endDate } = request.timing;
+		const { startDate, endDate, estimation } = request.timing;
 
 		if (startDate) {
 			if (!dayjs(startDate).isValid()) {
@@ -68,22 +81,30 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 				throw new AppError("BAD_REQUEST", "End start is invalid");
 			}
 		}
-	}
+		payload.timing = {};
 
-	if (request.assigneeId) {
-		const account = await AccountSrv.findAccountProfile(ctx, {
-			accountId: request.assigneeId,
-		});
-
-		if (!account) {
-			throw new AppError("NOT_FOUND", "Account not found");
+		if (startDate) {
+			payload.timing.startDate = dayjs(startDate).toDate();
 		}
-		request.assigneeId = toStringId(account._id);
-	} else {
-		request.assigneeId = ctx.get("user")._id;
+		if (endDate) {
+			payload.timing.endDate = dayjs(endDate).toDate();
+		}
+		if (estimation) {
+			payload.timing.estimation = estimation as TaskTiming["estimation"];
+		}
 	}
 
-	const created = await TaskRepo.createTask(ctx, request);
+	const assigneeId = request.assigneeId ?? ctx.get("user")._id;
+
+	const assigneeAccount = await AccountSrv.findAccountProfile(ctx, { accountId: assigneeId });
+
+	if (!assigneeAccount) {
+		throw new AppError("NOT_FOUND", "Assignee not found");
+	}
+
+	payload.assigneeInfo = [assigneeAccount];
+
+	const created = await TaskRepo.createTask(ctx, request, payload);
 
 	systemLog.info("createTask - END");
 
@@ -120,6 +141,15 @@ const validateDateRange = (timingDb?: TaskTiming, timingRequest?: UpdateTaskRequ
 };
 
 const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskRequest): Promise<UpdateTaskResponse> => {
+	const payload: Partial<TaskModel> = {
+		title: request.title,
+		status: request.status,
+		priority: request.priority,
+		description: request.description,
+		additionalInfo: request.additionalInfo,
+		subTasks: request.subTasks,
+	};
+
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 
@@ -152,17 +182,21 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 
 	const [task, account] = await Promise.all(promisors);
 
-	if (!task) throw new AppError("NOT_FOUND", "Yask not found");
+	if (!task) throw new AppError("NOT_FOUND", "Task not found");
 
 	if (request.assigneeId && !account) {
 		throw new AppError("NOT_FOUND", "Assignee not found");
 	}
+	const assigneeProfile = account as AccountModel;
+	const { accountSettings, ...profile } = assigneeProfile;
+
+	payload.assigneeInfo = [profile];
 
 	const isValidDate = validateDateRange((task as TaskModel).timing, request.timing);
 
 	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
 
-	const res = await TaskRepo.updateTask(ctx, taskId, request);
+	const res = await TaskRepo.updateTask(ctx, taskId, payload);
 
 	if (!res?._id) {
 		throw new AppError("INTERNAL_SERVER_ERROR");
