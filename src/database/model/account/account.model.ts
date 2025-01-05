@@ -61,7 +61,7 @@ export const vAccountProfile = v.strictObject({
 	_id: objectId,
 	signinMethod: v.enum(SigninMethod),
 	profileInfo: v.strictObject({
-		email: v.string(),
+		email: v.pipe(v.string(), v.trim(), v.email()),
 		fullname: v.string(),
 		firstname: v.string(),
 		lastname: v.string(),

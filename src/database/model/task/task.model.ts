@@ -25,6 +25,16 @@ export enum TaskStatus {
 	Archived = "Archived",
 }
 
+export enum PodomoroType {
+	"25-5" = "25-5",
+	"50-10" = "50-10",
+}
+
+export type Podomoro = {
+	quantity: number;
+	type: PodomoroType;
+};
+
 /**
  *  -----------------------------
  *	|
@@ -37,12 +47,14 @@ export type TaskModel = {
 
 	title: string;
 	status: TaskStatus;
+	projectId: ObjectId;
 	description?: string;
 	priority?: TaskPriority;
 	assigneeInfo?: Omit<AccountModel, "accountSettings">[];
 	additionalInfo?: AttributePattern[];
 	timing?: TaskTiming;
 	subTasks?: SubTask[];
+	tags?: ObjectId[];
 
 	createdAt: Date;
 	createdBy?: ObjectId;
@@ -52,8 +64,8 @@ export type TaskModel = {
 };
 
 export type ExtendTaskModel = {
-	hasAttachment?: boolean;
 	created?: Omit<AccountModel, "accountSettings">;
+	availableTags?: { _id: ObjectId; name: string; color: string }[];
 };
 
 export type SubTask = Pick<TaskModel, "title" | "status" | "description" | "priority" | "additionalInfo">;
@@ -75,14 +87,23 @@ export const vSubTask = v.strictObject({
 }) satisfies v.BaseSchema<SubTask, SubTask, v.BaseIssue<unknown>>;
 
 export const vExtendTaskModel = v.strictObject({
-	hasAttachment: v.optional(v.boolean()),
 	created: v.optional(v.omit(vAccountProfile, ["accountSettings"])),
+	availableTags: v.optional(
+		v.array(
+			v.strictObject({
+				_id: objectId,
+				name: v.string(),
+				color: v.string(),
+			})
+		)
+	),
 }) satisfies v.BaseSchema<ExtendTaskModel, ExtendTaskModel, v.BaseIssue<unknown>>;
 
 export const vTaskModel = v.strictObject({
 	_id: objectId,
 	title: v.string(),
 	status: v.enum(TaskStatus),
+	projectId: objectId,
 	assigneeInfo: v.optional(v.array(v.omit(vAccountProfile, ["accountSettings"]))),
 	description: v.optional(v.string()),
 	timing: v.optional(
@@ -92,6 +113,7 @@ export const vTaskModel = v.strictObject({
 			estimation: v.optional(v.string()),
 		})
 	),
+	tags: v.optional(v.array(objectId)),
 	subTasks: v.optional(v.array(vSubTask)),
 	priority: v.optional(v.enum(TaskPriority)),
 	additionalInfo: v.optional(v.array(vAttributePattern)),

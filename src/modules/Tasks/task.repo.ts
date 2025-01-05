@@ -1,7 +1,7 @@
-import { ObjectId, type WithoutId } from "mongodb";
+import type { WithoutId } from "mongodb";
 import dayjs from "dayjs";
 import { TaskColl } from "@/loaders/mongo";
-import type { CreateTaskRequest, CreateTaskResponse, GetMyTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
+import type { CreateTaskResponse, GetMyTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 
 import type { ExtendTaskModel, TaskModel, TaskPriority } from "../../database/model/task/task.model";
 import { AppError } from "@/utils/error";
@@ -11,7 +11,7 @@ import { EXCLUDED_TASK_STATUS } from "./task.helper";
 import { toPayloadUpdate } from "@/utils/transfrom";
 
 const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
-	const res = (await TaskColl.aggregate([
+	const tasks = (await TaskColl.aggregate([
 		{
 			$match: {
 				_id: toObjectId(id),
@@ -33,14 +33,43 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 				path: "$created",
 			},
 		},
-	]).toArray()) as [TaskModel & ExtendTaskModel];
+		{
+			$lookup: {
+				from: "projects",
+				localField: "projectId",
+				foreignField: "_id",
+				as: "availableTags",
+				pipeline: [{ $project: { _id: 0, tags: 1 } }],
+			},
+		},
+		{
+			$replaceRoot: {
+				newRoot: { $mergeObjects: ["$$ROOT", { availableTags: "$availableTags.tags" }] },
+			},
+		},
+		{
+			$unwind: {
+				path: "$availableTags",
+				preserveNullAndEmptyArrays: true,
+			},
+		},
 
-	if (!res.length) throw new AppError("NOT_FOUND", "Task not found");
+		{
+			$project: {
+				"created.accountSettings": 0,
+				"assigneeInfo.accountSettings": 0,
+			},
+		},
+	]).toArray()) as (TaskModel & ExtendTaskModel)[];
 
-	return res[0];
+	if (tasks.length === 0) throw new AppError("NOT_FOUND", "Task not found");
+
+	if (tasks.length > 1) throw new AppError("INTERNAL_SERVER_ERROR", "Something went wrong");
+
+	return tasks[0];
 };
 
-const createTask = async (ctx: Context, request: CreateTaskRequest, payload: WithoutId<TaskModel>): Promise<CreateTaskResponse> => {
+const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<CreateTaskResponse> => {
 	const data: WithoutId<TaskModel> = {
 		...payload,
 
@@ -53,8 +82,8 @@ const createTask = async (ctx: Context, request: CreateTaskRequest, payload: Wit
 	if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR");
 
 	return {
-		_id: insertedId,
 		...data,
+		_id: insertedId,
 	};
 };
 
@@ -192,6 +221,11 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 						},
 					],
 				},
+			},
+		},
+		{
+			$project: {
+				"assigneeInfo.accountSettings": 0,
 			},
 		},
 	]).toArray()) as TaskModel[];

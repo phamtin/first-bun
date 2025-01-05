@@ -7,7 +7,8 @@ import { type AccountSettings, type ProfileInfo, SigninMethod, Theme } from "../
 import type { JWTPayload } from "hono/utils/jwt/types";
 import type { Context } from "@/types/app.type";
 import { AppError } from "@/utils/error";
-import { toObjectId, toStringId } from "@/pkgs/mongodb/helper";
+import { toObjectId } from "@/pkgs/mongodb/helper";
+import ProjectSrv from "../Project/project.srv";
 
 const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
 	const res: LoginGoogleResponse = {
@@ -58,11 +59,21 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 
 		if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 
-		res._id = toStringId(insertedId);
+		ctx.set("user", {
+			_id: insertedId.toHexString(),
+			email,
+			fullname,
+			firstname,
+			lastname,
+		});
+
+		await ProjectSrv.createProject(ctx, { title: `${firstname}'s Project`, color: "#2fad64" }, true);
+
+		res._id = insertedId.toHexString();
 		res.profileInfo = profileInfo;
 		res.accountSettings = accountSettings;
 	} else {
-		res._id = toStringId(account._id);
+		res._id = account._id.toHexString();
 		res.profileInfo = account.profileInfo;
 		res.accountSettings = account.accountSettings;
 	}

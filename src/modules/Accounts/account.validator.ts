@@ -8,7 +8,7 @@ export const updateProfileRequest = v.strictObject({
 	signinMethod: v.optional(v.enum(SigninMethod)),
 	profileInfo: v.optional(
 		v.strictObject({
-			email: v.optional(v.string()),
+			email: v.optional(v.pipe(v.string(), v.trim(), v.email())),
 			fullname: v.optional(v.string()),
 			firstname: v.optional(v.string()),
 			lastname: v.optional(v.string()),
@@ -24,17 +24,16 @@ export const updateProfileRequest = v.strictObject({
 			theme: v.optional(v.enum(Theme)),
 		})
 	),
-	updatedAt: v.optional(v.string()),
 });
 
 export const getMyProfileResponse = vAccountProfile;
 
 export const getAccountProfileRequest = v.strictObject({
 	accountId: v.optional(stringObjectId),
-	email: v.optional(v.string()),
+	email: v.optional(v.pipe(v.string(), v.trim(), v.email())),
 });
 
-export const getAccountProfileResponse = vAccountProfile;
+export const getAccountProfileResponse = v.nullable(vAccountProfile);
 
 export type GetMyProfileResponse = InferInput<typeof getMyProfileResponse>;
 export type UpdateProfileRequest = InferInput<typeof updateProfileRequest>;

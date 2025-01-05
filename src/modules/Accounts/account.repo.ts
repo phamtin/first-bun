@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import type { GetAccountProfileRequest, GetAccountProfileResponse, GetMyProfileResponse, UpdateProfileRequest } from "./account.validator";
 import { AccountColl } from "@/loaders/mongo";
-import { type Filter, ObjectId } from "mongodb";
+import type { Filter } from "mongodb";
 import { AppError } from "@/utils/error";
 import type { AccountModel } from "../../database/model/account/account.model";
 import type { Context } from "hono";
@@ -40,7 +40,7 @@ const findAccountProfile = async (ctx: Context, request: GetAccountProfileReques
 
 	const account = await AccountColl.findOne(filter);
 
-	if (!account) throw new AppError("NOT_FOUND", "Account not found");
+	if (!account) return null;
 
 	return account;
 };
@@ -52,7 +52,7 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 			...request.profileInfo,
 			birthday: request.profileInfo?.birthday ? dayjs(request.profileInfo.birthday).toDate() : undefined,
 		},
-		updatedAt: request.updatedAt ? dayjs(request.updatedAt).toDate() : undefined,
+		updatedAt: dayjs().toDate(),
 	};
 
 	const updated = await AccountColl.findOneAndUpdate(

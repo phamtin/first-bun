@@ -1,5 +1,4 @@
 import { verify } from "hono/jwt";
-import { ObjectId } from "mongodb";
 
 import type { UserCheckParser } from "@/types/app.type";
 import { AccountColl, TokenColl } from "../loaders/mongo";

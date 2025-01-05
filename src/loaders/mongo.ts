@@ -2,6 +2,7 @@ import { MongoClient, type Db, type Collection, type Document, type WithoutId } 
 import type { TaskModel } from "../database/model/task/task.model";
 import type { AccountModel } from "../database/model/account/account.model";
 import type { TokenModel } from "../database/model/token/token.schema";
+import type { ProjectModel } from "../database/model/project/project.model";
 import { ChangeStreamSingleton } from "@/pkgs/mongodb/changeStream/changeStream";
 
 const MONGO_URL = Bun.env.MONGODB_URL_ATLAS as string;
@@ -56,7 +57,7 @@ export const closeMongoConnection = async (): Promise<void> => {
 	}
 };
 
-type CollectionType<T> = Collection<T extends Document ? T : Document>;
+export type CollectionType<T> = Collection<T extends Document ? T : Document>;
 
 connectToDatabase().then((db) => {
 	if (!db) {
@@ -65,8 +66,10 @@ connectToDatabase().then((db) => {
 	AccountColl = db.collection<WithoutId<AccountModel>>("accounts");
 	TaskColl = db.collection<WithoutId<TaskModel>>("tasks");
 	TokenColl = db.collection<WithoutId<TokenModel>>("tokens");
+	ProjectColl = db.collection<WithoutId<ProjectModel>>("projects");
 });
 
 export let TokenColl: CollectionType<WithoutId<TokenModel>>;
 export let AccountColl: CollectionType<WithoutId<AccountModel>>;
 export let TaskColl: CollectionType<WithoutId<TaskModel>>;
+export let ProjectColl: CollectionType<WithoutId<ProjectModel>>;
