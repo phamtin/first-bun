@@ -9,17 +9,17 @@
     "dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans"
   },
   "dependencies": {
-    "@hono/valibot-validator": "^0.5.1",
-    "bullmq": "^5.34.8",
+    "@hono/valibot-validator": "^0.5.2",
+    "bullmq": "^5.34.9",
     "dayjs": "^1.11.13",
     "hono": "^4.6.16",
+    "ioredis": "^5.4.2",
     "mongodb": "^6.12.0",
-    "redis": "^4.7.0",
     "valibot": "^1.0.0-beta.11"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@types/bun": "^1.1.15",
+    "@types/bun": "^1.1.16",
     "typescript": "^5.7.2"
   },
   "module": "src/index.js"

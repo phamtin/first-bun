@@ -1,19 +1,19 @@
 services:
-    mongodb:
-        image: bitnami/mongodb:8.0.4
-        container_name: "mongodb"
-        volumes:
-            - ./data/mongodb:/bitnami/mongodb
-        restart: always
-        environment:
-            - MONGODB_ROOT_USER=root
-            - MONGODB_ROOT_PASSWORD=password
-            - MONGODB_DATABASE=first-bun
-        ports:
-            - "27017:27017"
+    # mongodb:
+    #     image: bitnami/mongodb:8.0.4
+    #     container_name: "mongodb"
+    #     volumes:
+    #         - ./data/mongodb:/bitnami/mongodb
+    #     restart: always
+    #     environment:
+    #         - MONGODB_ROOT_USER=root
+    #         - MONGODB_ROOT_PASSWORD=password
+    #         - MONGODB_DATABASE=first-bun
+    #     ports:
+    #         - "27017:27017"
 
     redis-stack:
-        image: redis/redis-stack:7.2.0-v13
+        image: redis/redis-stack:7.4.0-v2
         container_name: "redis"
         volumes:
             - ./data/redis:/data

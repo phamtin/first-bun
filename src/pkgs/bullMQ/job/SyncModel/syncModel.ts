@@ -1,7 +1,6 @@
 import type { Job } from "bullmq";
-import { BaseJob } from "../baseJob";
-import type { JobImp } from "../type";
-import systemLog from "@/pkgs/systemLog";
+import { BaseJob } from "../../baseJob";
+import type { JobImp } from "../../type";
 
 export class SendWelcomeMail extends BaseJob implements JobImp {
 	constructor(public payload: Record<string, unknown>) {
@@ -15,6 +14,6 @@ export class SendWelcomeMail extends BaseJob implements JobImp {
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	failed = (job: Job<any, any, string>) => {
-		systemLog.error(`Job ${this.name} with ID: ${job.id} has failed.`);
+		console.error(`Job ${this.name} with ID: ${job.id} has failed.`);
 	};
 }

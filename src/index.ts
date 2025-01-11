@@ -37,7 +37,16 @@ HonoApp.route("/", routes);
 HonoApp.onError(handleError);
 
 await connectToDatabase();
-// await connectToRedis();
+await connectToRedis();
+
+//	init bullMQ
+import("@/pkgs/bullMQ/worker/SyncModel.worker")
+	.then(() => {
+		console.log("✅ Worker initialized");
+	})
+	.catch((e) => {
+		console.log("❌ Worker failed to initialize", e);
+	});
 
 export default {
 	port: 8000,

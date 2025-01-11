@@ -122,9 +122,11 @@ const updateProject = async (ctx: Context, projectId: string, payload: DeepParti
 	if (payload.projectInfo) {
 		payload.projectInfo.isDefaultProject = undefined;
 	}
-	payload.updatedAt = dayjs().toDate();
+	if (payload.participantInfo) {
+		payload.participantInfo.owner = undefined;
+	}
 
-	console.log("CHECK: ", JSON.parse(JSON.stringify(toPayloadUpdate(payload), null, 4)));
+	payload.updatedAt = dayjs().toDate();
 
 	const updated: ProjectModel | null = await ProjectColl.findOneAndUpdate(
 		{

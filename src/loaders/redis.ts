@@ -1,20 +1,20 @@
-import { createClient, type RedisClientType } from "redis";
+import IoRedis from "ioredis";
 
 class Redis {
-	private static client: RedisClientType | null = null;
+	private static client: IoRedis | null = null;
 
 	private constructor() {
 		// Private constructor to prevent instantiation
 	}
 
-	public static async connectToRedis(): Promise<void> {
+	public static async connectToRedis(): Promise<Redis> {
 		if (!Redis.client) {
-			Redis.client = createClient({ url: `redis://${Bun.env.REDIS_HOST}:6379` });
-
-			await Redis.client.connect();
+			Redis.client = new IoRedis({ host: Bun.env.REDIS_HOST, port: 6379, maxRetriesPerRequest: null });
 
 			console.log("- Connected to Redis server");
 		}
+
+		return Redis.client;
 	}
 
 	public static async closeRedisConnection(): Promise<void> {
@@ -30,17 +30,17 @@ class Redis {
 		}
 	}
 
-	public static getClient(): RedisClientType | null {
+	public static getClient(): IoRedis | null {
 		return Redis.client;
 	}
 }
 
 process.on("SIGINT", async () => {
-	await Redis.closeRedisConnection();
+	Redis.closeRedisConnection();
 	process.exit(0);
 });
 
-export async function connectToRedis(): Promise<void> {
+export async function connectToRedis(): Promise<Redis> {
 	return Redis.connectToRedis();
 }
 

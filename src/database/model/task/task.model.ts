@@ -68,7 +68,7 @@ export type ExtendTaskModel = {
 	availableTags?: { _id: ObjectId; name: string; color: string }[];
 };
 
-export type SubTask = Pick<TaskModel, "title" | "status" | "description" | "priority" | "additionalInfo">;
+export type SubTask = Pick<TaskModel, "_id" | "title" | "description" | "priority" | "additionalInfo"> & { status?: TaskStatus };
 
 /**
  *  -----------------------------
@@ -79,8 +79,9 @@ export type SubTask = Pick<TaskModel, "title" | "status" | "description" | "prio
  */
 
 export const vSubTask = v.strictObject({
+	_id: objectId,
 	title: v.string(),
-	status: v.enum(TaskStatus),
+	status: v.optional(v.enum(TaskStatus)),
 	description: v.optional(v.string()),
 	priority: v.optional(v.enum(TaskPriority)),
 	additionalInfo: v.optional(v.array(vAttributePattern)),

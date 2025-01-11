@@ -94,9 +94,13 @@ const updateProject = async (ctx: Context, projectId: string, request: UpdatePro
 
 	// Validate members payload
 	if (request.memberIds) {
+		if (_project.projectInfo.isDefaultProject) {
+			throw new AppError("BAD_REQUEST", "Can't add member to your own workspace");
+		}
 		if (!_project.participantInfo.owner._id.equals(ctx.get("user")._id)) {
 			throw new AppError("INSUFFICIENT_PERMISSIONS", "You're must be owner to perform this action");
 		}
+
 		request.memberIds = request.memberIds.filter((id) => !_project.participantInfo.owner._id.equals(id)) || [];
 
 		const promisor: Promise<AccountModel | null>[] = [];

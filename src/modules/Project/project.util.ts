@@ -20,7 +20,7 @@ export const checkUserIsParticipantProject = async (userId: string, projectId: s
 		return [true, project];
 	}
 
-	if (project.participantInfo.members.map((mem) => mem._id).includes(toObjectId(userId))) {
+	if (project.participantInfo.members.map((mem) => mem._id.toHexString()).includes(userId)) {
 		return [true, project];
 	}
 

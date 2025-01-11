@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { vValidator } from "@hono/valibot-validator";
 import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/utils/response";
-import { createTaskRequest, getMyTasksRequest, updateTaskRequest } from "@/modules/Tasks/task.validator";
+import { createTaskRequest, type GetMyTasksRequest, getMyTasksRequest, updateTaskRequest } from "@/modules/Tasks/task.validator";
 import TaskSrv from "@/modules/Tasks/task.srv";
 import { getValidationErrorMsg } from "@/utils/error";
 
@@ -35,7 +35,7 @@ taskRoute.get(
 		}
 	}),
 	async (c) => {
-		const r = await TaskSrv.getMyTasks(c, c.req.valid("query"));
+		const r = await TaskSrv.getMyTasks(c, c.req.valid("query") as GetMyTasksRequest);
 		return responseOK(c, r);
 	}
 );

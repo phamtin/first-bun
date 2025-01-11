@@ -14,4 +14,23 @@ const toStringId = (id: ObjectId | null | undefined): string => {
 	return "";
 };
 
-export { toObjectId, toStringId };
+const toObjectIds = (obj: unknown): unknown => {
+	if (typeof obj === "string") {
+		return ObjectId.isValid(obj) ? new ObjectId(obj) : obj;
+	}
+
+	if (Array.isArray(obj)) {
+		return obj.map(toObjectIds);
+	}
+
+	if (obj !== null && typeof obj === "object") {
+		return Object.entries(obj).reduce<Record<string, unknown>>((acc, [key, value]) => {
+			acc[key] = toObjectIds(value);
+			return acc;
+		}, {});
+	}
+
+	return obj as object;
+};
+
+export { toObjectId, toStringId, toObjectIds };

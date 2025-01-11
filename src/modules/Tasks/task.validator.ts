@@ -17,27 +17,28 @@ export const createTaskRequest = v.strictObject({
 	}),
 	priority: v.optional(v.enum(TaskPriority)),
 	additionalInfo: v.optional(v.array(vAttributePattern)),
-	subTasks: v.optional(
-		v.array(
-			v.strictObject({
-				title: v.string(),
-				status: v.optional(v.enum(TaskStatus)),
-				description: v.optional(v.string()),
-				priority: v.optional(v.enum(TaskPriority)),
-				additionalInfo: v.optional(v.array(vAttributePattern)),
-			})
-		)
-	),
+	subTasks: v.optional(v.array(v.omit(vSubTask, ["_id"]))),
+	tags: v.optional(v.pipe(v.array(stringObjectId), v.maxLength(9, "Too many tags"))),
 });
 
 export const createTaskResponse = vTaskModel;
 
 export const getMyTasksRequest = v.strictObject({
 	query: v.optional(v.string()),
-	status: v.optional(v.array(v.enum(TaskStatus))),
-	priorities: v.optional(v.array(v.enum(TaskPriority))),
-	startDate: v.optional(v.array(v.string())),
-	endDate: v.optional(v.array(v.string())),
+	status: v.pipe(
+		v.optional(v.union([v.array(v.enum(TaskStatus)), v.enum(TaskStatus)])),
+		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i))
+	),
+	priorities: v.pipe(
+		v.optional(v.union([v.array(v.enum(TaskPriority)), v.enum(TaskPriority)])),
+		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i))
+	),
+	startDate: v.optional(v.string()),
+	endDate: v.optional(v.string()),
+	tags: v.pipe(
+		v.optional(v.union([v.array(stringObjectId), stringObjectId])),
+		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i))
+	),
 });
 
 export const getMyTasksResponse = v.array(vTaskModel);
@@ -56,7 +57,14 @@ export const updateTaskRequest = v.strictObject({
 		})
 	),
 	additionalInfo: v.optional(v.array(vAttributePattern)),
-	subTasks: v.optional(v.array(vSubTask)),
+	subTasks: v.optional(
+		v.array(
+			v.strictObject({
+				...v.omit(vSubTask, ["_id"]).entries,
+				_id: v.optional(stringObjectId),
+			})
+		)
+	),
 	tags: v.optional(v.pipe(v.array(stringObjectId), v.maxLength(9, "Too many tags"))),
 });
 

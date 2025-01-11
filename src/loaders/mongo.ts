@@ -9,7 +9,7 @@ const MONGO_URL = Bun.env.MONGODB_URL_ATLAS as string;
 
 const dbName = "blitz";
 
-const client = new MongoClient(MONGO_URL);
+export const client = new MongoClient(MONGO_URL);
 
 let db: Db | null = null;
 

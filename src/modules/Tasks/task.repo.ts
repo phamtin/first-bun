@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import { TaskColl } from "@/loaders/mongo";
 import type { CreateTaskResponse, GetMyTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 
-import type { ExtendTaskModel, TaskModel, TaskPriority } from "../../database/model/task/task.model";
+import type { ExtendTaskModel, TaskModel, TaskPriority, TaskStatus } from "../../database/model/task/task.model";
 import { AppError } from "@/utils/error";
 import type { Context } from "hono";
 import { toObjectId } from "@/pkgs/mongodb/helper";
@@ -109,15 +109,15 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 };
 
 const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<TaskModel[]> => {
-	const { query = "", startDate = [], endDate = [] } = request;
+	const { query = "", startDate = "", endDate = "", tags: _tags = [] } = request;
 
-	const statusFilter = request.status?.filter((s) => !EXCLUDED_TASK_STATUS[s]) || [];
+	const statusFilter = (request.status as TaskStatus[])?.filter((s) => !EXCLUDED_TASK_STATUS[s]) || [];
 
-	const priorities: TaskPriority[] = request.priorities || [];
+	const priorities: TaskPriority[] = (request.priorities as TaskPriority[]) || [];
 
 	const accountId = toObjectId(ctx.get("user")._id);
 
-	const tasks: TaskModel[] = (await TaskColl.aggregate([
+	let tasks: TaskModel[] = (await TaskColl.aggregate([
 		{
 			$match: {
 				$or: [{ createdBy: accountId }, { assigneeId: accountId }],
@@ -130,7 +130,7 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 						{
 							$cond: {
 								if: {
-									$gte: [query.length, 3],
+									$gte: [query.length, 2],
 								},
 								then: {
 									$or: [
@@ -169,56 +169,18 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 								else: {},
 							},
 						},
-						//	Apply filter has startDate
-						{
-							$switch: {
-								branches: [
-									{
-										case: { $eq: [startDate.length, 1] },
-										then: { $gte: ["$timing.startDate", { $toDate: startDate[0] }] },
-									},
-									{
-										case: { $eq: [startDate.length, 2] },
-										then: {
-											$and: [
-												{
-													$gte: ["$timing.startDate", { $toDate: startDate[0] }],
-												},
-												{
-													$lte: ["$timing.startDate", { $toDate: startDate[1] }],
-												},
-											],
-										},
-									},
-								],
-								default: {},
-							},
-						},
-						//	Apply filter has endDate
-						{
-							$switch: {
-								branches: [
-									{
-										case: { $eq: [endDate.length, 1] },
-										then: { $lte: ["$timing.endDate", { $toDate: endDate[0] }] },
-									},
-									{
-										case: { $eq: [endDate.length, 2] },
-										then: {
-											$and: [
-												{
-													$gte: ["$timing.endDate", { $toDate: endDate[0] }],
-												},
-												{
-													$lte: ["$timing.endDate", { $toDate: endDate[1] }],
-												},
-											],
-										},
-									},
-								],
-								default: {},
-							},
-						},
+
+						startDate.length > 0
+							? {
+									$gte: ["$timing.startDate", { $toDate: startDate }],
+							  }
+							: {},
+
+						endDate.length > 0
+							? {
+									$lte: ["$timing.endDate", { $toDate: endDate }],
+							  }
+							: {},
 					],
 				},
 			},
@@ -229,6 +191,19 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 			},
 		},
 	]).toArray()) as TaskModel[];
+
+	if (_tags.length) {
+		const tagsSet = new Set(_tags as string[]);
+
+		tasks = tasks.filter((task) => {
+			for (let i = 0; i < (task?.tags?.length || 0); i++) {
+				if (tagsSet.has(task.tags?.[i].toString() as string)) {
+					return true;
+				}
+			}
+			return false;
+		});
+	}
 
 	return tasks;
 };

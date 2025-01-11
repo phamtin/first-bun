@@ -12,4 +12,4 @@ export interface JobImp {
 	failed: (job: Job) => void;
 }
 
-export const concurrency = 10;
+export const CONCURRENCY = 10;
