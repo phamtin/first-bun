@@ -58,28 +58,42 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 		{
 			$unwind: {
 				path: "$created",
-				preserveNullAndEmptyArrays: true,
 			},
 		},
 		{
 			$lookup: {
 				from: "tasks",
-				localField: "_id",
-				foreignField: "projectId",
-				as: "tasks",
-			},
-		},
-		{
-			$addFields: {
-				tasks: {
-					$filter: {
-						input: "$tasks",
-						as: "task",
-						cond: {
-							$and: [{ $not: [{ $ifNull: ["$$task.deletedAt", false] }] }, { $ne: ["$$task.status", ProjectStatus.Archived] }],
+				let: { projectId: "$_id" },
+				pipeline: [
+					{
+						$match: {
+							$expr: {
+								$and: [
+									{
+										$eq: ["$projectId", "$$projectId"],
+									},
+									{
+										$ne: ["$status", ProjectStatus.Archived],
+									},
+									{
+										$not: [{ $ifNull: ["$deletedAt", false] }],
+									},
+								],
+							},
 						},
 					},
-				},
+					{
+						$project: {
+							title: 1,
+							status: 1,
+							priority: 1,
+							projectId: 1,
+							timing: 1,
+							createdAt: 1,
+						},
+					},
+				],
+				as: "tasks",
 			},
 		},
 		{
@@ -87,14 +101,6 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 				"participantInfo.owner.accountSettings": 0,
 				"participantInfo.members.accountSettings": 0,
 				"created.accountSettings": 0,
-
-				"tasks.tags": 0,
-				"tasks.description": 0,
-				"tasks.assigneeInfo": 0,
-				"tasks.additionalInfo": 0,
-				"tasks.subTasks": 0,
-				"tasks.updatedAt": 0,
-				"tasks.createdBy": 0,
 			},
 		},
 	]).toArray()) as [ProjectModel & ExtendProjectModel];

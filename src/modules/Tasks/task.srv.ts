@@ -202,8 +202,10 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 		let isValid = true;
 		const taskTags = [];
 
+		const projectTagStringIds = (project.tags || []).map((t) => t._id.toHexString());
+
 		for (const tag of request.tags) {
-			if ((project.tags || []).map((t) => t._id.toHexString()).indexOf(tag) === -1) {
+			if (projectTagStringIds.indexOf(tag) === -1) {
 				isValid = false;
 				break;
 			}
@@ -215,9 +217,8 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 	}
 
 	if (request.assigneeId) {
-		if (!account) {
-			throw new AppError("NOT_FOUND", "Assignee not found");
-		}
+		if (!account) throw new AppError("NOT_FOUND", "Assignee not found");
+
 		const assigneeProfile = account as AccountModel;
 		const { accountSettings, ...profile } = assigneeProfile;
 		payload.assigneeInfo = [profile];
@@ -232,7 +233,10 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 
 			for (const subTask of request.subTasks) {
 				if (subTask._id) {
-					toUpdate.set(subTask._id, subTask);
+					toUpdate.set(subTask._id, {
+						...subTask,
+						_id: toObjectId(subTask._id),
+					});
 				} else {
 					toCreate.push({
 						...subTask,
@@ -240,9 +244,7 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 					});
 				}
 			}
-			const uniqueToUpdate = Array.from(toUpdate.values()) as StringId<SubTask>[];
-
-			payload.subTasks = uniqueToUpdate.map((s) => ({ ...s, _id: toObjectId(s._id) })).concat(toCreate);
+			payload.subTasks = (Array.from(toUpdate.values()) as SubTask[]).concat(toCreate);
 		}
 	}
 
