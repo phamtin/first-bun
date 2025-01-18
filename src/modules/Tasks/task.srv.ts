@@ -1,15 +1,6 @@
 import type { Context } from "hono";
 import { ObjectId, type WithoutId } from "mongodb";
-import type {
-	CreateTaskRequest,
-	CreateTaskResponse,
-	GetMyTasksRequest,
-	GetMyTasksResponse,
-	GetTaskByIdResponse,
-	GetTasksResponse,
-	UpdateTaskRequest,
-	UpdateTaskResponse,
-} from "./task.validator";
+import type { CreateTaskRequest, CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, GetTasksResponse, UpdateTaskRequest, UpdateTaskResponse } from "./task.validator";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import systemLog from "@/pkgs/systemLog";
 import TaskRepo from "./task.repo";
@@ -20,7 +11,6 @@ import type { AccountModel } from "../../database/model/account/account.model";
 import { AppError } from "@/utils/error";
 import AccountSrv from "../Accounts";
 import ProjectUtil from "../Project/project.util";
-import type { StringId } from "@/types/common.type";
 import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 
 const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
@@ -28,7 +18,7 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 	return task;
 };
 
-const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<GetMyTasksResponse> => {
+const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<GetTasksResponse> => {
 	if (request.endDate) {
 		const { startDate, endDate } = request;
 
@@ -39,7 +29,7 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Get
 		}
 	}
 
-	const tasks: TaskModel[] = await TaskRepo.getMyTasks(ctx, request);
+	const tasks: TaskModel[] = await TaskRepo.getTasks(ctx, request);
 
 	return tasks;
 };
@@ -73,7 +63,9 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 
 	const [canUserAccess, project] = await ProjectUtil.checkUserIsParticipantProject(ctx.get("user")._id, request.projectId);
 
-	if (!canUserAccess) throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of project");
+	if (!canUserAccess || !project) {
+		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of project");
+	}
 
 	const assigneeId = request.assigneeId ?? ctx.get("user")._id;
 
@@ -94,7 +86,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 		}));
 	}
 
-	if (request.tags && project) {
+	if (request.tags) {
 		if (!project.tags?.length) {
 			throw new AppError("BAD_REQUEST", "Invalid tags");
 		}
@@ -184,7 +176,7 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 		);
 	}
 
-	const [task, account] = await Promise.all(promisors);
+	const [task, assignee] = await Promise.all(promisors);
 
 	if (!task) throw new AppError("NOT_FOUND", "Task not found");
 
@@ -194,11 +186,11 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 
 	const [canUserAccess, project] = await ProjectUtil.checkUserIsParticipantProject(ctx.get("user")._id, (task as TaskModel).projectId.toHexString());
 
-	if (!canUserAccess) throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of project");
+	if (!canUserAccess || !project) {
+		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of project");
+	}
 
 	if (request.tags) {
-		if (!project) throw new AppError("INTERNAL_SERVER_ERROR");
-
 		let isValid = true;
 		const taskTags = [];
 
@@ -217,9 +209,9 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 	}
 
 	if (request.assigneeId) {
-		if (!account) throw new AppError("NOT_FOUND", "Assignee not found");
+		if (!assignee) throw new AppError("NOT_FOUND", "Assignee not found");
 
-		const assigneeProfile = account as AccountModel;
+		const assigneeProfile = assignee as AccountModel;
 		const { accountSettings, ...profile } = assigneeProfile;
 		payload.assigneeInfo = [profile];
 	}
@@ -299,7 +291,7 @@ const TaskSrv = {
 	updateTask,
 	createTask,
 	getTaskById,
-	getMyTasks,
+	getTasks,
 	deleteTask,
 	findTasksByProjectId,
 };

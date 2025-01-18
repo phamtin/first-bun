@@ -21,7 +21,7 @@ export const connectToDatabase = async (): Promise<Db | null> => {
 	}
 	if (isConnecting) {
 		while (isConnecting) {
-			console.log("isConnecting = ", isConnecting);
+			console.log("Trying...");
 			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 		return db;

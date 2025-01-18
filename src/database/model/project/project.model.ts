@@ -3,7 +3,7 @@ import * as v from "valibot";
 
 import { objectId, vAttributePattern, type AttributePattern } from "../../../types/common.type";
 import { vAccountProfile, type AccountModel } from "../account/account.model";
-import { vTaskModel, type TaskModel } from "../task/task.model";
+import { type InlineTaskModel, vInlineTaskModel, type TaskModel } from "../task/task.model";
 
 export type ProjectDocument = {
 	urls: AttributePattern[];
@@ -54,7 +54,7 @@ export type ProjectModel = {
 };
 
 export type ExtendProjectModel = {
-	tasks: Pick<TaskModel, "_id" | "title" | "status" | "timing" | "createdAt">[];
+	tasks: InlineTaskModel[];
 };
 
 /**
@@ -99,5 +99,5 @@ export const vProjectModel = v.strictObject({
 }) satisfies v.BaseSchema<ProjectModel, ProjectModel, v.BaseIssue<unknown>>;
 
 export const vExtendProjectModel = v.strictObject({
-	tasks: v.array(v.pick(vTaskModel, ["_id", "title", "status", "timing", "createdAt"])),
+	tasks: v.array(vInlineTaskModel),
 }) satisfies v.BaseSchema<ExtendProjectModel, ExtendProjectModel, v.BaseIssue<unknown>>;

@@ -28,11 +28,11 @@ HonoApp.use("*", (c, next) => {
 	return next();
 });
 
+HonoApp.route("/", routes);
+
 HonoApp.get("/ping", (c) => {
 	return c.json({ pong: "It works like a fucking charm!" });
 });
-
-HonoApp.route("/", routes);
 
 HonoApp.onError(handleError);
 

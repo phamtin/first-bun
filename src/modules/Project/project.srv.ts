@@ -18,6 +18,10 @@ const getMyProjects = async (ctx: Context): Promise<ProjectModel[]> => {
 	return project;
 };
 
+const checkValidProject = async (ctx: Context, projectId: string): Promise<boolean> => {
+	return ProjectRepo.checkValidProject(ctx, projectId);
+};
+
 const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdResponse> => {
 	const [canUserAccess] = await projectUtil.checkUserIsParticipantProject(ctx.get("user")._id, id);
 
@@ -33,7 +37,7 @@ const createProject = async (ctx: Context, request: CreateProjectRequest, isDefa
 
 	if (isDefaultProject) {
 		const project = await ProjectColl.findOne({
-			"participantInfo.ownerId": ownerId,
+			"participantInfo.owner._id": ownerId,
 			"projectInfo.isDefaultProject": true,
 			deletedAt: {
 				$exists: false,
@@ -100,7 +104,6 @@ const updateProject = async (ctx: Context, projectId: string, request: UpdatePro
 		if (!_project.participantInfo.owner._id.equals(ctx.get("user")._id)) {
 			throw new AppError("INSUFFICIENT_PERMISSIONS", "You're must be owner to perform this action");
 		}
-
 		request.memberIds = request.memberIds.filter((id) => !_project.participantInfo.owner._id.equals(id)) || [];
 
 		const promisor: Promise<AccountModel | null>[] = [];
@@ -134,7 +137,7 @@ const deleteProject = async (ctx: Context, projectId: string): Promise<boolean> 
 	const projectCount = await ProjectColl.countDocuments({
 		_id: toObjectId(projectId),
 
-		"participantInfo.ownerId": toObjectId(ctx.get("user")._id),
+		"participantInfo.owner._id": toObjectId(ctx.get("user")._id),
 
 		deletedAt: {
 			$exists: false,
@@ -168,6 +171,7 @@ const ProjectSrv = {
 	createProject,
 	getProjectById,
 	deleteProject,
+	checkValidProject,
 };
 
 export default ProjectSrv;

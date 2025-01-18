@@ -1,12 +1,23 @@
 import { verify } from "hono/jwt";
-
-import type { UserCheckParser } from "@/types/app.type";
-import { AccountColl, TokenColl } from "../loaders/mongo";
-import { createMiddleware } from "hono/factory";
 import { responseError } from "@/utils/response";
 import { toObjectId } from "@/pkgs/mongodb/helper";
+import AccountCache from "@/pkgs/redis/account";
+import type { UserCheckParser } from "@/types/app.type";
+
+import { AccountColl, TokenColl } from "../loaders/mongo";
+import { createMiddleware } from "hono/factory";
+import dayjs from "dayjs";
+
+const ALLOWED_DOMAINS: { [key: string]: boolean } = {
+	"localhost:8000": true,
+};
 
 export const tokenParser = createMiddleware(async (c, next) => {
+	const host = c.req.header("Host");
+	if (!host || !ALLOWED_DOMAINS[host]) {
+		return c.text("Domain not allowed", 403);
+	}
+
 	let token = "";
 	const authorization = c.req.header("authorization");
 
@@ -29,30 +40,44 @@ export const tokenParser = createMiddleware(async (c, next) => {
 	try {
 		const decoded = await verify(token, Bun.env.JWT_SECRET);
 
-		const [currentUser, storedToken] = await Promise.all([
-			AccountColl.findOne({
-				_id: toObjectId(decoded.accountId as string),
-			}),
-			TokenColl.findOne({ value: token }),
-		]);
+		const session = await AccountCache.getAccountSessionById(decoded.accountId as string, token);
 
-		if (!currentUser?._id || !storedToken?.isPrimary) {
-			return responseError(c, "FORBIDDEN", "Hack CC");
+		if (session) {
+			user = {
+				_id: decoded.accountId as string,
+				email: session.email,
+				fullname: session.fullname,
+				firstname: session.firstname,
+				lastname: session.lastname,
+			};
+			console.log("-- Session from Redis");
+		} else {
+			const [_currentUser, _storedToken] = await Promise.all([
+				AccountColl.findOne({
+					_id: toObjectId(decoded.accountId as string),
+				}),
+				TokenColl.findOne({ value: token, expiredAt: { $gt: dayjs().toDate() } }),
+			]);
+
+			if (!_currentUser?._id || !_storedToken?.isPrimary) {
+				return responseError(c, "FORBIDDEN", "Hack CC");
+			}
+			user = {
+				_id: decoded.accountId as string,
+				email: _currentUser.profileInfo.email,
+				fullname: _currentUser.profileInfo.fullname,
+				firstname: _currentUser.profileInfo.firstname,
+				lastname: _currentUser.profileInfo.lastname,
+			};
+			console.log("-- Session from MongoDb");
 		}
-		user = {
-			_id: decoded.accountId as string,
-			email: currentUser.profileInfo.email,
-			fullname: currentUser.profileInfo.fullname,
-			firstname: currentUser.profileInfo.firstname,
-			lastname: currentUser.profileInfo.lastname,
-		};
 	} catch (e) {
 		c.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
 
-		return responseError(c, "UNAUTHORIZED", "Unauthorized");
+		return responseError(c, "UNAUTHORIZED", "Unauthorized. Invalid token");
 	}
 
-	c.set("user", user);
+	c.set("user", user satisfies UserCheckParser);
 
 	await next();
 });

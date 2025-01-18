@@ -36,16 +36,17 @@ export const codeToStatus = (code: ErrorCode): ErrorStatus => {
 	switch (code) {
 		case "BAD_REQUEST":
 			return 400;
-		case "FORBIDDEN":
 		case "UNAUTHORIZED":
+			return 401;
+		case "FORBIDDEN":
 		case "INSUFFICIENT_PERMISSIONS":
-		case "USAGE_EXCEEDED":
 			return 403;
 		case "NOT_FOUND":
 			return 404;
 		case "METHOD_NOT_ALLOWED":
 			return 405;
 		case "RATE_LIMITED":
+		case "USAGE_EXCEEDED":
 			return 429;
 		case "INTERNAL_SERVER_ERROR":
 			return 500;

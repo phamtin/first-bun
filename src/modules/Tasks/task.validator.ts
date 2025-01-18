@@ -11,8 +11,8 @@ export const createTaskRequest = v.strictObject({
 	assigneeId: v.optional(stringObjectId),
 	projectId: stringObjectId,
 	timing: v.strictObject({
-		startDate: v.optional(v.string()),
-		endDate: v.optional(v.string()),
+		startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
+		endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
 		estimation: v.optional(v.string()),
 	}),
 	priority: v.optional(v.enum(TaskPriority)),
@@ -23,7 +23,8 @@ export const createTaskRequest = v.strictObject({
 
 export const createTaskResponse = vTaskModel;
 
-export const getMyTasksRequest = v.strictObject({
+export const getTasksRequest = v.strictObject({
+	projectId: v.optional(stringObjectId),
 	query: v.optional(v.string()),
 	status: v.pipe(
 		v.optional(v.union([v.array(v.enum(TaskStatus)), v.enum(TaskStatus)])),
@@ -33,15 +34,16 @@ export const getMyTasksRequest = v.strictObject({
 		v.optional(v.union([v.array(v.enum(TaskPriority)), v.enum(TaskPriority)])),
 		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i))
 	),
-	startDate: v.optional(v.string()),
-	endDate: v.optional(v.string()),
+	startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
+	endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
 	tags: v.pipe(
 		v.optional(v.union([v.array(stringObjectId), stringObjectId])),
 		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i))
 	),
+	isOwned: v.optional(v.union([v.literal("true"), v.literal("false")])),
 });
 
-export const getMyTasksResponse = v.array(vTaskModel);
+export const getTasksResponse = v.array(vTaskModel);
 
 export const updateTaskRequest = v.strictObject({
 	title: v.optional(v.string()),
@@ -51,8 +53,8 @@ export const updateTaskRequest = v.strictObject({
 	priority: v.optional(v.enum(TaskPriority)),
 	timing: v.optional(
 		v.strictObject({
-			startDate: v.optional(v.string()),
-			endDate: v.optional(v.string()),
+			startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
+			endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
 			estimation: v.optional(v.string()),
 		})
 	),
@@ -67,8 +69,6 @@ export const updateTaskRequest = v.strictObject({
 	),
 	tags: v.optional(v.pipe(v.array(stringObjectId), v.maxLength(9, "Too many tags"))),
 });
-
-export const getTasksResponse = v.array(vTaskModel);
 
 export const updateTaskResponse = v.strictObject({
 	...vTaskModel.entries,
@@ -86,10 +86,9 @@ export const getTaskByIdResponse = v.strictObject({
 
 export type CreateTaskRequest = InferInput<typeof createTaskRequest>;
 export type CreateTaskResponse = InferInput<typeof createTaskResponse>;
-export type GetMyTasksRequest = InferInput<typeof getMyTasksRequest>;
-export type GetMyTasksResponse = InferInput<typeof getMyTasksResponse>;
+export type GetTasksRequest = InferInput<typeof getTasksRequest>;
+export type GetTasksResponse = InferInput<typeof getTasksResponse>;
 export type UpdateTaskRequest = InferInput<typeof updateTaskRequest>;
 export type UpdateTaskResponse = InferInput<typeof updateTaskResponse>;
 export type GetTaskByIdRequest = InferInput<typeof getTaskByIdRequest>;
 export type GetTaskByIdResponse = InferInput<typeof getTaskByIdResponse>;
-export type GetTasksResponse = InferInput<typeof getTasksResponse>;

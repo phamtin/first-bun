@@ -2,40 +2,40 @@ import { Hono } from "hono";
 import { vValidator } from "@hono/valibot-validator";
 import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/utils/response";
-import { createTaskRequest, type GetMyTasksRequest, getMyTasksRequest, updateTaskRequest } from "@/modules/Tasks/task.validator";
+import { createTaskRequest, type GetTasksRequest, getTasksRequest, updateTaskRequest } from "@/modules/Tasks/task.validator";
 import TaskSrv from "@/modules/Tasks/task.srv";
 import { getValidationErrorMsg } from "@/utils/error";
 
 const taskRoute = new Hono();
 
 /**
+ * 	Get a list of my tasks
+ */
+taskRoute.get(
+	"/",
+	vValidator("query", getTasksRequest, (result, c) => {
+		if (!result.success) {
+			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
+		}
+	}),
+	async (c) => {
+		const r = await TaskSrv.getTasks(c, c.req.valid("query") as GetTasksRequest);
+		return responseOK(c, r);
+	}
+);
+
+/**
  * 	Create a Task
  */
 taskRoute.post(
 	"/create",
-	vValidator("json", createTaskRequest, (result, c) => {
+	vValidator("json", createTaskRequest, (result) => {
 		if (!result.success) {
 			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
 		}
 	}),
 	async (c) => {
 		const r = await TaskSrv.createTask(c, c.req.valid("json"));
-		return responseOK(c, r);
-	}
-);
-
-/**
- * 	Get a list of my tasks
- */
-taskRoute.get(
-	"/my-tasks",
-	vValidator("query", getMyTasksRequest, (result, c) => {
-		if (!result.success) {
-			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
-		}
-	}),
-	async (c) => {
-		const r = await TaskSrv.getMyTasks(c, c.req.valid("query") as GetMyTasksRequest);
 		return responseOK(c, r);
 	}
 );

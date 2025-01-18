@@ -89,6 +89,7 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 							priority: 1,
 							projectId: 1,
 							timing: 1,
+							"assigneeInfo._id": 1,
 							createdAt: 1,
 						},
 					},
@@ -105,7 +106,7 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 		},
 	]).toArray()) as [ProjectModel & ExtendProjectModel];
 
-	if (!res.length || res.length > 1) {
+	if (res.length !== 1) {
 		throw new AppError("INTERNAL_SERVER_ERROR", "Something went wrong");
 	}
 
@@ -169,12 +170,24 @@ const deleteProject = async (ctx: Context, projectId: string): Promise<boolean> 
 	return !!res?.deletedAt;
 };
 
+const checkValidProject = async (ctx: Context, projectId: string): Promise<boolean> => {
+	const count = await ProjectColl.countDocuments({
+		_id: toObjectId(projectId),
+		deletedAt: {
+			$exists: false,
+		},
+	});
+
+	return count === 1;
+};
+
 const ProjectRepo = {
 	getMyProjects,
 	createProject,
 	getProjectById,
 	updateProject,
 	deleteProject,
+	checkValidProject,
 };
 
 export default ProjectRepo;

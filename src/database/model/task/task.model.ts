@@ -70,6 +70,10 @@ export type ExtendTaskModel = {
 
 export type SubTask = Pick<TaskModel, "_id" | "title" | "description" | "priority" | "additionalInfo"> & { status?: TaskStatus };
 
+export type InlineTaskModel = Pick<TaskModel, "_id" | "projectId" | "title" | "status" | "timing" | "createdAt"> & {
+	assigneeInfo?: { _id: ObjectId }[];
+};
+
 /**
  *  -----------------------------
  *	|
@@ -125,3 +129,8 @@ export const vTaskModel = v.strictObject({
 	deletedAt: v.optional(v.date()),
 	deletedBy: v.optional(objectId),
 }) satisfies v.BaseSchema<TaskModel, TaskModel, v.BaseIssue<unknown>>;
+
+export const vInlineTaskModel = v.strictObject({
+	...v.pick(vTaskModel, ["_id", "projectId", "title", "status", "timing", "createdAt"]).entries,
+	assigneeInfo: v.optional(v.array(v.pick(vAccountProfile, ["_id"]))),
+});

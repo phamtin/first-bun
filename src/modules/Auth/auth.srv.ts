@@ -9,6 +9,7 @@ import type { Context } from "@/types/app.type";
 import { AppError } from "@/utils/error";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import ProjectSrv from "../Project/project.srv";
+import AccountCache from "@/pkgs/redis/account";
 
 const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
 	const res: LoginGoogleResponse = {
@@ -80,6 +81,13 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 
 	res.jwt = await generateAuthTokens(res._id);
 
+	//  Add session into redis
+	await AccountCache.addAccountSession({
+		...res.profileInfo,
+		_id: toObjectId(res._id),
+		token: res.jwt,
+	});
+
 	return res;
 };
 
@@ -131,6 +139,8 @@ const logout = async (ctx: Context): Promise<boolean> => {
 	await TokenColl.deleteMany({
 		accountId: toObjectId(ctx.get("user")._id),
 	});
+
+	AccountCache.removeSessionByAccountId(ctx.get("user")._id);
 
 	ctx.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
 

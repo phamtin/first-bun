@@ -13,9 +13,7 @@ const ModelToSyncWith = {
 
 const syncCollectionAccounts = async (job: Job<SyncModelJobData>) => {
 	const accountModel = job.data.payload;
-
 	const { accountSettings, ...rest } = accountModel;
-
 	const accountDb = toObjectIds(rest) as Omit<AccountModel, "accountSettings">;
 
 	const session = client.startSession();

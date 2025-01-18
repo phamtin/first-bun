@@ -1,7 +1,7 @@
 import type { WithoutId } from "mongodb";
 import dayjs from "dayjs";
 import { TaskColl } from "@/loaders/mongo";
-import type { CreateTaskResponse, GetMyTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
+import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 
 import type { ExtendTaskModel, TaskModel, TaskPriority, TaskStatus } from "../../database/model/task/task.model";
 import { AppError } from "@/utils/error";
@@ -50,7 +50,6 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 		{
 			$unwind: {
 				path: "$availableTags",
-				preserveNullAndEmptyArrays: true,
 			},
 		},
 
@@ -108,7 +107,7 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 	return getTaskById(ctx, taskId);
 };
 
-const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<TaskModel[]> => {
+const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskModel[]> => {
 	const { query = "", startDate = "", endDate = "", tags: _tags = [] } = request;
 
 	const statusFilter = (request.status as TaskStatus[])?.filter((s) => !EXCLUDED_TASK_STATUS[s]) || [];
@@ -117,10 +116,20 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 
 	const accountId = toObjectId(ctx.get("user")._id);
 
+	const isOwnerQuery = request.isOwned === "true";
+
+	if (!isOwnerQuery) {
+		if (!request.projectId) {
+			throw new AppError("BAD_REQUEST", "Project ID is required");
+		}
+	}
+
 	let tasks: TaskModel[] = (await TaskColl.aggregate([
 		{
 			$match: {
-				$or: [{ createdBy: accountId }, { assigneeId: accountId }],
+				projectId: isOwnerQuery ? { $exists: true } : toObjectId(request.projectId),
+
+				$or: isOwnerQuery ? [{ createdBy: accountId }, { assigneeId: accountId }] : [{ projectId: { $exists: true } }],
 
 				deletedAt: { $exists: false },
 
@@ -196,12 +205,7 @@ const getMyTasks = async (ctx: Context, request: GetMyTasksRequest): Promise<Tas
 		const tagsSet = new Set(_tags as string[]);
 
 		tasks = tasks.filter((task) => {
-			for (let i = 0; i < (task?.tags?.length || 0); i++) {
-				if (tagsSet.has(task.tags?.[i].toString() as string)) {
-					return true;
-				}
-			}
-			return false;
+			return (task.tags ?? []).some((tag) => tagsSet.has(tag.toString()));
 		});
 	}
 
@@ -229,7 +233,7 @@ const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
 
 const TaskRepo = {
 	createTask,
-	getMyTasks,
+	getTasks,
 	getTaskById,
 	updateTask,
 	deleteTask,

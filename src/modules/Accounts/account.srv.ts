@@ -11,6 +11,10 @@ const getMyProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 };
 
 const findAccountProfile = async (ctx: Context, request: GetAccountProfileRequest): Promise<GetAccountProfileResponse> => {
+	if (!request.accountId && !request.email) {
+		throw new AppError("BAD_REQUEST", "Should use one criteria");
+	}
+
 	const account = await AccountRepo.findAccountProfile(ctx, request);
 	return account;
 };
