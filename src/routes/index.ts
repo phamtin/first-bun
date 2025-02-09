@@ -8,6 +8,10 @@ import projectRoute from "../modules/Project/project.route";
 
 const routes = new Hono();
 
+routes.get("/ping", (c) => {
+	return c.json({ pong: "It works like a fucking charm!" });
+});
+
 routes.use(tokenParser);
 
 routes.route("/auth", authRoute);

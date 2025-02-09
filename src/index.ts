@@ -23,16 +23,7 @@ HonoApp.use(logger());
 
 HonoApp.use("/*", cors());
 
-HonoApp.use("*", (c, next) => {
-	c.set("userAgent" as never, c.req.header("User-Agent"));
-	return next();
-});
-
 HonoApp.route("/", routes);
-
-HonoApp.get("/ping", (c) => {
-	return c.json({ pong: "It works like a fucking charm!" });
-});
 
 HonoApp.onError(handleError);
 
