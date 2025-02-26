@@ -4,7 +4,7 @@ import type { UpdateProjectRequest } from "./project.validator";
 import { ObjectId } from "mongodb";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 
-export const buildPayloadUpdate = (request: UpdateProjectRequest, model?: ProjectModel): DeepPartial<ProjectModel> | undefined => {
+export const buildPayloadUpdate = (request: UpdateProjectRequest, model?: Readonly<ProjectModel>): DeepPartial<ProjectModel> | undefined => {
 	let res: DeepPartial<ProjectModel> | undefined = undefined;
 
 	if (Object.keys(request).length === 0) return res;
@@ -12,7 +12,6 @@ export const buildPayloadUpdate = (request: UpdateProjectRequest, model?: Projec
 	res = {} satisfies DeepPartial<ProjectModel>;
 
 	res.projectInfo = {} satisfies DeepPartial<ProjectModel["projectInfo"]>;
-	res.participantInfo = {} satisfies DeepPartial<ProjectModel["participantInfo"]>;
 
 	if (request.title) {
 		res.projectInfo.title = request.title;
@@ -37,7 +36,6 @@ export const buildPayloadUpdate = (request: UpdateProjectRequest, model?: Projec
 				tagsToCreate.push(tag);
 			}
 		}
-
 		const newTags = tagsToCreate.map((tag) => {
 			return {
 				...tag,
@@ -55,7 +53,6 @@ export const buildPayloadUpdate = (request: UpdateProjectRequest, model?: Projec
 			}
 			mapping[tagId] = tag;
 		}
-
 		const validTags = Object.values(mapping);
 
 		res.tags = validTags.map((t) => ({ ...t, _id: toObjectId(t._id) })).concat(newTags);

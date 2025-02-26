@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { vValidator } from "@hono/valibot-validator";
 import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/utils/response";
-import { createProjectRequest, updateProjectRequest } from "@/modules/Project/project.validator";
+import { responseInvitationRequest, createProjectRequest, inviteRequest, updateProjectRequest } from "@/modules/Project/project.validator";
 import ProjectSrv from "@/modules/Project/project.srv";
 import { getValidationErrorMsg } from "@/utils/error";
 
@@ -72,5 +72,37 @@ projectRoute.delete("/:id", async (c) => {
 	const r = await ProjectSrv.deleteProject(c, c.req.param("id"));
 	return responseOK(c, r);
 });
+
+/**
+ *  Invite users join into a project
+ */
+projectRoute.post(
+	"/invite",
+	vValidator("json", inviteRequest, (result, c) => {
+		if (!result.success) {
+			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
+		}
+	}),
+	async (c) => {
+		const r = await ProjectSrv.invite(c, c.req.valid("json"));
+		return responseOK(c, r);
+	}
+);
+
+/**
+ *  Accept a invitation join into a project
+ */
+projectRoute.post(
+	"/invite/response",
+	vValidator("json", responseInvitationRequest, (result, c) => {
+		if (!result.success) {
+			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
+		}
+	}),
+	async (c) => {
+		const r = await ProjectSrv.responseInvitation(c, c.req.valid("json"));
+		return responseOK(c, r);
+	}
+);
 
 export default projectRoute;

@@ -4,7 +4,7 @@ import type { WithoutId } from "mongodb";
 import { TaskStatus, type TaskTiming, type TaskModel } from "../../database/model/task/task.model";
 import type { CreateTaskRequest, UpdateTaskRequest } from "./task.validator";
 import { toObjectId } from "@/pkgs/mongodb/helper";
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 
 export const buildPayloadCreateTask = (ctx: Context, request: CreateTaskRequest, model?: TaskModel): WithoutId<TaskModel> | undefined => {
 	let res: TaskModel | undefined = undefined;

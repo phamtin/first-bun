@@ -21,7 +21,7 @@ export const connectToDatabase = async (): Promise<Db | null> => {
 	}
 	if (isConnecting) {
 		while (isConnecting) {
-			console.log("Trying...");
+			console.log("MongoDb connecting...");
 			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 		return db;

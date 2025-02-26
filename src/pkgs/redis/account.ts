@@ -12,7 +12,7 @@ class AccountCache {
 	private readonly PREFIX = "Account_";
 
 	constructor() {
-		this.DEFAULT_EXPIRED_IN = 60 * 60; // 1 hour in seconds
+		this.DEFAULT_EXPIRED_IN = 60 * 60 * 24; // 1 day in seconds
 		this.connectToRedisClient().catch((error) => {
 			console.error("[ERROR] Failed to connect to Redis:", error);
 		});

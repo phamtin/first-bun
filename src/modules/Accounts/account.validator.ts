@@ -7,7 +7,7 @@ import { Theme, vAccountProfile } from "../../database/model/account/account.mod
 export const updateProfileRequest = v.strictObject({
 	profileInfo: v.optional(
 		v.strictObject({
-			email: v.optional(v.pipe(v.string(), v.trim(), v.email())),
+			email: v.optional(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())),
 			fullname: v.optional(v.string()),
 			firstname: v.optional(v.string()),
 			lastname: v.optional(v.string()),
@@ -28,7 +28,7 @@ export const getMyProfileResponse = vAccountProfile;
 
 export const getAccountProfileRequest = v.strictObject({
 	accountId: v.optional(stringObjectId),
-	email: v.optional(v.pipe(v.string(), v.trim(), v.email())),
+	email: v.optional(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())),
 });
 
 export const getAccountProfileResponse = v.nullable(vAccountProfile);

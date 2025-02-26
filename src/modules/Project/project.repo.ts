@@ -1,7 +1,7 @@
 import type { ObjectId, WithoutId } from "mongodb";
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 import { ProjectColl } from "@/loaders/mongo";
-import type { GetProjectByIdResponse } from "./project.validator";
+import type { GetMyProjectsResponse, GetProjectByIdResponse } from "./project.validator";
 
 import { ProjectStatus, type ExtendProjectModel, type ProjectModel } from "../../database/model/project/project.model";
 import { AppError } from "@/utils/error";
@@ -9,8 +9,27 @@ import type { Context } from "hono";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import { toPayloadUpdate } from "@/utils/transfrom";
 import type { DeepPartial } from "@/types/common.type";
+import { TaskStatus } from "../../database/model/task/task.model";
+import type { AccountModel } from "../../database/model/account/account.model";
 
-const getMyProjects = async (ctx: Context): Promise<ProjectModel[]> => {
+const checkActiveProject = async (ctx: Context, projectId: string): Promise<ProjectModel | null> => {
+	const p = await ProjectColl.findOne({
+		_id: toObjectId(projectId),
+
+		"projectInfo.status": {
+			$ne: ProjectStatus.Archived,
+		},
+		deletedAt: {
+			$exists: false,
+		},
+	});
+
+	if (!p?._id) return null;
+
+	return p;
+};
+
+const getMyProjects = async (ctx: Context): Promise<GetMyProjectsResponse[]> => {
 	const userId = toObjectId(ctx.get("user")._id);
 
 	const res = (await ProjectColl.find({
@@ -28,7 +47,9 @@ const getMyProjects = async (ctx: Context): Promise<ProjectModel[]> => {
 		deletedAt: {
 			$exists: false,
 		},
-	}).toArray()) as ProjectModel[];
+	})
+		.project({ documents: 0 })
+		.toArray()) as ProjectModel[];
 
 	return res;
 };
@@ -39,25 +60,7 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 			$match: {
 				_id: toObjectId(id),
 
-				status: {
-					$ne: ProjectStatus.Archived,
-				},
-				deletedAt: {
-					$exists: false,
-				},
-			},
-		},
-		{
-			$lookup: {
-				from: "accounts",
-				localField: "createdBy",
-				foreignField: "_id",
-				as: "created",
-			},
-		},
-		{
-			$unwind: {
-				path: "$created",
+				deletedAt: { $exists: false },
 			},
 		},
 		{
@@ -73,10 +76,10 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 										$eq: ["$projectId", "$$projectId"],
 									},
 									{
-										$ne: ["$status", ProjectStatus.Archived],
+										$ne: ["$status", TaskStatus.Archived],
 									},
 									{
-										$not: [{ $ifNull: ["$deletedAt", false] }],
+										$eq: ["$deletedAt", null],
 									},
 								],
 							},
@@ -84,12 +87,12 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 					},
 					{
 						$project: {
+							"assigneeInfo._id": 1,
 							title: 1,
 							status: 1,
 							priority: 1,
 							projectId: 1,
 							timing: 1,
-							"assigneeInfo._id": 1,
 							createdAt: 1,
 						},
 					},
@@ -101,7 +104,6 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 			$project: {
 				"participantInfo.owner.accountSettings": 0,
 				"participantInfo.members.accountSettings": 0,
-				"created.accountSettings": 0,
 			},
 		},
 	]).toArray()) as [ProjectModel & ExtendProjectModel];
@@ -129,13 +131,10 @@ const updateProject = async (ctx: Context, projectId: string, payload: DeepParti
 	if (payload.projectInfo) {
 		payload.projectInfo.isDefaultProject = undefined;
 	}
-	if (payload.participantInfo) {
-		payload.participantInfo.owner = undefined;
-	}
 
 	payload.updatedAt = dayjs().toDate();
 
-	const updated: ProjectModel | null = await ProjectColl.findOneAndUpdate(
+	const updated = await ProjectColl.findOneAndUpdate(
 		{
 			_id: toObjectId(projectId),
 		},
@@ -170,15 +169,50 @@ const deleteProject = async (ctx: Context, projectId: string): Promise<boolean> 
 	return !!res?.deletedAt;
 };
 
-const checkValidProject = async (ctx: Context, projectId: string): Promise<boolean> => {
-	const count = await ProjectColl.countDocuments({
-		_id: toObjectId(projectId),
-		deletedAt: {
-			$exists: false,
+const addMemberToProject = async (ctx: Context, projectId: string, member: AccountModel): Promise<boolean> => {
+	const updated = await ProjectColl.updateOne(
+		{
+			_id: toObjectId(projectId),
 		},
-	});
+		{
+			$push: {
+				"participantInfo.members": member,
+			},
+			$pull: {
+				"participantInfo.invitations": {
+					email: member.profileInfo.email,
+				},
+			},
+			$set: {
+				updatedAt: dayjs().toDate(),
+			},
+		}
+	);
 
-	return count === 1;
+	return updated.acknowledged;
+};
+
+const removeMemberFromProject = async (ctx: Context, projectId: string, memberEmail: string): Promise<boolean> => {
+	const updated = await ProjectColl.updateOne(
+		{
+			_id: toObjectId(projectId),
+		},
+		{
+			$pull: {
+				"participantInfo.members": {
+					"profileInfo.email": memberEmail,
+				},
+				"participantInfo.invitations": {
+					email: memberEmail,
+				},
+			},
+			$set: {
+				updatedAt: dayjs().toDate(),
+			},
+		}
+	);
+
+	return updated.acknowledged;
 };
 
 const ProjectRepo = {
@@ -187,7 +221,9 @@ const ProjectRepo = {
 	getProjectById,
 	updateProject,
 	deleteProject,
-	checkValidProject,
+	checkActiveProject,
+	addMemberToProject,
+	removeMemberFromProject,
 };
 
 export default ProjectRepo;

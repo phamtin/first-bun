@@ -6,20 +6,19 @@ import type { UserCheckParser } from "@/types/app.type";
 
 import { AccountColl, TokenColl } from "../loaders/mongo";
 import { createMiddleware } from "hono/factory";
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 import { ALLOWED_DOMAINS } from "@/utils/validate";
 
 export const tokenParser = createMiddleware(async (c, next) => {
-	// const host = c.req.header("Host");
+	const host = c.req.header("Host");
 
-	// if (!host || !ALLOWED_DOMAINS[host]) {
-	// 	return c.text("Domain not allowed", 403);
-	// }
-
-	// const blitzHeader = c.req.header("X-blitz");
-	// if (!blitzHeader) {
-	// 	return c.text("Domain not allowed", 403);
-	// }
+	if (!host || !ALLOWED_DOMAINS[host]) {
+		return c.text("Domain not allowed", 403);
+	}
+	const blitzHeader = c.req.header("X-blitz");
+	if (!blitzHeader) {
+		return c.text("Domain not allowed", 403);
+	}
 
 	let token = "";
 	const authorization = c.req.header("authorization");

@@ -1,39 +1,26 @@
 services:
     app:
-        build:
-            context: .
-            dockerfile: ./Dockerfile
+        image: blitz-api
+        build: .
 
-        environment:
-            - BUN_ENV=production
-            - API_PORT=9000
-            - DB_URL=mongodb://mongodb:27017
-            - REDIS_HOST=redis
-            - REDIS_PORT=6379
-            - JWT_SECRET=abc123
-            - ACCESS_TOKEN_EXPIRE_MINUTE=720
+        env_file:
+            - .env
 
         # override default entrypoint allows us to do `bun install` before serving
         entrypoint: []
 
         # execute bun install before we start the dev server in watch mode
-        command: "/bin/sh -c 'bun run src/index.ts'"
+        command: "/bin/shd -c 'bun run src/index.ts'"
 
         # expose the right ports
-        ports: ["9000:9000"]
+        ports: ["9000:8000"]
 
-        depends_on:
-            - redis
-            - mongodb
-
-    mongodb:
-        image: bitnami/mongodb:latest
-        container_name: "mongodb"
-        volumes:
-            - ./data/mongodb:/bitnami/mongodb
         restart: always
-        ports:
-            - "27017:27017"
+        depends_on:
+            redis:
+                condition: service_healthy
+        networks:
+            - app-network
 
     redis:
         image: redis/redis-stack-server:latest
@@ -45,5 +32,11 @@ services:
             - "6379:6379"
         healthcheck:
             test: ["CMD", "redis-cli", "ping"]
-            retries: 3
-            timeout: 6s
+            retries: 6
+            timeout: 20s
+        networks:
+            - app-network
+
+networks:
+    app-network: # Create a network called 'app-network'
+        driver: bridge

@@ -11,4 +11,5 @@ export function validateEnv() {
 
 export const ALLOWED_DOMAINS: { [key: string]: boolean } = {
 	localhost: true,
+	"127.0.0.1": true,
 };

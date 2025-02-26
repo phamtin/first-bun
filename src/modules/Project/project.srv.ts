@@ -1,38 +1,38 @@
 import type { Context } from "hono";
 import type { WithoutId } from "mongodb";
-import type { CreateProjectRequest, CreateProjectResponse, GetProjectByIdResponse, UpdateProjectRequest, UpdateProjectResponse } from "./project.validator";
+import type * as pv from "./project.validator";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import ProjectRepo from "./project.repo";
 import { ProjectColl } from "@/loaders/mongo";
-import { ProjectStatus, type ProjectModel } from "../../database/model/project/project.model";
+import { type ProjectInvitation, ProjectStatus, type ProjectModel } from "../../database/model/project/project.model";
 import { AppError } from "@/utils/error";
 import { buildPayloadUpdate } from "./project.mapper";
 import AccountSrv from "../Accounts";
-import type { AccountModel } from "../../database/model/account/account.model";
-import projectUtil from "./project.util";
-import dayjs from "dayjs";
+import ProjectUtil from "./project.util";
+import dayjs from "@/utils/dayjs";
 import TaskSrv from "../Tasks/task.srv";
+import { DEFAULT_INVITATION_TITLE, PROJECT_INVITATION_EXPIRED_MINUTE } from "./project.const";
 
-const getMyProjects = async (ctx: Context): Promise<ProjectModel[]> => {
+const getMyProjects = async (ctx: Context): Promise<pv.GetMyProjectsResponse[]> => {
 	const project = await ProjectRepo.getMyProjects(ctx);
 	return project;
 };
 
-const checkValidProject = async (ctx: Context, projectId: string): Promise<boolean> => {
-	return ProjectRepo.checkValidProject(ctx, projectId);
+const checkActiveProject = async (ctx: Context, projectId: string): Promise<ProjectModel | null> => {
+	return ProjectRepo.checkActiveProject(ctx, projectId);
 };
 
-const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdResponse> => {
-	const [canUserAccess] = await projectUtil.checkUserIsParticipantProject(ctx.get("user")._id, id);
+const getProjectById = async (ctx: Context, id: string): Promise<pv.GetProjectByIdResponse> => {
+	const [canUserAccess, project] = await ProjectUtil.checkUserIsParticipantProject(ctx.get("user")._id, id);
 
 	if (!canUserAccess) throw new AppError("NOT_FOUND", "You're not participant of project");
 
-	const project = await ProjectRepo.getProjectById(ctx, id);
+	if (!project) throw new AppError("NOT_FOUND", "Project not found");
 
-	return project;
+	return ProjectRepo.getProjectById(ctx, id);
 };
 
-const createProject = async (ctx: Context, request: CreateProjectRequest, isDefaultProject?: boolean): Promise<CreateProjectResponse> => {
+const createProject = async (ctx: Context, request: pv.CreateProjectRequest, isDefaultProject?: boolean): Promise<pv.CreateProjectResponse> => {
 	const ownerId = toObjectId(ctx.get("user")._id);
 
 	if (isDefaultProject) {
@@ -64,6 +64,7 @@ const createProject = async (ctx: Context, request: CreateProjectRequest, isDefa
 		participantInfo: {
 			owner: ownerModel,
 			members: [],
+			invitations: [],
 		},
 		documents: {
 			urls: [],
@@ -78,7 +79,7 @@ const createProject = async (ctx: Context, request: CreateProjectRequest, isDefa
 	return ProjectRepo.getProjectById(ctx, insertedId.toHexString());
 };
 
-const updateProject = async (ctx: Context, projectId: string, request: UpdateProjectRequest): Promise<UpdateProjectResponse> => {
+const updateProject = async (ctx: Context, projectId: string, request: pv.UpdateProjectRequest): Promise<pv.UpdateProjectResponse> => {
 	const _project: ProjectModel | null = await ProjectColl.findOne({
 		_id: toObjectId(projectId),
 
@@ -92,37 +93,9 @@ const updateProject = async (ctx: Context, projectId: string, request: UpdatePro
 
 	if (!_project) throw new AppError("NOT_FOUND", "Project not found");
 
-	const payload = buildPayloadUpdate(request);
+	const payload = buildPayloadUpdate(request, _project);
 
 	if (!payload) throw new AppError("BAD_REQUEST", "Invalid payload");
-
-	// Validate members payload
-	if (request.memberIds) {
-		if (_project.projectInfo.isDefaultProject) {
-			throw new AppError("BAD_REQUEST", "Can't add member to your own workspace");
-		}
-		if (!_project.participantInfo.owner._id.equals(ctx.get("user")._id)) {
-			throw new AppError("INSUFFICIENT_PERMISSIONS", "You're must be owner to perform this action");
-		}
-		request.memberIds = request.memberIds.filter((id) => !_project.participantInfo.owner._id.equals(id)) || [];
-
-		const promisor: Promise<AccountModel | null>[] = [];
-
-		request.memberIds.map((id) => {
-			promisor.push(
-				AccountSrv.findAccountProfile(ctx, {
-					accountId: id,
-				})
-			);
-		});
-		const validMembers = (await Promise.all(promisor)).filter((item) => !!item);
-
-		if (validMembers.length !== request.memberIds.length) {
-			throw new AppError("BAD_REQUEST", "Invalid members");
-		}
-		payload.participantInfo = {};
-		payload.participantInfo.members = validMembers;
-	}
 
 	const isSuccess = await ProjectRepo.updateProject(ctx, projectId, payload);
 
@@ -134,20 +107,13 @@ const updateProject = async (ctx: Context, projectId: string, request: UpdatePro
 };
 
 const deleteProject = async (ctx: Context, projectId: string): Promise<boolean> => {
-	const projectCount = await ProjectColl.countDocuments({
-		_id: toObjectId(projectId),
+	const project = await checkActiveProject(ctx, projectId);
 
-		"participantInfo.owner._id": toObjectId(ctx.get("user")._id),
+	if (!project) throw new AppError("NOT_FOUND", "Project not found");
 
-		deletedAt: {
-			$exists: false,
-		},
-	});
-
-	if (projectCount === 0) {
+	if (project.participantInfo.owner._id.toHexString() !== ctx.get("user")._id) {
 		throw new AppError("BAD_REQUEST", "Can't delete project");
 	}
-
 	const deletetaskPromisors: Promise<boolean>[] = [];
 
 	const tasks = await TaskSrv.findTasksByProjectId(ctx, projectId);
@@ -165,13 +131,116 @@ const deleteProject = async (ctx: Context, projectId: string): Promise<boolean> 
 	return true;
 };
 
+const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.InviteResponse> => {
+	const project = await checkActiveProject(ctx, request.projectId);
+
+	if (!project) throw new AppError("NOT_FOUND", "Project not found");
+
+	//	VALIDATE INVITEE's EMAIL
+	const validEmails: string[] = [];
+	const { participantInfo } = project;
+
+	for (const requestEmail of request.emails) {
+		if (participantInfo.owner.profileInfo.email !== requestEmail && participantInfo.members.map((mem) => mem.profileInfo.email).indexOf(requestEmail) === -1) {
+			validEmails.push(requestEmail);
+		}
+	}
+	if (validEmails.length === 0) {
+		throw new AppError("BAD_REQUEST", "Invalid invitations");
+	}
+
+	const invitations: ProjectInvitation[] = [];
+	const createdAt = dayjs().toDate();
+	const expiredAt = dayjs().add(PROJECT_INVITATION_EXPIRED_MINUTE, "minute").toDate();
+
+	for (const validEmail of validEmails) {
+		invitations.push({
+			email: validEmail,
+			title: DEFAULT_INVITATION_TITLE,
+			createdAt,
+			expiredAt,
+		});
+	}
+
+	//	ADD INVITATIONS TO PROJECT
+	await ProjectColl.updateOne(
+		{
+			_id: toObjectId(request.projectId),
+		},
+		{
+			$push: { "participantInfo.invitations": { $each: invitations } },
+		}
+	);
+
+	//	CREATE NOTIFICATION
+
+	return { success: true };
+};
+
+const responseInvitation = async (ctx: Context, request: pv.ResponseInvitationRequest): Promise<pv.ResponseInvitationResponse> => {
+	const project = await checkActiveProject(ctx, request.projectId);
+
+	if (!project) throw new AppError("NOT_FOUND", "Project not found");
+
+	if (request.type === "reject") {
+		return rejectInvitation(ctx, project, request.email);
+	}
+
+	if (request.type === "accept") {
+		return acceptInvitation(ctx, project, request.email);
+	}
+
+	return { success: false };
+};
+
+const acceptInvitation = async (ctx: Context, project: ProjectModel, email: string): Promise<pv.ResponseInvitationResponse> => {
+	const invitation = project.participantInfo.invitations.find((invitation) => {
+		return invitation.email === email && dayjs().isBefore(invitation.expiredAt);
+	});
+
+	if (!invitation) throw new AppError("BAD_REQUEST", "Invitation link has expired :(");
+
+	const invitee = await AccountSrv.findAccountProfile(ctx, { email });
+
+	if (!invitee) throw new AppError("NOT_FOUND", "Invitee not found");
+
+	const success = await ProjectRepo.addMemberToProject(ctx, project._id.toHexString(), invitee);
+
+	//	CREATE NOTIFICATION
+
+	return { success };
+};
+
+const rejectInvitation = async (ctx: Context, project: ProjectModel, email: string): Promise<pv.ResponseInvitationResponse> => {
+	//	REMOVE INVITATION from PROJECT
+	const r = await ProjectColl.updateOne(
+		{
+			_id: project._id,
+		},
+		{
+			$pull: {
+				"participantInfo.invitations": { email },
+			},
+			$set: {
+				updatedAt: dayjs().toDate(),
+			},
+		}
+	);
+
+	//	CREATE NOTIFICATION
+
+	return { success: r.acknowledged };
+};
+
 const ProjectSrv = {
 	getMyProjects,
 	updateProject,
 	createProject,
 	getProjectById,
 	deleteProject,
-	checkValidProject,
+	checkActiveProject,
+	invite,
+	responseInvitation,
 };
 
 export default ProjectSrv;

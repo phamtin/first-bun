@@ -2,7 +2,7 @@ import * as v from "valibot";
 import type { InferInput } from "valibot";
 
 export const LoginGoogleRequestSchema = v.strictObject({
-	email: v.pipe(v.string(), v.trim(), v.email()),
+	email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
 	fullname: v.pipe(v.string(), v.trim(), v.minLength(4)),
 	firstname: v.pipe(v.string(), v.trim(), v.minLength(1)),
 	lastname: v.pipe(v.string(), v.trim(), v.minLength(2)),

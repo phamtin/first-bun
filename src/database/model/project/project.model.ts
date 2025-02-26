@@ -25,9 +25,18 @@ export type ProjectInfo = {
 	dueDate?: Date;
 };
 
+export type ProjectInvitation = {
+	email: string;
+	title: string;
+	description?: string;
+	expiredAt: Date;
+	createdAt: Date;
+};
+
 export type ProjectParticipant = {
 	owner: Omit<AccountModel, "accountSettings">;
 	members: Omit<AccountModel, "accountSettings">[];
+	invitations: ProjectInvitation[];
 };
 
 /**
@@ -65,6 +74,14 @@ export type ExtendProjectModel = {
  * 	-----------------------------
  */
 
+export const vProjectInvitation = v.strictObject({
+	title: v.string(),
+	description: v.optional(v.string()),
+	email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
+	expiredAt: v.date(),
+	createdAt: v.date(),
+}) satisfies v.BaseSchema<ProjectInvitation, ProjectInvitation, v.BaseIssue<unknown>>;
+
 export const vProjectInfo = v.strictObject({
 	title: v.string(),
 	color: v.string(),
@@ -77,6 +94,7 @@ export const vProjectInfo = v.strictObject({
 export const vProjectParticipant = v.strictObject({
 	owner: v.omit(vAccountProfile, ["accountSettings"]),
 	members: v.array(v.omit(vAccountProfile, ["accountSettings"])),
+	invitations: v.array(vProjectInvitation),
 }) satisfies v.BaseSchema<ProjectParticipant, ProjectParticipant, v.BaseIssue<unknown>>;
 
 export const vProjectDocument = v.strictObject({

@@ -3,24 +3,24 @@
   "version": "1.0.50",
   "scripts": {
     "lint": "bun tsc --noEmit && bunx biome lint --write ./src",
-    "dev": "bun lint && bun run --watch src/index.ts",
-    "dev-m1": "bun tsc --noEmit && bun run --watch src/index.ts",
+    "dev": "nginx && bun lint && bun run --watch src/index.ts",
+    "dev-m1": "nginx && bun tsc --noEmit && bun run --watch src/index.ts",
     "dcu": "docker compose -f ./docker-compose.dev.yaml up -d",
     "dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans"
   },
   "dependencies": {
     "@hono/valibot-validator": "^0.5.2",
-    "bullmq": "^5.40.2",
+    "bullmq": "^5.41.7",
     "dayjs": "^1.11.13",
-    "hono": "^4.7.0",
+    "hono": "^4.7.2",
     "ioredis": "^5.5.0",
-    "mongodb": "^6.13.0",
-    "valibot": "^1.0.0-beta.15"
+    "mongodb": "^6.14.0",
+    "valibot": "^1.0.0-rc.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@types/bun": "^1.2.2",
-    "typescript": "^5.7.3"
+    "@types/bun": "^1.2.4",
+    "typescript": "^5.8.2"
   },
   "module": "src/index.js"
 }

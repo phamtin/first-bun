@@ -16,12 +16,13 @@ export const createProjectResponse = v.strictObject({
 	...vExtendProjectModel.entries,
 });
 
+export const getMyProjectsResponse = v.omit(vProjectModel, ["documents"]);
+
 export const updateProjectRequest = v.strictObject({
 	title: v.optional(v.string()),
 	description: v.optional(v.string()),
 	status: v.optional(v.enum(ProjectStatus)),
 	color: v.optional(v.string()),
-	memberIds: v.optional(v.array(v.string())),
 	tags: v.optional(v.array(v.strictObject({ _id: v.optional(stringObjectId), color: v.pipe(v.string(), v.trim()), name: v.string() }))),
 });
 
@@ -39,9 +40,33 @@ export const getProjectByIdResponse = v.strictObject({
 	...vExtendProjectModel.entries,
 });
 
+export const inviteRequest = v.strictObject({
+	projectId: stringObjectId,
+	emails: v.array(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())),
+});
+
+export const inviteResponse = v.strictObject({
+	success: v.boolean(),
+});
+
+export const responseInvitationRequest = v.strictObject({
+	type: v.union([v.literal("accept"), v.literal("reject")]),
+	projectId: stringObjectId,
+	email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
+});
+
+export const responseInvitationResponse = v.strictObject({
+	success: v.boolean(),
+});
+
+export type GetMyProjectsResponse = InferInput<typeof getMyProjectsResponse>;
 export type CreateProjectRequest = InferInput<typeof createProjectRequest>;
 export type CreateProjectResponse = InferInput<typeof createProjectResponse>;
 export type UpdateProjectRequest = InferInput<typeof updateProjectRequest>;
 export type UpdateProjectResponse = InferInput<typeof updateProjectResponse>;
 export type GetProjectByIdRequest = InferInput<typeof getProjectByIdRequest>;
 export type GetProjectByIdResponse = InferInput<typeof getProjectByIdResponse>;
+export type InviteRequest = InferInput<typeof inviteRequest>;
+export type InviteResponse = InferInput<typeof inviteResponse>;
+export type ResponseInvitationRequest = InferInput<typeof responseInvitationRequest>;
+export type ResponseInvitationResponse = InferInput<typeof responseInvitationResponse>;

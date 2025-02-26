@@ -1,5 +1,5 @@
 import type { WithoutId } from "mongodb";
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
 import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 

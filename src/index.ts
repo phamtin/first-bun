@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 
 import { closeMongoConnection, connectToDatabase } from "./loaders/mongo";
 import { closeRedisConnection, connectToRedis } from "./loaders/redis";
@@ -19,8 +18,6 @@ process.on("SIGINT", () => {
 
 const HonoApp = new Hono();
 
-HonoApp.use(logger());
-
 HonoApp.use("/*", cors());
 
 HonoApp.route("/", routes);
@@ -33,7 +30,7 @@ await connectToRedis();
 //	init bullMQ
 import("@/pkgs/bullMQ/worker/SyncModel.worker")
 	.then(() => {
-		console.log("✅ Worker initialized");
+		// console.log("✅ Worker initialized");
 	})
 	.catch((e) => {
 		console.log("❌ Worker failed to initialize", e);

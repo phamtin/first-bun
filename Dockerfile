@@ -1,4 +1,4 @@
-FROM oven/bun
+FROM oven/bun:slim
 
 WORKDIR /app
 
@@ -9,8 +9,10 @@ RUN bun install --production
 
 COPY src src
 COPY tsconfig.json .
+COPY .env .env
 
 ENV NODE_ENV production
+ENV BUN_ENV production
 
 CMD ["bun", "src/index.ts"]
 

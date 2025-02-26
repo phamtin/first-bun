@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 import type { GetAccountProfileRequest, GetAccountProfileResponse, GetMyProfileResponse, UpdateProfileRequest } from "./account.validator";
 import { AccountColl } from "@/loaders/mongo";
 import type { Filter } from "mongodb";
