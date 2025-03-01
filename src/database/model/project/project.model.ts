@@ -22,7 +22,6 @@ export type ProjectInfo = {
 	status: ProjectStatus;
 	isDefaultProject: boolean;
 	description?: string;
-	dueDate?: Date;
 };
 
 export type ProjectInvitation = {
@@ -88,7 +87,6 @@ export const vProjectInfo = v.strictObject({
 	status: v.enum(ProjectStatus),
 	isDefaultProject: v.boolean(),
 	description: v.optional(v.string()),
-	dueDate: v.optional(v.date()),
 }) satisfies v.BaseSchema<ProjectInfo, ProjectInfo, v.BaseIssue<unknown>>;
 
 export const vProjectParticipant = v.strictObject({

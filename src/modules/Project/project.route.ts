@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { vValidator } from "@hono/valibot-validator";
 import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/utils/response";
-import { responseInvitationRequest, createProjectRequest, inviteRequest, updateProjectRequest } from "@/modules/Project/project.validator";
+import { responseInvitationRequest, createProjectRequest, inviteRequest, updateProjectRequest, removeRequest } from "@/modules/Project/project.validator";
 import ProjectSrv from "@/modules/Project/project.srv";
 import { getValidationErrorMsg } from "@/utils/error";
 
@@ -101,6 +101,22 @@ projectRoute.post(
 	}),
 	async (c) => {
 		const r = await ProjectSrv.responseInvitation(c, c.req.valid("json"));
+		return responseOK(c, r);
+	}
+);
+
+/**
+ *  Owner remove a member from a project
+ */
+projectRoute.post(
+	"/invite/remove",
+	vValidator("json", removeRequest, (result, c) => {
+		if (!result.success) {
+			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
+		}
+	}),
+	async (c) => {
+		const r = await ProjectSrv.removeMember(c, c.req.valid("json"));
 		return responseOK(c, r);
 	}
 );

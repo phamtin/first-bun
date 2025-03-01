@@ -3,8 +3,8 @@
   "version": "1.0.50",
   "scripts": {
     "lint": "bun tsc --noEmit && bunx biome lint --write ./src",
-    "dev": "nginx && bun lint && bun run --watch src/index.ts",
-    "dev-m1": "nginx && bun tsc --noEmit && bun run --watch src/index.ts",
+    "dev": "./start-dev.sh",
+    "dev-m1": "bun tsc --noEmit && bun run --watch src/index.ts",
     "dcu": "docker compose -f ./docker-compose.dev.yaml up -d",
     "dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans"
   },

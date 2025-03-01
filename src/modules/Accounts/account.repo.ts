@@ -52,6 +52,10 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 			...request.profileInfo,
 			birthday: request.profileInfo?.birthday ? dayjs(request.profileInfo.birthday).toDate() : undefined,
 		},
+		accountSettings: {
+			...request.accountSettings,
+			pinnedProjects: request.accountSettings?.pinnedProjects ? request.accountSettings.pinnedProjects.map((projectId) => toObjectId(projectId)) : undefined,
+		},
 		updatedAt: dayjs().toDate(),
 	};
 

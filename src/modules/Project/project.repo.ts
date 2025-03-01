@@ -79,7 +79,7 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 										$ne: ["$status", TaskStatus.Archived],
 									},
 									{
-										$eq: ["$deletedAt", null],
+										$not: [{ $ifNull: ["$deletedAt", false] }],
 									},
 								],
 							},
@@ -192,7 +192,7 @@ const addMemberToProject = async (ctx: Context, projectId: string, member: Accou
 	return updated.acknowledged;
 };
 
-const removeMemberFromProject = async (ctx: Context, projectId: string, memberEmail: string): Promise<boolean> => {
+const removeMember = async (ctx: Context, projectId: string, memberEmail: string): Promise<boolean> => {
 	const updated = await ProjectColl.updateOne(
 		{
 			_id: toObjectId(projectId),
@@ -223,7 +223,7 @@ const ProjectRepo = {
 	deleteProject,
 	checkActiveProject,
 	addMemberToProject,
-	removeMemberFromProject,
+	removeMember,
 };
 
 export default ProjectRepo;

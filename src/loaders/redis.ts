@@ -15,7 +15,7 @@ class Redis {
 
 				console.log("MongoDb connecting...");
 
-				await new Promise((resolve) => setTimeout(resolve, 3000)); // 3-second delay
+				await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay
 
 				// Retry connection with exponential backoff
 				const retryAttempts = 3;
@@ -40,7 +40,7 @@ class Redis {
 						attempt++;
 						if (attempt < retryAttempts) {
 							console.log(`Retrying... (${attempt}/${retryAttempts})`);
-							await new Promise((resolve) => setTimeout(resolve, 3000)); // Retry delay of 3 second
+							await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry delay of 3 second
 						} else {
 							throw new Error("Failed to connect to Redis after multiple attempts");
 						}

@@ -90,7 +90,6 @@ const updateProject = async (ctx: Context, projectId: string, request: pv.Update
 			$exists: false,
 		},
 	});
-
 	if (!_project) throw new AppError("NOT_FOUND", "Project not found");
 
 	const payload = buildPayloadUpdate(request, _project);
@@ -135,6 +134,10 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 	const project = await checkActiveProject(ctx, request.projectId);
 
 	if (!project) throw new AppError("NOT_FOUND", "Project not found");
+
+	if (!project.participantInfo.owner._id.equals(ctx.get("user")._id)) {
+		throw new AppError("BAD_REQUEST", "Only owner can invite");
+	}
 
 	//	VALIDATE INVITEE's EMAIL
 	const validEmails: string[] = [];
@@ -232,6 +235,24 @@ const rejectInvitation = async (ctx: Context, project: ProjectModel, email: stri
 	return { success: r.acknowledged };
 };
 
+const removeMember = async (ctx: Context, request: pv.RemoveRequest): Promise<pv.RemoveResponse> => {
+	const project = await checkActiveProject(ctx, request.projectId);
+
+	if (!project) throw new AppError("NOT_FOUND", "Project not found");
+
+	if (!project.participantInfo.owner._id.equals(ctx.get("user")._id)) {
+		throw new AppError("BAD_REQUEST", "Only owner can invite");
+	}
+
+	const isSuccess = await ProjectRepo.removeMember(ctx, request.projectId, request.memberEmail);
+
+	if (!isSuccess) {
+		throw new AppError("INTERNAL_SERVER_ERROR");
+	}
+
+	return { success: true };
+};
+
 const ProjectSrv = {
 	getMyProjects,
 	updateProject,
@@ -241,6 +262,7 @@ const ProjectSrv = {
 	checkActiveProject,
 	invite,
 	responseInvitation,
+	removeMember,
 };
 
 export default ProjectSrv;

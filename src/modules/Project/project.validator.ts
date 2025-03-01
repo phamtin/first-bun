@@ -59,6 +59,15 @@ export const responseInvitationResponse = v.strictObject({
 	success: v.boolean(),
 });
 
+export const removeRequest = v.strictObject({
+	projectId: stringObjectId,
+	memberEmail: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
+});
+
+export const removeResponse = v.strictObject({
+	success: v.boolean(),
+});
+
 export type GetMyProjectsResponse = InferInput<typeof getMyProjectsResponse>;
 export type CreateProjectRequest = InferInput<typeof createProjectRequest>;
 export type CreateProjectResponse = InferInput<typeof createProjectResponse>;
@@ -70,3 +79,5 @@ export type InviteRequest = InferInput<typeof inviteRequest>;
 export type InviteResponse = InferInput<typeof inviteResponse>;
 export type ResponseInvitationRequest = InferInput<typeof responseInvitationRequest>;
 export type ResponseInvitationResponse = InferInput<typeof responseInvitationResponse>;
+export type RemoveRequest = InferInput<typeof removeRequest>;
+export type RemoveResponse = InferInput<typeof removeResponse>;

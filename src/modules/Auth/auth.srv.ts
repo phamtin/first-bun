@@ -10,6 +10,7 @@ import { AppError } from "@/utils/error";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import ProjectSrv from "../Project/project.srv";
 import AccountCache from "@/pkgs/redis/account";
+import AccountSrv from "../Accounts";
 
 const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
 	const res: LoginGoogleResponse = {
@@ -49,6 +50,7 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 		};
 		const accountSettings: AccountSettings = {
 			theme: Theme.Light,
+			pinnedProjects: [],
 		};
 		const { acknowledged, insertedId } = await AccountColl.insertOne({
 			profileInfo,
@@ -68,7 +70,16 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 			lastname,
 		});
 
-		await ProjectSrv.createProject(ctx, { title: `${firstname}'s Project`, color: "#2fad64" }, true);
+		try {
+			const defaultProject = await ProjectSrv.createProject(ctx, { title: `${firstname}'s Project`, color: "#2fad64" }, true);
+			await AccountSrv.updateProfile(ctx, {
+				accountSettings: {
+					pinnedProjects: [defaultProject._id.toHexString()],
+				},
+			});
+		} catch (error) {
+			throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
+		}
 
 		res._id = insertedId.toHexString();
 		res.profileInfo = profileInfo;
@@ -82,7 +93,7 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 	res.jwt = await generateAuthTokens(res._id);
 
 	//  Add session into redis
-	await AccountCache.addAccountSession({
+	AccountCache.addAccountSession({
 		...res.profileInfo,
 		_id: toObjectId(res._id),
 		token: res.jwt,

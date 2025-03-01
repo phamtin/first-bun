@@ -20,6 +20,7 @@ export const updateProfileRequest = v.strictObject({
 	accountSettings: v.optional(
 		v.strictObject({
 			theme: v.optional(v.enum(Theme)),
+			pinnedProjects: v.optional(v.array(stringObjectId)),
 		})
 	),
 });
