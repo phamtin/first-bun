@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import type { WithoutId } from "mongodb";
 
-import { TaskStatus, type TaskTiming, type TaskModel } from "../../database/model/task/task.model";
+import { TaskStatus, type TaskTiming, type TaskModel, TaskPriority } from "../../database/model/task/task.model";
 import type { CreateTaskRequest, UpdateTaskRequest } from "./task.validator";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import dayjs from "@/utils/dayjs";
@@ -18,9 +18,6 @@ export const buildPayloadCreateTask = (ctx: Context, request: CreateTaskRequest,
 	}
 	if (request.description) {
 		res.description = request.description;
-	}
-	if (request.priority) {
-		res.priority = request.priority;
 	}
 	if (request.description) {
 		res.description = request.description;
@@ -43,6 +40,8 @@ export const buildPayloadCreateTask = (ctx: Context, request: CreateTaskRequest,
 			res.timing.estimation = estimation as TaskTiming["estimation"];
 		}
 	}
+
+	res.priority = request.priority ?? TaskPriority.Low;
 
 	res.projectId = toObjectId(request.projectId);
 

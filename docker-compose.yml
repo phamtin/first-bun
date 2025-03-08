@@ -15,7 +15,9 @@ services:
         # expose the right ports
         ports: ["9000:8000"]
 
+        mem_limit: 500m
         restart: always
+
         depends_on:
             redis:
                 condition: service_healthy
@@ -27,7 +29,10 @@ services:
         container_name: "redis"
         volumes:
             - ./data/redis:/data
+
+        mem_limit: 300m
         restart: always
+
         ports:
             - "6379:6379"
         healthcheck:

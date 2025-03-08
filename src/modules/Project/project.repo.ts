@@ -24,7 +24,7 @@ const checkActiveProject = async (ctx: Context, projectId: string): Promise<Proj
 		},
 	});
 
-	if (!p?._id) return null;
+	if (!p) return null;
 
 	return p;
 };

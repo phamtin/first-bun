@@ -23,7 +23,15 @@ export const updateProjectRequest = v.strictObject({
 	description: v.optional(v.string()),
 	status: v.optional(v.enum(ProjectStatus)),
 	color: v.optional(v.string()),
-	tags: v.optional(v.array(v.strictObject({ _id: v.optional(stringObjectId), color: v.pipe(v.string(), v.trim()), name: v.string() }))),
+	tags: v.optional(
+		v.array(
+			v.strictObject({
+				_id: v.optional(stringObjectId),
+				color: v.pipe(v.string(), v.trim()),
+				name: v.pipe(v.string(), v.trim()),
+			})
+		)
+	),
 });
 
 export const updateProjectResponse = v.strictObject({
