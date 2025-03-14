@@ -1,4 +1,5 @@
-import { ObjectId } from "mongodb";
+import { client } from "@/loaders/mongo";
+import { type ClientSession, ObjectId } from "mongodb";
 
 const toObjectId = (id: string | ObjectId = ""): ObjectId => {
 	if (typeof id === "string") {
@@ -33,4 +34,20 @@ const toObjectIds = (obj: unknown): unknown => {
 	return obj as object;
 };
 
-export { toObjectId, toStringId, toObjectIds };
+const withTransaction = async <T>(fn: (session: ClientSession) => Promise<T>): Promise<T> => {
+	const session = client.startSession();
+
+	try {
+		session.startTransaction();
+		const result = await fn(session);
+		await session.commitTransaction();
+		return result;
+	} catch (e) {
+		console.log("[ERROR] withTransaction: ", e);
+		await session.abortTransaction();
+		throw e;
+	} finally {
+		await session.endSession();
+	}
+};
+export { toObjectId, toStringId, toObjectIds, withTransaction };

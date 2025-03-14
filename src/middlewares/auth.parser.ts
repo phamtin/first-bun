@@ -7,19 +7,8 @@ import type { UserCheckParser } from "@/types/app.type";
 import { AccountColl, TokenColl } from "../loaders/mongo";
 import { createMiddleware } from "hono/factory";
 import dayjs from "@/utils/dayjs";
-import { ALLOWED_DOMAINS } from "@/utils/validate";
 
 export const tokenParser = createMiddleware(async (c, next) => {
-	const host = c.req.header("Host");
-
-	if (!host || !ALLOWED_DOMAINS[host]) {
-		return c.text("Domain not allowed", 403);
-	}
-	const blitzHeader = c.req.header("X-blitz");
-	if (!blitzHeader) {
-		return c.text("Domain not allowed", 403);
-	}
-
 	let token = "";
 	const authorization = c.req.header("authorization");
 
@@ -62,7 +51,7 @@ export const tokenParser = createMiddleware(async (c, next) => {
 			]);
 
 			if (!_currentUser?._id || !_storedToken?.isPrimary) {
-				return responseError(c, "FORBIDDEN", "Hack CC");
+				return responseError(c, "FORBIDDEN", "Hack CC?");
 			}
 			user = {
 				_id: decoded.accountId as string,

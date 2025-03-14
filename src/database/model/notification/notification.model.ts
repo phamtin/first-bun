@@ -22,6 +22,7 @@ export type NotificationModel = {
 	title: string;
 	read: boolean;
 	type: NotificationType;
+	accountId: ObjectId;
 	payload: AttributePattern[];
 
 	createdAt: Date;
@@ -45,6 +46,7 @@ export const vNotificationModel = v.strictObject({
 	title: v.string(),
 	read: v.boolean(),
 	type: v.enum(NotificationType),
+	accountId: objectId,
 	payload: v.array(vAttributePattern),
 
 	createdAt: v.date(),

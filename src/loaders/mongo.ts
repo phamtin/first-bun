@@ -4,6 +4,7 @@ import type { AccountModel } from "../database/model/account/account.model";
 import type { TokenModel } from "../database/model/token/token.schema";
 import type { ProjectModel } from "../database/model/project/project.model";
 import { ChangeStreamSingleton } from "@/pkgs/mongodb/changeStream/changeStream";
+import type { NotificationModel } from "../database/model/notification/notification.model";
 
 const MONGO_URL = Bun.env.MONGODB_URL_ATLAS as string;
 
@@ -67,9 +68,11 @@ connectToDatabase().then((db) => {
 	TaskColl = db.collection<WithoutId<TaskModel>>("tasks");
 	TokenColl = db.collection<WithoutId<TokenModel>>("tokens");
 	ProjectColl = db.collection<WithoutId<ProjectModel>>("projects");
+	NotificationColl = db.collection<WithoutId<NotificationModel>>("notifications");
 });
 
 export let TokenColl: CollectionType<WithoutId<TokenModel>>;
 export let AccountColl: CollectionType<WithoutId<AccountModel>>;
 export let TaskColl: CollectionType<WithoutId<TaskModel>>;
 export let ProjectColl: CollectionType<WithoutId<ProjectModel>>;
+export let NotificationColl: CollectionType<WithoutId<NotificationModel>>;

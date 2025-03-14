@@ -5,12 +5,15 @@ import accountRoute from "../modules/Accounts/account.route";
 import { tokenParser } from "@/middlewares/auth.parser";
 import taskRoute from "../modules/Tasks/task.route";
 import projectRoute from "../modules/Project/project.route";
+import { creadentialParser } from "@/middlewares/credential.parser";
 
 const routes = new Hono();
 
 routes.get("/ping", (c) => {
 	return c.json({ pong: "It works like a fucking charm!" });
 });
+
+routes.use(creadentialParser);
 
 routes.use(tokenParser);
 

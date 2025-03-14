@@ -1,7 +1,7 @@
 import type { Context } from "hono";
-import type { WithoutId } from "mongodb";
+import type { ClientSession, WithoutId } from "mongodb";
 import type * as pv from "./project.validator";
-import { toObjectId } from "@/pkgs/mongodb/helper";
+import { toObjectId, withTransaction } from "@/pkgs/mongodb/helper";
 import ProjectRepo from "./project.repo";
 import { ProjectColl } from "@/loaders/mongo";
 import { type ProjectInvitation, ProjectStatus, type ProjectModel } from "../../database/model/project/project.model";
@@ -12,6 +12,8 @@ import ProjectUtil from "./project.util";
 import dayjs from "@/utils/dayjs";
 import TaskSrv from "../Tasks/task.srv";
 import { DEFAULT_INVITATION_TITLE, PROJECT_INVITATION_EXPIRED_MINUTE } from "./project.const";
+import NotificationSrv from "../Notification";
+import { NotificationType } from "../../database/model/notification/notification.model";
 
 const getMyProjects = async (ctx: Context): Promise<pv.GetMyProjectsResponse[]> => {
 	const project = await ProjectRepo.getMyProjects(ctx);
@@ -47,7 +49,9 @@ const createProject = async (ctx: Context, request: pv.CreateProjectRequest, isD
 		if (project) throw new AppError("BAD_REQUEST", "Hack CC");
 	}
 
-	const _ownerModel = await AccountSrv.findAccountProfile(ctx, { accountId: ctx.get("user")._id });
+	const _ownerModel = await AccountSrv.findAccountProfile(ctx, {
+		accountId: ctx.get("user")._id,
+	});
 
 	if (!_ownerModel) throw new AppError("NOT_FOUND", "Project Owner not found");
 
@@ -149,7 +153,7 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 		}
 	}
 	if (validEmails.length === 0) {
-		throw new AppError("BAD_REQUEST", "Invalid invitations");
+		throw new AppError("BAD_REQUEST", "Already be member");
 	}
 
 	const invitations: ProjectInvitation[] = [];
@@ -165,19 +169,54 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 		});
 	}
 
-	//	ADD INVITATIONS TO PROJECT
-	await ProjectColl.updateOne(
-		{
-			_id: toObjectId(request.projectId),
-		},
-		{
-			$push: { "participantInfo.invitations": { $each: invitations } },
+	const isTranstactionSuccess = await withTransaction(async (session: ClientSession) => {
+		//	ADD INVITATIONS TO PROJECT
+		await ProjectColl.updateOne(
+			{
+				_id: toObjectId(request.projectId),
+			},
+			{
+				$push: { "participantInfo.invitations": { $each: invitations } },
+			},
+			{
+				session,
+			},
+		);
+
+		//	CREATE NOTIFICATION
+		const inviteePromisors = [];
+		for (const invitation of invitations) {
+			inviteePromisors.push(AccountSrv.findAccountProfile(ctx, { email: invitation.email }));
 		}
-	);
+		const invitees = await Promise.all(inviteePromisors);
 
-	//	CREATE NOTIFICATION
+		await NotificationSrv.bulkCreate(
+			ctx,
+			invitees
+				.filter((i) => !!i)
+				.map((i) => ({
+					title: DEFAULT_INVITATION_TITLE,
+					type: NotificationType.InviteJoinProject,
+					accountId: i._id.toHexString(),
+					payload: [
+						{
+							k: "projectId",
+							v: request.projectId,
+						},
+						{
+							k: "inviteeEmail",
+							v: i.profileInfo.email,
+						},
+					],
+				})),
+			{
+				session,
+			},
+		);
+		return true;
+	});
 
-	return { success: true };
+	return { success: isTranstactionSuccess };
 };
 
 const responseInvitation = async (ctx: Context, request: pv.ResponseInvitationRequest): Promise<pv.ResponseInvitationResponse> => {
@@ -227,7 +266,7 @@ const rejectInvitation = async (ctx: Context, project: ProjectModel, email: stri
 			$set: {
 				updatedAt: dayjs().toDate(),
 			},
-		}
+		},
 	);
 
 	//	CREATE NOTIFICATION

@@ -1,7 +1,8 @@
+import type { ClientSession } from "mongodb";
 import type { Job } from "bullmq";
 import type { SyncModelJobData } from "../queue/SyncModel.queue";
-import { client, ProjectColl, TaskColl } from "@/loaders/mongo";
-import { toObjectIds } from "@/pkgs/mongodb/helper";
+import { ProjectColl, TaskColl } from "@/loaders/mongo";
+import { toObjectIds, withTransaction } from "@/pkgs/mongodb/helper";
 import type { AccountModel } from "../../../database/model/account/account.model";
 
 const ModelToSyncWith = {
@@ -11,19 +12,13 @@ const ModelToSyncWith = {
 	},
 };
 
-const syncCollectionAccounts = async (job: Job<SyncModelJobData>) => {
+const syncCollectionAccounts = async (job: Job<SyncModelJobData>): Promise<boolean> => {
 	const accountModel = job.data.payload;
 	const { accountSettings, ...rest } = accountModel;
 	const accountDb = toObjectIds(rest) as Omit<AccountModel, "accountSettings">;
 
-	const session = client.startSession();
-
-	try {
-		session.startTransaction();
-
-		/**
-		 *  Projects
-		 */
+	return withTransaction(async (session: ClientSession) => {
+		// PROJECTS: UPDATE OWNER
 		await ProjectColl.updateMany(
 			{
 				"participantInfo.owner._id": accountDb._id,
@@ -34,8 +29,10 @@ const syncCollectionAccounts = async (job: Job<SyncModelJobData>) => {
 					"participantInfo.owner": accountDb,
 				},
 			},
-			{ session }
+			{ session },
 		);
+
+		// PROJECTS: UPDATE MEMBERS
 		await ProjectColl.updateMany(
 			{
 				"participantInfo.members._id": accountDb._id,
@@ -46,12 +43,10 @@ const syncCollectionAccounts = async (job: Job<SyncModelJobData>) => {
 					"participantInfo.members.$": accountDb,
 				},
 			},
-			{ session }
+			{ session },
 		);
 
-		/**
-		 *  Tasks
-		 */
+		// TASKS: UPDATE ASSIGNEE
 		await TaskColl.updateMany(
 			{
 				"assigneeInfo._id": accountDb._id,
@@ -62,19 +57,11 @@ const syncCollectionAccounts = async (job: Job<SyncModelJobData>) => {
 					"assigneeInfo.$": accountDb,
 				},
 			},
-			{ session }
+			{ session },
 		);
 
-		await session.commitTransaction();
-	} catch (e) {
-		console.log("[ERROR] syncCollectionAccounts: ", e);
-		await session.abortTransaction();
-		throw e;
-	} finally {
-		await session.endSession();
-	}
-
-	return true;
+		return true;
+	});
 };
 
 export { syncCollectionAccounts };
