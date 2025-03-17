@@ -163,13 +163,24 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 	for (const validEmail of validEmails) {
 		invitations.push({
 			email: validEmail,
+			avatar: "",
 			title: DEFAULT_INVITATION_TITLE,
 			createdAt,
 			expiredAt,
 		});
 	}
+	const inviteePromisors = [];
+	for (const invitation of invitations) {
+		inviteePromisors.push(AccountSrv.findAccountProfile(ctx, { email: invitation.email }));
+	}
+	const invitees = await Promise.all(inviteePromisors);
 
-	const isTranstactionSuccess = await withTransaction(async (session: ClientSession) => {
+	for (const invitation of invitations) {
+		const invitee = invitees.find((i) => i?.profileInfo.email === invitation.email);
+		if (!invitee) continue;
+		invitation.avatar = invitee.profileInfo.avatar;
+	}
+	const isTransactionSuccess = await withTransaction(async (session: ClientSession) => {
 		//	ADD INVITATIONS TO PROJECT
 		await ProjectColl.updateOne(
 			{
@@ -178,18 +189,9 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 			{
 				$push: { "participantInfo.invitations": { $each: invitations } },
 			},
-			{
-				session,
-			},
+			{ session },
 		);
-
 		//	CREATE NOTIFICATION
-		const inviteePromisors = [];
-		for (const invitation of invitations) {
-			inviteePromisors.push(AccountSrv.findAccountProfile(ctx, { email: invitation.email }));
-		}
-		const invitees = await Promise.all(inviteePromisors);
-
 		await NotificationSrv.bulkCreate(
 			ctx,
 			invitees
@@ -209,14 +211,12 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 						},
 					],
 				})),
-			{
-				session,
-			},
+			{ session },
 		);
 		return true;
 	});
 
-	return { success: isTranstactionSuccess };
+	return { success: isTransactionSuccess };
 };
 
 const responseInvitation = async (ctx: Context, request: pv.ResponseInvitationRequest): Promise<pv.ResponseInvitationResponse> => {

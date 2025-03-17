@@ -24,13 +24,7 @@ export const updateProjectRequest = v.strictObject({
 	status: v.optional(v.enum(ProjectStatus)),
 	color: v.optional(v.string()),
 	tags: v.optional(
-		v.array(
-			v.strictObject({
-				_id: v.optional(stringObjectId),
-				color: v.pipe(v.string(), v.trim()),
-				name: v.pipe(v.string(), v.trim()),
-			})
-		)
+		v.array(v.strictObject({_id: v.optional(stringObjectId),color: v.pipe(v.string(), v.trim()), name: v.pipe(v.string(), v.trim())}))
 	),
 });
 
@@ -50,12 +44,14 @@ export const getProjectByIdResponse = v.strictObject({
 
 export const inviteRequest = v.strictObject({
 	projectId: stringObjectId,
-	emails: v.array(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())),
+	emails: v.pipe(
+		v.array(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())), v.maxLength(64, "Too many invitations")
+	),
 });
 
 export const inviteResponse = v.strictObject({
 	success: v.boolean(),
-});
+}); 
 
 export const responseInvitationRequest = v.strictObject({
 	type: v.union([v.literal("accept"), v.literal("reject")]),

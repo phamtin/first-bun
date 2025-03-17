@@ -1,6 +1,6 @@
 import type IoRedis from "ioredis";
 import type { ExtendTaskModel, TaskModel } from "../../database/model/task/task.model";
-import Redis from "@/loaders/redis";
+import Redis, { connectToRedis } from "@/loaders/redis";
 
 /**
  *  Cache full extended task
@@ -13,7 +13,11 @@ class TaskCache {
 	constructor() {
 		const ONE_MINUTE = 60;
 		this.DEFAULT_EXPIRED_IN = ONE_MINUTE;
-		this.instance = Redis.getClient() as IoRedis;
+		this.connectToRedisClient();
+	}
+
+	private async connectToRedisClient(): Promise<void> {
+		this.instance = (await connectToRedis()) as IoRedis;
 	}
 
 	async addTask(payload: TaskModel & ExtendTaskModel) {

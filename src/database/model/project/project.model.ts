@@ -26,6 +26,7 @@ export type ProjectInfo = {
 
 export type ProjectInvitation = {
 	email: string;
+	avatar: string;
 	title: string;
 	description?: string;
 	expiredAt: Date;
@@ -77,6 +78,7 @@ export const vProjectInvitation = v.strictObject({
 	title: v.string(),
 	description: v.optional(v.string()),
 	email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
+	avatar: v.string(),
 	expiredAt: v.date(),
 	createdAt: v.date(),
 }) satisfies v.BaseSchema<ProjectInvitation, ProjectInvitation, v.BaseIssue<unknown>>;

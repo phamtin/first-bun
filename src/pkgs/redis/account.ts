@@ -13,9 +13,7 @@ class AccountCache {
 
 	constructor() {
 		this.DEFAULT_EXPIRED_IN = 60 * 60 * 24; // 1 day in seconds
-		this.connectToRedisClient().catch((error) => {
-			console.error("[ERROR] Failed to connect to Redis:", error);
-		});
+		this.connectToRedisClient();
 	}
 
 	private async connectToRedisClient(): Promise<void> {

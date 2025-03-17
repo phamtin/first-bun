@@ -30,7 +30,7 @@ await connectToRedis();
 //	init bullMQ
 import("@/pkgs/bullMQ/worker/SyncModel.worker")
 	.then(() => {
-		// console.log("✅ Worker initialized");
+		console.log("✅ Worker initialized");
 	})
 	.catch((e) => {
 		console.log("❌ Worker failed to initialize", e);

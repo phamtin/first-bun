@@ -1,3 +1,4 @@
+import { getEnv } from "@/utils/env";
 import IoRedis from "ioredis";
 
 class Redis {
@@ -7,45 +8,22 @@ class Redis {
 		// Private constructor to prevent instantiation
 	}
 
-	public static async connectToRedis(): Promise<IoRedis> {
+	public static async connectToRedis(): Promise<IoRedis | null> {
 		if (!Redis.client) {
 			try {
-				const host = Bun.env.REDIS_HOST || "redis";
-				const port = Number(Bun.env.REDIS_PORT) || 6379;
+				const host = getEnv.redis.host;
+				const port = +getEnv.redis.port;
+				console.log("Redis host: ", Bun.env.BUN_ENV, host, port);
 
-				console.log("MongoDb connecting...");
+				Redis.client = new IoRedis({ host, port, maxRetriesPerRequest: null });
 
-				await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay
-
-				// Retry connection with exponential backoff
-				const retryAttempts = 3;
-				let attempt = 0;
-
-				while (attempt < retryAttempts) {
-					try {
-						Redis.client = new IoRedis({ host, port, maxRetriesPerRequest: null });
-
-						Redis.client.on("connect", () => {
-							console.log("- Connected to Redis server");
-							return Redis.client;
-						});
-
-						Redis.client.on("error", (err) => {
-							console.error("❌ Redis connection error:", err);
-						});
-
-						return Redis.client;
-					} catch (error) {
-						console.error(`❌ Error connecting to Redis (Attempt ${attempt + 1}):`, error);
-						attempt++;
-						if (attempt < retryAttempts) {
-							console.log(`Retrying... (${attempt}/${retryAttempts})`);
-							await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry delay of 3 second
-						} else {
-							throw new Error("Failed to connect to Redis after multiple attempts");
-						}
-					}
+				if (Redis.client) {
+					Redis.client.set("ping", "pong").then(() => {
+						(Redis.client as IoRedis).del("ping");
+						console.log("- Connected to Redis server");
+					});
 				}
+				return Redis.client;
 			} catch (error) {
 				console.error("❌ Error while connecting to Redis:", error);
 				throw error;
@@ -67,8 +45,11 @@ class Redis {
 		}
 	}
 
-	public static getClient(): IoRedis | null {
-		return Redis.client;
+	public static getClient(): IoRedis {
+		if (!Redis.client) {
+			throw new Error("Redis client not initialized");
+		}
+		return Redis.client as IoRedis;
 	}
 }
 
@@ -77,11 +58,17 @@ process.on("SIGINT", async () => {
 	process.exit(0);
 });
 
-export async function connectToRedis(): Promise<Redis> {
-	return Redis.connectToRedis();
+export async function connectToRedis(): Promise<Redis | null> {
+	const instance = await Redis.connectToRedis();
+	if (instance) {
+		console.log("- Connected to Redis server");
+	}
+	return instance;
 }
 
 export async function closeRedisConnection(): Promise<void> {
+	console.log("Closing Redis connection");
+
 	return Redis.closeRedisConnection();
 }
 
