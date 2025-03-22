@@ -75,7 +75,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 
 	if (!assigneeAccount) throw new AppError("NOT_FOUND", "Assignee not found");
 
-	const { accountSettings, ...restProps } = assigneeAccount;
+	const { accountSettings, ...restProps } = assigneeAccount;	//	exclude accountSettings
 
 	payload.assigneeInfo = [restProps];
 

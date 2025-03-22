@@ -69,7 +69,7 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 		{
 			ignoreUndefined: true,
 			returnDocument: "after",
-		}
+		},
 	);
 
 	if (!updated) throw new AppError("INTERNAL_SERVER_ERROR");

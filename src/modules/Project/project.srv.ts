@@ -84,16 +84,8 @@ const createProject = async (ctx: Context, request: pv.CreateProjectRequest, isD
 };
 
 const updateProject = async (ctx: Context, projectId: string, request: pv.UpdateProjectRequest): Promise<pv.UpdateProjectResponse> => {
-	const _project: ProjectModel | null = await ProjectColl.findOne({
-		_id: toObjectId(projectId),
+	const _project = await ProjectRepo.checkActiveProject(ctx, projectId);
 
-		"projectInfo.status": {
-			$ne: ProjectStatus.Archived,
-		},
-		deletedAt: {
-			$exists: false,
-		},
-	});
 	if (!_project) throw new AppError("NOT_FOUND", "Project not found");
 
 	const payload = buildPayloadUpdate(request, _project);
@@ -125,7 +117,11 @@ const deleteProject = async (ctx: Context, projectId: string): Promise<boolean> 
 		deletetaskPromisors.push(TaskSrv.deleteTask(ctx, task._id.toHexString()));
 	}
 
-	await Promise.all(deletetaskPromisors);
+	try {
+		await Promise.all(deletetaskPromisors);
+	} catch (error) {
+		throw new AppError("INTERNAL_SERVER_ERROR");
+	}
 
 	const isDeleted = await ProjectRepo.deleteProject(ctx, projectId);
 
@@ -208,6 +204,10 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 						{
 							k: "inviteeEmail",
 							v: i.profileInfo.email,
+						},
+						{
+							k: "inviteeFirstname",
+							v: i.profileInfo.firstname,
 						},
 					],
 				})),

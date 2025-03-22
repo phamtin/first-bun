@@ -62,16 +62,16 @@ const getNotificationsByAccountId = async (ctx: Context, request: nv.GetNotifica
 
 const markAsRead = async (ctx: Context, request: nv.MarkAsReadRequest): Promise<boolean> => {
 	if (request.markAll && request.notificationId) {
-		throw new Error("Should use one criterial");
+		throw new AppError("BAD_REQUEST", "Should use one criterial");
 	}
-
+	const now = dayjs().toDate();
 	if (request.markAll) {
 		await NotificationColl.updateMany(
 			{
 				accountId: toObjectId(ctx.get("user")._id),
 			},
 			{
-				$set: { read: true, updatedAt: dayjs().toDate() },
+				$set: { read: true, updatedAt: now },
 			},
 		);
 	}
@@ -81,7 +81,7 @@ const markAsRead = async (ctx: Context, request: nv.MarkAsReadRequest): Promise<
 				_id: toObjectId(request.notificationId),
 			},
 			{
-				$set: { read: true, updatedAt: dayjs().toDate() },
+				$set: { read: true, updatedAt: now },
 			},
 		);
 	}
@@ -93,14 +93,14 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 	if (request.deleteAll && request.notificationId) {
 		throw new Error("Should use one criterial");
 	}
-
+	const now = dayjs().toDate();
 	if (request.deleteAll) {
 		await NotificationColl.updateMany(
 			{
 				accountId: toObjectId(ctx.get("user")._id),
 			},
 			{
-				$set: { deletedAt: dayjs().toDate() },
+				$set: { deletedAt: now },
 			},
 		);
 	}
@@ -110,7 +110,7 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 				_id: toObjectId(request.notificationId),
 			},
 			{
-				$set: { deletedAt: dayjs().toDate() },
+				$set: { deletedAt: now },
 			},
 		);
 	}

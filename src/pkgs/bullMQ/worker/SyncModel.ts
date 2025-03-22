@@ -4,6 +4,7 @@ import type { SyncModelJobData } from "../queue/SyncModel.queue";
 import { ProjectColl, TaskColl } from "@/loaders/mongo";
 import { toObjectIds, withTransaction } from "@/pkgs/mongodb/helper";
 import type { AccountModel } from "../../../database/model/account/account.model";
+import { ProjectStatus } from "../../../database/model/project/project.model";
 
 const ModelToSyncWith = {
 	Account: {
@@ -22,7 +23,13 @@ const syncCollectionAccounts = async (job: Job<SyncModelJobData>): Promise<boole
 		await ProjectColl.updateMany(
 			{
 				"participantInfo.owner._id": accountDb._id,
-				deletedAt: { $exists: false },
+
+				"projectInfo.status": {
+					$ne: ProjectStatus.Archived,
+				},
+				deletedAt: {
+					$exists: false,
+				},
 			},
 			{
 				$set: {

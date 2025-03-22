@@ -3,7 +3,7 @@ import * as v from "valibot";
 
 import { objectId, vAttributePattern, type AttributePattern } from "../../../types/common.type";
 import { vAccountProfile, type AccountModel } from "../account/account.model";
-import { type InlineTaskModel, vInlineTaskModel, type TaskModel } from "../task/task.model";
+import { type InlineTaskModel, vInlineTaskModel } from "../task/task.model";
 
 export type ProjectDocument = {
 	urls: AttributePattern[];
