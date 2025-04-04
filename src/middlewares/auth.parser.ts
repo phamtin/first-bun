@@ -29,7 +29,7 @@ export const tokenParser = createMiddleware(async (c, next) => {
 	}
 
 	try {
-		const decoded = await verify(token, Bun.env.JWT_SECRET);
+		const decoded = await verify(token, Bun.env.JWT_SECRET as string);
 
 		const session = await AccountCache.getAccountSessionById(decoded.accountId as string, token);
 

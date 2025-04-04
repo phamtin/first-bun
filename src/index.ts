@@ -40,3 +40,5 @@ export default {
 	port: 8000,
 	fetch: HonoApp.fetch,
 };
+
+export { HonoApp }; // Should not export this, but For testing only

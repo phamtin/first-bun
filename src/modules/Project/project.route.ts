@@ -21,7 +21,7 @@ projectRoute.post(
 	async (c) => {
 		const r = await ProjectSrv.createProject(c, c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 /**
@@ -59,7 +59,7 @@ projectRoute.patch(
 		}
 		const r = await ProjectSrv.updateProject(c, c.req.param("id"), c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 /**
@@ -86,7 +86,7 @@ projectRoute.post(
 	async (c) => {
 		const r = await ProjectSrv.invite(c, c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 /**
@@ -102,7 +102,7 @@ projectRoute.post(
 	async (c) => {
 		const r = await ProjectSrv.responseInvitation(c, c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 /**
@@ -118,7 +118,7 @@ projectRoute.post(
 	async (c) => {
 		const r = await ProjectSrv.removeMember(c, c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 export default projectRoute;

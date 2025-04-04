@@ -73,6 +73,11 @@ export const toPayloadUpdate = (obj: FlattenedObject, parentKey = "", result: Fl
 				result[newKey] = value;
 			}
 
+			//	Data is null, undefined
+			else if (value === null || value === undefined) {
+				result[newKey] = value;
+			}
+
 			//	Data is object
 			else if (typeof value === "object") {
 				toPayloadUpdate(value as FlattenedObject, newKey, result);

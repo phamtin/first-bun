@@ -26,7 +26,7 @@ class AccountCache {
 		}
 		try {
 			const key = `${this.PREFIX}${payload._id}_${payload.token}`;
-			return await this.instance.set(key, JSON.stringify(payload), "EX", this.DEFAULT_EXPIRED_IN);
+			await this.instance.set(key, JSON.stringify(payload), "EX", this.DEFAULT_EXPIRED_IN);
 		} catch (error) {
 			console.error("[ERROR] addAccountSession:", error);
 		}

@@ -105,9 +105,11 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 const signToken = async (accountId: string) => {
 	const payload: JWTPayload = {
 		accountId,
-		exp: dayjs().add(+Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE, "minute").unix(),
+		exp: dayjs()
+			.add(+(Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE as string), "minute")
+			.unix(),
 	};
-	const res = await sign(payload, Bun.env.JWT_SECRET);
+	const res = await sign(payload, Bun.env.JWT_SECRET as string);
 
 	return res;
 };
@@ -132,7 +134,7 @@ const saveToken = async (value: string, accountId: string, expiredAt: Date) => {
 				$set: {
 					isPrimary: false,
 				},
-			}
+			},
 		),
 	]);
 	return tokenDoc;
@@ -140,7 +142,9 @@ const saveToken = async (value: string, accountId: string, expiredAt: Date) => {
 
 const generateAuthTokens = async (userId: string) => {
 	const accessToken = await signToken(userId);
-	const accessTokenExpires = dayjs().add(+Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE, "minute").toDate(); // 5 minutes
+	const accessTokenExpires = dayjs()
+		.add(+(Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE as string), "minute")
+		.toDate(); // 5 minutes
 	await saveToken(accessToken, userId, accessTokenExpires);
 
 	return accessToken;

@@ -1,40 +1,39 @@
 services:
+    nginx:
+        image: nginx:latest
+        container_name: "nginx"
+        volumes:
+            - ./deploy/prod/nginx.conf:/etc/nginx/nginx.conf
+            - ./deploy/prod/logs:/var/log/nginx
+        ports:
+            - "8080:8080"
+            - "443:443" # HTTPS
+        restart: unless-stopped
+        mem_limit: 50m
+        networks:
+            - app-network
     app:
         image: tinphamtp/blitz-api:latest
-        build:
-            context: .
-            dockerfile: Dockerfile
-
         env_file:
             - .env
-
-        # override default entrypoint allows us to do `bun install` before serving
         entrypoint: []
-
-        # execute bun install before we start the dev server in watch mode
-        command: ["bun", "run", "src/index.ts"]
-
-        # expose the right ports
-        ports: ["9000:8000"]
-
+        command: ["bun", "run", "build/index.js"]
+        expose:
+            - "9000"  # Expose only within the network
         mem_limit: 500m
         restart: always
-
         depends_on:
             redis:
                 condition: service_healthy
         networks:
             - app-network
-
     redis:
         image: redis/redis-stack-server:latest
         container_name: "redis"
         volumes:
             - ./data/redis:/data
-
         mem_limit: 250m
         restart: always
-
         ports:
             - "6379:6379"
         healthcheck:
@@ -47,5 +46,5 @@ services:
             - app-network
 
 networks:
-    app-network: # Create a network called 'app-network'
+    app-network:
         driver: bridge
