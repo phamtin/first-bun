@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { ObjectId, type WithoutId } from "mongodb";
-import type { CreateTaskRequest, CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, GetTasksResponse, UpdateTaskRequest, UpdateTaskResponse } from "./task.validator";
+import type * as tv from "./task.validator";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import systemLog from "@/pkgs/systemLog";
 import TaskRepo from "./task.repo";
@@ -13,12 +13,12 @@ import AccountSrv from "../Accounts";
 import ProjectUtil from "../Project/project.util";
 import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 
-const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
+const getTaskById = async (ctx: Context, id: string): Promise<tv.GetTaskByIdResponse> => {
 	const task = await TaskRepo.getTaskById(ctx, id);
 	return task;
 };
 
-const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<GetTasksResponse> => {
+const getTasks = async (ctx: Context, request: tv.GetTasksRequest): Promise<tv.GetTasksResponse> => {
 	if (request.endDate) {
 		const { startDate, endDate } = request;
 
@@ -34,7 +34,7 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<GetTask
 	return tasks;
 };
 
-const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<CreateTaskResponse> => {
+const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<tv.CreateTaskResponse> => {
 	systemLog.info("createTask - START");
 
 	if (request.timing) {
@@ -75,7 +75,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 
 	if (!assigneeAccount) throw new AppError("NOT_FOUND", "Assignee not found");
 
-	const { accountSettings, ...restProps } = assigneeAccount;	//	exclude accountSettings
+	const { accountSettings, ...restProps } = assigneeAccount; //	exclude accountSettings
 
 	payload.assigneeInfo = [restProps];
 
@@ -112,7 +112,7 @@ const createTask = async (ctx: Context, request: CreateTaskRequest): Promise<Cre
 	return created;
 };
 
-const validateDateRange = (timingDb?: TaskTiming, timingRequest?: UpdateTaskRequest["timing"]): boolean => {
+const validateDateRange = (timingDb?: TaskTiming, timingRequest?: tv.UpdateTaskRequest["timing"]): boolean => {
 	if (!timingRequest) return true;
 
 	let isValid = true;
@@ -141,7 +141,7 @@ const validateDateRange = (timingDb?: TaskTiming, timingRequest?: UpdateTaskRequ
 	return isValid;
 };
 
-const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskRequest): Promise<UpdateTaskResponse> => {
+const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRequest): Promise<tv.UpdateTaskResponse> => {
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 
@@ -172,7 +172,7 @@ const updateTask = async (ctx: Context, taskId: string, request: UpdateTaskReque
 		promisors.push(
 			AccountSrv.findAccountProfile(ctx, {
 				accountId: request.assigneeId,
-			})
+			}),
 		);
 	}
 
@@ -276,7 +276,7 @@ const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
 	return true;
 };
 
-const findTasksByProjectId = async (ctx: Context, projectId: string): Promise<GetTasksResponse> => {
+const findTasksByProjectId = async (ctx: Context, projectId: string): Promise<tv.GetTasksResponse> => {
 	const tasks = await TaskColl.find({
 		projectId: toObjectId(projectId),
 		deletedAt: {

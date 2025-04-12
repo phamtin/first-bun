@@ -1,4 +1,4 @@
-import type { WithoutId } from "mongodb";
+import type { Filter, WithoutId } from "mongodb";
 import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
 import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
@@ -19,6 +19,9 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 					$exists: false,
 				},
 			},
+		},
+		{
+			$limit: 1,
 		},
 		{
 			$lookup: {
@@ -52,7 +55,6 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 				path: "$availableTags",
 			},
 		},
-
 		{
 			$project: {
 				"created.accountSettings": 0,
@@ -62,8 +64,6 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 	]).toArray()) as (TaskModel & ExtendTaskModel)[];
 
 	if (tasks.length === 0) throw new AppError("NOT_FOUND", "Task not found");
-
-	if (tasks.length > 1) throw new AppError("INTERNAL_SERVER_ERROR", "Something went wrong");
 
 	return tasks[0];
 };
@@ -99,7 +99,7 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 		{
 			ignoreUndefined: true,
 			returnDocument: "after",
-		}
+		},
 	);
 
 	if (!updated) throw new AppError("INTERNAL_SERVER_ERROR");
@@ -182,13 +182,13 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 						startDate.length > 0
 							? {
 									$gte: ["$timing.startDate", { $toDate: startDate }],
-							  }
+								}
 							: {},
 
 						endDate.length > 0
 							? {
 									$lte: ["$timing.endDate", { $toDate: endDate }],
-							  }
+								}
 							: {},
 					],
 				},
@@ -225,7 +225,7 @@ const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
 		},
 		{
 			returnDocument: "after",
-		}
+		},
 	);
 
 	return !!res?.deletedAt;
