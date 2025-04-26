@@ -90,7 +90,7 @@ export const buildPayloadUpdateTask = (ctx: Context, request: UpdateTaskRequest,
 			res.timing.endDate = dayjs(endDate).toDate();
 		}
 		if (estimation) {
-			res.timing.estimation = estimation as TaskTiming["estimation"];
+			res.timing.estimation = estimation satisfies TaskTiming["estimation"];
 		}
 	}
 

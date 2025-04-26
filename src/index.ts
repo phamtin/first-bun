@@ -6,14 +6,15 @@ import { closeRedisConnection, connectToRedis } from "./loaders/redis";
 import { handleError } from "./utils/error";
 import routes from "./routes";
 import { validateEnv } from "./utils/validate";
+import { initBullMQ } from "./pkgs/bullMQ";
 
 validateEnv();
 
 process.on("SIGINT", () => {
-	console.log("[SIGINT] Shutting down...");
+	console.log("[SIGINT] Shutting down..");
 	closeMongoConnection();
 	closeRedisConnection();
-	process.exit(1);
+	process.exit();
 });
 
 const HonoApp = new Hono();
@@ -26,15 +27,7 @@ HonoApp.onError(handleError);
 
 await connectToDatabase();
 await connectToRedis();
-
-//	init bullMQ
-import("@/pkgs/bullMQ/worker/SyncModel.worker")
-	.then(() => {
-		console.log("✅ Worker initialized");
-	})
-	.catch((e) => {
-		console.log("❌ Worker failed to initialize", e);
-	});
+await initBullMQ();
 
 export default {
 	port: 8000,

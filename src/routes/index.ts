@@ -10,7 +10,7 @@ import { creadentialParser } from "@/middlewares/credential.parser";
 const routes = new Hono();
 
 routes.get("/ping", (c) => {
-	return c.json({ pong: "It works like a fucking charm! - 1.0.0-2" });
+	return c.json({ pong: "It works like a fking charm! - 1.0.0-3" });
 });
 
 routes.use(creadentialParser);

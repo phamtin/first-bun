@@ -18,7 +18,7 @@ authRoute.post(
 	async (c) => {
 		const r = await AuthSrv.signinWithGoogle(c, c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 authRoute.post("/logout", async (c) => {

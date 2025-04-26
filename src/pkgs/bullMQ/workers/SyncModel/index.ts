@@ -1,12 +1,12 @@
 import Redis from "@/loaders/redis";
 import { Worker, type Job } from "bullmq";
-import type { SyncModelJobData } from "../queue/SyncModel.queue";
-import { CONCURRENCY } from "../type";
+import type { SyncModelJobData } from "../../queue/SyncModel.queue";
+import { CONCURRENCY } from "../../type";
 import { AppError } from "@/utils/error";
-import { syncCollectionAccounts } from "./SyncModel";
+import { syncCollectionAccounts } from "./SyncModel.srv";
 
 const processor = async (job: Job<SyncModelJobData>) => {
-	console.log(`- Processing job ${job.id}: `, job.data);
+	console.log(`-------------------- START job ${job.id} --------------------`, job.data);
 
 	const collection = job.data.model;
 
@@ -32,7 +32,7 @@ myWorker.on("failed", (job, err) => {
 });
 
 myWorker.on("completed", (job) => {
-	console.log(`✅ Job ${job?.id} completed successfully.`);
+	console.log(`-------------------- DONE job ${job?.id} successfully.`);
 });
 
 const shutdown = async () => {

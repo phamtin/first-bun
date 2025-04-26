@@ -4,14 +4,14 @@ import { Queue } from "bullmq";
 import type { AccountModel } from "../../../database/model/account/account.model";
 import { BULLMQ_CONFIG } from "../util";
 
-export interface SyncModelJobData {
-	model: "accounts" | "projects" | "tasks" | "notifications" | "meetings";
+export interface ExtractDataJobData {
+	model: "accounts" | "projects" | "tasks";
 	payload: AccountModel;
 }
 
-export class SyncModelQueue {
-	private static instance: SyncModelQueue | null = null;
-	queue: Queue<SyncModelJobData> | null = null;
+export class ExtractDataQueue {
+	private static instance: ExtractDataQueue | null = null;
+	queue: Queue<ExtractDataJobData> | null = null;
 
 	private constructor() {
 		// Private constructor to enforce singleton
@@ -21,35 +21,35 @@ export class SyncModelQueue {
 		if (!this.queue) {
 			try {
 				const connection = (await connectToRedis()) as Redis;
-				this.queue = new Queue<SyncModelJobData>("SyncModelQueue", {
+				this.queue = new Queue<ExtractDataJobData>("ExtractDataQueue", {
 					connection,
 					defaultJobOptions: BULLMQ_CONFIG.JOBS || {},
 				});
 			} catch (error) {
-				console.error("Failed to initialize SyncModelQueue:", error);
+				console.error("Failed to initialize ExtractDataQueue:", error);
 				throw new Error("Queue initialization failed");
 			}
 		}
 	}
 
-	static async getInstance(): Promise<SyncModelQueue> {
-		if (!SyncModelQueue.instance) {
-			SyncModelQueue.instance = new SyncModelQueue();
+	static async getInstance(): Promise<ExtractDataQueue> {
+		if (!ExtractDataQueue.instance) {
+			ExtractDataQueue.instance = new ExtractDataQueue();
 		}
-		await SyncModelQueue.instance.initializeIfNeeded();
-		return SyncModelQueue.instance;
+		await ExtractDataQueue.instance.initializeIfNeeded();
+		return ExtractDataQueue.instance;
 	}
 
 	async close(): Promise<void> {
 		if (this.queue) {
 			await this.queue.close();
 			this.queue = null;
-			SyncModelQueue.instance = null; // Reset singleton
+			ExtractDataQueue.instance = null; // Reset singleton
 		}
 	}
 
-	static async addSyncModelJob(data: SyncModelJobData): Promise<void> {
-		const instance = await SyncModelQueue.getInstance();
+	static async addSyncModelJob(data: ExtractDataJobData): Promise<void> {
+		const instance = await ExtractDataQueue.getInstance();
 		if (!instance.queue) {
 			throw new Error("Queue is not initialized");
 		}

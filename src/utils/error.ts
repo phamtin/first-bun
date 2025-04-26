@@ -116,18 +116,11 @@ export const handleError = (err: Error, c: Context): Response => {
 	/**
 	 * 	We're lost here, all we can do is return a 500 and trace later
 	 */
-	console.error("unhandled exception", {
-		name: err.name,
-		message: err.message,
-		cause: err.cause,
-		stack: err.stack,
-		requestId: c.get("requestId"),
-	});
+	console.error("unhandled exception", err);
 	return responseError(c, "INTERNAL_SERVER_ERROR", err.message);
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export const getValidationErrorMsg = (issues: BaseIssue<any>["issues"]) => {
+export const getValidationErrorMsg = (issues: BaseIssue<unknown>["issues"]) => {
 	const msg = `${issues?.[0].path?.[0].key}: ${issues?.[0].message}`;
 
 	return msg;

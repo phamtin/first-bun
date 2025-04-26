@@ -1,6 +1,6 @@
 import type { Job } from "bullmq";
-import { BaseJob } from "../../baseJob";
-import type { JobImp } from "../../type";
+import { BaseJob } from "../baseJob";
+import type { JobImp } from "../type";
 
 export class SendWelcomeMail extends BaseJob implements JobImp {
 	constructor(public payload: Record<string, unknown>) {

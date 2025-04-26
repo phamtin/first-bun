@@ -16,6 +16,11 @@ let db: Db | null = null;
 
 let isConnecting = false;
 
+process.on("SIGINT", async () => {
+	closeMongoConnection();
+	process.exit(0);
+});
+
 export const connectToDatabase = async (): Promise<Db | null> => {
 	if (db?.admin()) {
 		return db;

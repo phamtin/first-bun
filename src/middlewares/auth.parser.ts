@@ -1,5 +1,5 @@
 import { verify } from "hono/jwt";
-import { responseError } from "@/utils/response";
+import { responseError, responseOK } from "@/utils/response";
 import { toObjectId } from "@/pkgs/mongodb/helper";
 import AccountCache from "@/pkgs/redis/account";
 import type { UserCheckParser } from "@/types/app.type";
@@ -17,11 +17,13 @@ export const tokenParser = createMiddleware(async (c, next) => {
 	if (authorization?.startsWith("Bearer")) {
 		token = authorization.split(" ")[1];
 	}
-
-	if (c.req.url.includes("/auth/signout")) {
+	if (c.req.url.includes("/auth/logout")) {
 		await next();
 	}
 	if (c.req.url.includes("/auth/signin/google")) {
+		await next();
+	}
+	if (c.req.url.includes("/admin/queues")) {
 		await next();
 	}
 	if (!token) {
@@ -60,9 +62,10 @@ export const tokenParser = createMiddleware(async (c, next) => {
 				firstname: _currentUser.profileInfo.firstname,
 				lastname: _currentUser.profileInfo.lastname,
 			};
-			console.log("-- Session from MongoDb");
+			console.log("-- Session from MongoDb - weird!");
 		}
 	} catch (e) {
+		console.log("[ERROR] auth.parser", e);
 		c.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
 
 		return responseError(c, "UNAUTHORIZED", "Unauthorized. Invalid token");

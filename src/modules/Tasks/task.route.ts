@@ -21,7 +21,7 @@ taskRoute.get(
 	async (c) => {
 		const r = await TaskSrv.getTasks(c, c.req.valid("query") as GetTasksRequest);
 		return responseOK(c, r);
-	}
+	},
 );
 
 /**
@@ -37,7 +37,7 @@ taskRoute.post(
 	async (c) => {
 		const r = await TaskSrv.createTask(c, c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 /**
@@ -67,7 +67,7 @@ taskRoute.patch(
 		}
 		const r = await TaskSrv.updateTask(c, c.req.param("id"), c.req.valid("json"));
 		return responseOK(c, r);
-	}
+	},
 );
 
 /**

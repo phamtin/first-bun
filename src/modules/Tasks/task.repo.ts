@@ -11,6 +11,8 @@ import { EXCLUDED_TASK_STATUS } from "./task.helper";
 import { toPayloadUpdate } from "@/utils/transfrom";
 
 const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
+	console.log("[REPO] - START getTaskById", id);
+
 	const tasks = (await TaskColl.aggregate([
 		{
 			$match: {
@@ -19,9 +21,6 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 					$exists: false,
 				},
 			},
-		},
-		{
-			$limit: 1,
 		},
 		{
 			$lookup: {
@@ -69,6 +68,8 @@ const getTaskById = async (ctx: Context, id: string): Promise<GetTaskByIdRespons
 };
 
 const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<CreateTaskResponse> => {
+	console.log("[REPO] - START createTask", payload);
+
 	const data: WithoutId<TaskModel> = {
 		...payload,
 
@@ -87,7 +88,22 @@ const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<
 };
 
 const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskModel>): Promise<UpdateTaskResponse> => {
+	console.log("[REPO] - START updateTask", taskId, payload);
+
 	payload.updatedAt = dayjs().toDate();
+
+	const unsetTiming: Record<string, true> = {};
+
+	if (payload.timing) {
+		const { startDate, endDate } = payload.timing;
+
+		if (!startDate) {
+			unsetTiming["timing.startDate"] = true;
+		}
+		if (!endDate) {
+			unsetTiming["timing.endDate"] = true;
+		}
+	}
 
 	const updated = await TaskColl.findOneAndUpdate(
 		{
@@ -95,6 +111,7 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 		},
 		{
 			$set: toPayloadUpdate(payload),
+			$unset: unsetTiming,
 		},
 		{
 			ignoreUndefined: true,
@@ -108,6 +125,8 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 };
 
 const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskModel[]> => {
+	console.log("[REPO] - START getTasks", request);
+
 	const { query = "", startDate = "", endDate = "", tags: _tags = [] } = request;
 
 	const statusFilter = (request.status as TaskStatus[])?.filter((s) => !EXCLUDED_TASK_STATUS[s]) || [];

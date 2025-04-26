@@ -6,7 +6,7 @@ import systemLog from "@/pkgs/systemLog";
 import TaskRepo from "./task.repo";
 import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
-import type { SubTask, TaskModel, TaskTiming } from "../../database/model/task/task.model";
+import type { TaskModel, TaskTiming } from "../../database/model/task/task.model";
 import type { AccountModel } from "../../database/model/account/account.model";
 import { AppError } from "@/utils/error";
 import AccountSrv from "../Accounts";
@@ -142,15 +142,19 @@ const validateDateRange = (timingDb?: TaskTiming, timingRequest?: tv.UpdateTaskR
 };
 
 const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRequest): Promise<tv.UpdateTaskResponse> => {
+	console.log("Duration API [1]", performance.now());
+	const aa = performance.now();
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 
-		if (!dayjs(startDate).isValid() || !dayjs(endDate).isValid()) {
+		const dayjsEndDate = dayjs(endDate);
+
+		if (!dayjs(startDate).isValid() || !dayjsEndDate.isValid()) {
 			throw new AppError("BAD_REQUEST", "Invalid date");
 		}
 
 		if (startDate && endDate) {
-			if (dayjs(endDate).isSameOrBefore(startDate, "second")) {
+			if (dayjsEndDate.isSameOrBefore(startDate, "second")) {
 				throw new AppError("BAD_REQUEST", "Invalid end date");
 			}
 		}
@@ -169,14 +173,12 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 	];
 
 	if (request.assigneeId) {
-		promisors.push(
-			AccountSrv.findAccountProfile(ctx, {
-				accountId: request.assigneeId,
-			}),
-		);
+		promisors.push(AccountSrv.findAccountProfile(ctx, { accountId: request.assigneeId }));
 	}
+	console.log("Duration API [2]", performance.now() - aa);
 
 	const [task, assignee] = await Promise.all(promisors);
+	const bb = performance.now();
 
 	if (!task) throw new AppError("NOT_FOUND", "Task not found");
 
@@ -184,7 +186,11 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 
 	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
 
+	console.log("Duration API [3]", performance.now() - bb);
+
 	const [canUserAccess, project] = await ProjectUtil.checkUserIsParticipantProject(ctx.get("user")._id, (task as TaskModel).projectId.toHexString());
+
+	const cc = performance.now();
 
 	if (!canUserAccess || !project) {
 		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of project");
@@ -220,26 +226,14 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 		if (request.subTasks.length === 0) {
 			payload.subTasks = [];
 		} else {
-			const toCreate = [];
-			const toUpdate = new Map<string, unknown>();
-
-			for (const subTask of request.subTasks) {
-				if (subTask._id) {
-					toUpdate.set(subTask._id, {
-						...subTask,
-						_id: toObjectId(subTask._id),
-					});
-				} else {
-					toCreate.push({
-						...subTask,
-						_id: new ObjectId(),
-					});
-				}
-			}
-			payload.subTasks = (Array.from(toUpdate.values()) as SubTask[]).concat(toCreate);
+			const subTasks = request.subTasks.map((subTask) => ({
+				...subTask,
+				_id: subTask._id ? toObjectId(subTask._id) : new ObjectId(),
+			}));
+			payload.subTasks = subTasks;
 		}
 	}
-
+	console.log("Duration API [4]", performance.now() - cc);
 	const res = await TaskRepo.updateTask(ctx, taskId, payload);
 
 	if (!res?._id) {

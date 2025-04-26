@@ -5,7 +5,7 @@ import type { AccountModel } from "../../../database/model/account/account.model
 import { BULLMQ_CONFIG } from "../util";
 
 export interface SyncModelJobData {
-	model: "accounts" | "projects" | "tasks" | "notifications" | "meetings";
+	model: "accounts" | "projects" | "tasks";
 	payload: AccountModel;
 }
 

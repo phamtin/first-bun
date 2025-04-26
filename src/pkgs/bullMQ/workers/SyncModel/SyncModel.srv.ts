@@ -1,10 +1,10 @@
 import type { ClientSession } from "mongodb";
 import type { Job } from "bullmq";
-import type { SyncModelJobData } from "../queue/SyncModel.queue";
+import type { SyncModelJobData } from "../../queue/SyncModel.queue";
 import { ProjectColl, TaskColl } from "@/loaders/mongo";
 import { toObjectIds, withTransaction } from "@/pkgs/mongodb/helper";
-import type { AccountModel } from "../../../database/model/account/account.model";
-import { ProjectStatus } from "../../../database/model/project/project.model";
+import type { AccountModel } from "../../../../database/model/account/account.model";
+import { ProjectStatus } from "../../../../database/model/project/project.model";
 
 const ModelToSyncWith = {
 	Account: {

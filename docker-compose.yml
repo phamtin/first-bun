@@ -9,7 +9,6 @@ services:
             - "8080:8080"
             - "443:443" # HTTPS
         restart: unless-stopped
-        mem_limit: 50m
         networks:
             - app-network
     app:
@@ -20,19 +19,21 @@ services:
         command: ["bun", "run", "build/index.js"]
         expose:
             - "9000"  # Expose only within the network
-        mem_limit: 500m
         restart: always
         depends_on:
             redis:
                 condition: service_healthy
         networks:
             - app-network
+        deploy:
+            resources:
+                limits:
+                    memory: 500M
     redis:
         image: redis/redis-stack-server:latest
         container_name: "redis"
         volumes:
             - ./data/redis:/data
-        mem_limit: 250m
         restart: always
         ports:
             - "6379:6379"
@@ -44,6 +45,10 @@ services:
             timeout: 5s
         networks:
             - app-network
+        deploy:
+            resources:
+                limits:
+                    memory: 250M
 
 networks:
     app-network:

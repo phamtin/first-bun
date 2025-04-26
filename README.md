@@ -8,4 +8,4 @@ To start the development server run:
 bun dev
 ```
 
-Open http://localhost:8000/ping with your browser to see the result.
+Open http://localhost:8080/ping with your browser to see the result.

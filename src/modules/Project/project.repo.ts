@@ -13,6 +13,8 @@ import { TaskStatus } from "../../database/model/task/task.model";
 import type { AccountModel } from "../../database/model/account/account.model";
 
 const checkActiveProject = async (ctx: Context, projectId: string): Promise<ProjectModel | null> => {
+	console.log("[REPO] - START checkActiveProject", projectId);
+
 	const p = await ProjectColl.findOne({
 		_id: toObjectId(projectId),
 
@@ -30,6 +32,8 @@ const checkActiveProject = async (ctx: Context, projectId: string): Promise<Proj
 };
 
 const getMyProjects = async (ctx: Context): Promise<GetMyProjectsResponse[]> => {
+	console.log("[REPO] - START getMyProjects");
+
 	const userId = toObjectId(ctx.get("user")._id);
 
 	const res = (await ProjectColl.find({
@@ -55,6 +59,8 @@ const getMyProjects = async (ctx: Context): Promise<GetMyProjectsResponse[]> => 
 };
 
 const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdResponse> => {
+	console.log("[REPO] - START getProjectById", id);
+
 	const res = (await ProjectColl.aggregate([
 		{
 			$match: {
@@ -116,6 +122,8 @@ const getProjectById = async (ctx: Context, id: string): Promise<GetProjectByIdR
 };
 
 const createProject = async (ctx: Context, payload: WithoutId<ProjectModel>): Promise<ObjectId> => {
+	console.log("[REPO] - START createProject", payload);
+
 	const data: WithoutId<ProjectModel> = {
 		...payload,
 	};
@@ -128,6 +136,8 @@ const createProject = async (ctx: Context, payload: WithoutId<ProjectModel>): Pr
 };
 
 const updateProject = async (ctx: Context, projectId: string, payload: DeepPartial<ProjectModel>): Promise<boolean> => {
+	console.log("[REPO] - START updateProject", projectId, payload);
+
 	if (payload.projectInfo) {
 		payload.projectInfo.isDefaultProject = undefined;
 	}
@@ -144,7 +154,7 @@ const updateProject = async (ctx: Context, projectId: string, payload: DeepParti
 		{
 			ignoreUndefined: true,
 			returnDocument: "after",
-		}
+		},
 	);
 
 	return !!updated?._id;
@@ -163,13 +173,15 @@ const deleteProject = async (ctx: Context, projectId: string): Promise<boolean> 
 		},
 		{
 			returnDocument: "after",
-		}
+		},
 	);
 
 	return !!res?.deletedAt;
 };
 
 const addMemberToProject = async (ctx: Context, projectId: string, member: AccountModel): Promise<boolean> => {
+	console.log("[REPO] - START addMemberToProject", projectId, member);
+
 	const updated = await ProjectColl.updateOne(
 		{
 			_id: toObjectId(projectId),
@@ -186,13 +198,15 @@ const addMemberToProject = async (ctx: Context, projectId: string, member: Accou
 			$set: {
 				updatedAt: dayjs().toDate(),
 			},
-		}
+		},
 	);
 
 	return updated.acknowledged;
 };
 
 const removeMember = async (ctx: Context, projectId: string, memberEmail: string): Promise<boolean> => {
+	console.log("[REPO] - START removeMember", projectId, memberEmail);
+
 	const updated = await ProjectColl.updateOne(
 		{
 			_id: toObjectId(projectId),
@@ -209,7 +223,7 @@ const removeMember = async (ctx: Context, projectId: string, memberEmail: string
 			$set: {
 				updatedAt: dayjs().toDate(),
 			},
-		}
+		},
 	);
 
 	return updated.acknowledged;
