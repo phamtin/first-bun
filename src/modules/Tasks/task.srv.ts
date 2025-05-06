@@ -2,7 +2,6 @@ import type { Context } from "hono";
 import { ObjectId, type WithoutId } from "mongodb";
 import type * as tv from "./task.validator";
 import { toObjectId } from "@/pkgs/mongodb/helper";
-import systemLog from "@/pkgs/systemLog";
 import TaskRepo from "./task.repo";
 import dayjs from "@/utils/dayjs";
 import { TaskColl } from "@/loaders/mongo";
@@ -35,8 +34,6 @@ const getTasks = async (ctx: Context, request: tv.GetTasksRequest): Promise<tv.G
 };
 
 const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<tv.CreateTaskResponse> => {
-	systemLog.info("createTask - START");
-
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 
@@ -106,8 +103,6 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 	}
 
 	const created = await TaskRepo.createTask(ctx, payload);
-
-	systemLog.info("createTask - END");
 
 	return created;
 };

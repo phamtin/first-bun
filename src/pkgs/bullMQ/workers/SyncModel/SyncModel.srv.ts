@@ -1,22 +1,15 @@
 import type { ClientSession } from "mongodb";
 import type { Job } from "bullmq";
-import type { SyncModelJobData } from "../../queue/SyncModel.queue";
 import { ProjectColl, TaskColl } from "@/loaders/mongo";
 import { toObjectIds, withTransaction } from "@/pkgs/mongodb/helper";
 import type { AccountModel } from "../../../../database/model/account/account.model";
 import { ProjectStatus } from "../../../../database/model/project/project.model";
+import { AppError } from "@/utils/error";
+import type { SyncModelQueueJob } from "../../type";
 
-const ModelToSyncWith = {
-	Account: {
-		Project: "projects",
-		Task: "tasks",
-	},
-};
-
-const syncCollectionAccounts = async (job: Job<SyncModelJobData>): Promise<boolean> => {
-	const accountModel = job.data.payload;
-	const { accountSettings, ...rest } = accountModel;
-	const accountDb = toObjectIds(rest) as Omit<AccountModel, "accountSettings">;
+const syncCollectionAccounts = async (job: Job<SyncModelQueueJob>): Promise<boolean> => {
+	const accountModel = job.data.payload.payload;
+	const accountDb = toObjectIds(accountModel) as Omit<AccountModel, "accountSettings">;
 
 	return withTransaction(async (session: ClientSession) => {
 		// PROJECTS: UPDATE OWNER
@@ -71,4 +64,21 @@ const syncCollectionAccounts = async (job: Job<SyncModelJobData>): Promise<boole
 	});
 };
 
-export { syncCollectionAccounts };
+const syncModelProcessor = async (job: Job<SyncModelQueueJob>) => {
+	console.log(`-------------------- START job ${job.id} --------------------`, job.data);
+
+	const collection = job.data.payload.model;
+
+	switch (collection) {
+		case "accounts":
+			await syncCollectionAccounts(job);
+			break;
+
+		default:
+			throw new AppError("INTERNAL_SERVER_ERROR", "Unknown collection");
+	}
+
+	return { status: "success" };
+};
+
+export { syncCollectionAccounts, syncModelProcessor };

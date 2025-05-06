@@ -60,9 +60,6 @@ process.on("SIGINT", async () => {
 
 export async function connectToRedis(): Promise<Redis | null> {
 	const instance = await Redis.connectToRedis();
-	if (instance) {
-		console.log("- Connected to Redis server");
-	}
 	return instance;
 }
 

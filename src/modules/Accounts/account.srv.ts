@@ -3,7 +3,8 @@ import type * as av from "./account.validator";
 import dayjs from "@/utils/dayjs";
 import type { Context } from "@/types/app.type";
 import { AppError } from "@/utils/error";
-import { SyncModelQueue } from "@/pkgs/bullMQ/queue/SyncModel.queue";
+import { QueueContainer } from "@/pkgs/bullMQ/queue/BaseQueue";
+import { QueueName } from "@/pkgs/bullMQ/type";
 
 const getMyProfile = async (ctx: Context): Promise<av.GetMyProfileResponse> => {
 	const myProfile = await AccountRepo.getMyProfile(ctx);
@@ -30,7 +31,7 @@ const updateProfile = async (ctx: Context, request: av.UpdateProfileRequest): Pr
 
 	if (!res) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 
-	await SyncModelQueue.addSyncModelJob({ model: "accounts", payload: res });
+	await QueueContainer().add(QueueName.SyncModelQueue, "SyncModel", { payload: { model: "accounts", payload: res } });
 
 	return res;
 };

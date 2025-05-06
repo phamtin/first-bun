@@ -1,12 +1,12 @@
 import type Redis from "@/loaders/redis";
 import { connectToRedis } from "@/loaders/redis";
 import { Worker } from "bullmq";
-import { IO_CONCURRENCY, QueueName, type SyncModelQueueJob } from "../../type";
-import { syncModelProcessor } from "./SyncModel.srv";
+import { IO_CONCURRENCY, QueueName, type ETLQueueJob } from "../../type";
+import { extractDataProcessor } from "./Extract.srv";
 
 (() => {
 	async function initializeWorker() {
-		const worker = new Worker<SyncModelQueueJob>(QueueName.SyncModelQueue, syncModelProcessor, {
+		const worker = new Worker<ETLQueueJob>(QueueName.ETLQueue, extractDataProcessor, {
 			connection: (await connectToRedis()) as Redis,
 			concurrency: IO_CONCURRENCY,
 		});

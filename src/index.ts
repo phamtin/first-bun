@@ -6,7 +6,7 @@ import { closeRedisConnection, connectToRedis } from "./loaders/redis";
 import { handleError } from "./utils/error";
 import routes from "./routes";
 import { validateEnv } from "./utils/validate";
-import { initBullMQ } from "./pkgs/bullMQ";
+import { initBullMQ } from "./pkgs/bullMQ/init";
 
 validateEnv();
 

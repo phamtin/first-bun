@@ -26,10 +26,7 @@ export const connectToDatabase = async (): Promise<Db | null> => {
 		return db;
 	}
 	if (isConnecting) {
-		while (isConnecting) {
-			console.log("MongoDb connecting...");
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-		}
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 		return db;
 	}
 	isConnecting = true;
@@ -74,6 +71,7 @@ connectToDatabase().then((db) => {
 	TokenColl = db.collection<WithoutId<TokenModel>>("tokens");
 	ProjectColl = db.collection<WithoutId<ProjectModel>>("projects");
 	NotificationColl = db.collection<WithoutId<NotificationModel>>("notifications");
+	// PomodoroColl = db.collection<WithoutId<PomodoroModel>>("pomodoros");
 });
 
 export let TokenColl: CollectionType<WithoutId<TokenModel>>;
