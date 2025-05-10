@@ -1,0 +1,8 @@
+{
+	"name": "shared",
+	"version": "1.0.0",
+	"dependencies": {
+		"api": "workspace:*"
+	},
+	"module": "index.ts"
+}
