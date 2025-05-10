@@ -1,0 +1,19 @@
+FROM oven/bun
+
+WORKDIR /app
+
+COPY package.json .
+COPY tsconfig.json .
+COPY .env.local .env
+
+COPY apps/shared apps/shared
+COPY apps/api apps/api
+COPY apps/workers apps/workers
+
+WORKDIR /app/apps/workers
+
+RUN bun install
+
+ENV BUN_ENV=development
+
+CMD ["bun", "run", "index.ts"]

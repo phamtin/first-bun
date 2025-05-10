@@ -1,0 +1,57 @@
+import { verify } from "hono/jwt";
+import { responseError } from "@/shared/utils/response";
+import AccountCache from "@/shared/services/redis/account";
+import type { UserCheckParser } from "../../shared/types/app.type";
+import { createMiddleware } from "hono/factory";
+import { AppError } from "@/shared/utils/error";
+
+export const tokenParser = createMiddleware(async (c, next) => {
+	let token = "";
+	const authorization = c.req.header("authorization");
+
+	let user: UserCheckParser = { _id: "", email: "", firstname: "", lastname: "", fullname: "" };
+
+	if (authorization?.startsWith("Bearer")) {
+		token = authorization.split(" ")[1];
+	}
+	if (c.req.url.includes("/auth/logout")) {
+		await next();
+	}
+	if (c.req.url.includes("/auth/signin/google")) {
+		await next();
+	}
+	if (c.req.url.includes("/admin/queues")) {
+		await next();
+	}
+	if (!token) {
+		return responseError(c, "UNAUTHORIZED", "Unauthorized");
+	}
+
+	try {
+		const decoded = await verify(token, Bun.env.JWT_SECRET as string);
+
+		const session = await AccountCache.getAccountSessionById(decoded.accountId as string, token);
+
+		if (!session) {
+			throw new AppError("NOT_FOUND", "Session not found");
+		}
+
+		user = {
+			_id: decoded.accountId as string,
+			email: session.email,
+			fullname: session.fullname,
+			firstname: session.firstname,
+			lastname: session.lastname,
+		};
+		console.log("[Redis:session] accountId = ", session._id);
+	} catch (e) {
+		console.log("[ERROR] auth.parser", e);
+		c.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
+
+		return responseError(c, "UNAUTHORIZED", "Unauthorized. Invalid token");
+	}
+
+	c.set("user", user satisfies UserCheckParser);
+
+	await next();
+});

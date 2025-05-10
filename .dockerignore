@@ -3,3 +3,4 @@ bun.lockb
 Dockerfile
 .git
 .gitignore
+build

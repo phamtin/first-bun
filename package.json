@@ -1,29 +1,13 @@
 {
-  "name": "bun-trial",
-  "version": "1.0.50",
-  "scripts": {
-    "lint": "bun tsc --noEmit && bunx biome lint --write ./src",
-    "dev": "bun lint && bun run --watch src/index.ts",
-    "dev-m1": "bun tsc --noEmit && bun run --watch src/index.ts",
-    "dcu": "docker compose -f ./docker-compose.dev.yaml up -d",
-    "dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans"
-  },
-  "dependencies": {
-    "@hono/valibot-validator": "^0.5.2",
-    "bullmq": "^5.52.1",
-    "dayjs": "^1.11.13",
-    "hono": "^4.7.8",
-    "ioredis": "^5.6.1",
-    "mongodb": "^6.16.0",
-    "piscina": "^5.0.0",
-    "valibot": "^1.1.0"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "@bull-board/hono": "^6.9.5",
-    "@types/bun": "^1.2.12",
-    "mongodb-memory-server": "^10.1.4",
-    "typescript": "^5.8.3"
-  },
-  "module": "./src/index.js"
+	"name": "kamdo",
+	"version": "1.0.0",
+	"module": "./src/index",
+	"private": true,
+	"scripts": {
+		"lint": "bun tsc --noEmit && bunx biome lint --write ./src",
+		"dev": "bun lint && bun run --watch src/pkgs/api/index.ts",
+		"dcu": "bun tsc --noEmit && docker compose -f ./docker-compose.dev.yaml up --build -w",
+		"dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans && docker image rm $(docker image ls -qf dangling=true)"
+	},
+	"workspaces": ["apps/*"]
 }
