@@ -8,11 +8,19 @@ export enum DurationType {
 }
 
 export enum PomodoroStatus {
-	Active = "Active",
+	NotStartYet = "NotStartYet",
+	Inprogress = "Inprogress",
 	Completed = "Completed",
 	Paused = "Paused",
 	Cancelled = "Cancelled",
 }
+
+export type PomodoroSession = {
+	index: number;
+
+	durationType: DurationType;
+	status: PomodoroStatus;
+};
 
 /**
  * =============================
@@ -25,9 +33,9 @@ export type PomodoroModel = {
 	_id: ObjectId;
 
 	accountId: ObjectId;
-	duration: number;
-	durationType: DurationType;
-	status: PomodoroStatus;
+	durationWork: number;
+	durationBreak: number;
+	pomodoroSessions: PomodoroSession[];
 	taskId?: ObjectId;
 
 	createdAt: Date;
@@ -45,13 +53,19 @@ export type PomodoroModel = {
  * =============================
  */
 
+const vPomodoroSession = v.strictObject({
+	index: v.number(),
+	durationType: v.enum(DurationType),
+	status: v.enum(PomodoroStatus),
+});
+
 export const vPomodoro = v.strictObject({
 	_id: objectId,
 
 	accountId: objectId,
-	duration: v.number(),
-	durationType: v.enum(DurationType),
-	status: v.enum(PomodoroStatus),
+	durationWork: v.number(),
+	durationBreak: v.number(),
+	pomodoroSessions: v.array(vPomodoroSession),
 	taskId: v.optional(objectId),
 
 	createdAt: v.date(),

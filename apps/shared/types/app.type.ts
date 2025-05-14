@@ -7,7 +7,7 @@ export type JwtDecoded = {
 export type UserCheckParser = {
 	_id: string;
 	email: string;
-	fullname: string;
+	username: string;
 	firstname: string;
 	lastname: string;
 };

@@ -14,10 +14,10 @@ export enum Theme {
 
 export type ProfileInfo = {
 	email: string;
-	fullname: string;
+	username: string;
 	firstname: string;
 	lastname: string;
-	phoneNumber: string[];
+	phoneNumber: string;
 	locale: string;
 	avatar: string;
 	isPrivateAccount: boolean;
@@ -42,6 +42,7 @@ export type AccountModel = {
 	profileInfo: ProfileInfo;
 	signinMethod: SigninMethod;
 	accountSettings: AccountSettings;
+	signupAt: Date;
 
 	createdAt: Date;
 	updatedAt?: Date;
@@ -63,10 +64,10 @@ export const vAccountProfile = v.strictObject({
 	signinMethod: v.enum(SigninMethod),
 	profileInfo: v.strictObject({
 		email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
-		fullname: v.string(),
+		username: v.string(),
 		firstname: v.string(),
 		lastname: v.string(),
-		phoneNumber: v.array(v.string()),
+		phoneNumber: v.string(),
 		birthday: v.optional(v.date()),
 		locale: v.string(),
 		avatar: v.string(),
@@ -76,6 +77,7 @@ export const vAccountProfile = v.strictObject({
 		theme: v.enum(Theme),
 		pinnedProjects: v.array(objectId),
 	}),
+	signupAt: v.date(),
 
 	createdAt: v.date(),
 	createdBy: v.optional(objectId),

@@ -9,13 +9,10 @@ export const tokenParser = createMiddleware(async (c, next) => {
 	let token = "";
 	const authorization = c.req.header("authorization");
 
-	let user: UserCheckParser = { _id: "", email: "", firstname: "", lastname: "", fullname: "" };
+	let user: UserCheckParser = { _id: "", email: "", firstname: "", lastname: "", username: "" };
 
 	if (authorization?.startsWith("Bearer")) {
 		token = authorization.split(" ")[1];
-	}
-	if (c.req.url.includes("/auth/logout")) {
-		await next();
 	}
 	if (c.req.url.includes("/auth/signin/google")) {
 		await next();
@@ -39,14 +36,14 @@ export const tokenParser = createMiddleware(async (c, next) => {
 		user = {
 			_id: decoded.accountId as string,
 			email: session.email,
-			fullname: session.fullname,
+			username: session.username,
 			firstname: session.firstname,
 			lastname: session.lastname,
 		};
 		console.log("[Redis:session] accountId = ", session._id);
 	} catch (e) {
 		console.log("[ERROR] auth.parser", e);
-		c.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
+		c.set("user", { _id: "", email: "", firstname: "", lastname: "", username: "" });
 
 		return responseError(c, "UNAUTHORIZED", "Unauthorized. Invalid token");
 	}

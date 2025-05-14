@@ -54,6 +54,9 @@ export const QueueContainer = () => {
 				throw new Error("Queues initialization failed");
 			}
 			// await initDashboard(queues); //	WTF why call this cause error?
+
+			process.on("SIGINT", closeQueues);
+			process.on("SIGTERM", closeQueues);
 		} catch (error) {
 			resetQueue();
 			throw error;

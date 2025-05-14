@@ -16,9 +16,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
-		"@bull-board/hono": "^6.9.6",
-		"@types/bun": "^1.2.12",
-		"mongodb-memory-server": "^10.1.4",
+		"@bull-board/hono": "^6.9.5",
+		"@types/bun": "^1.2.13",
 		"typescript": "^5.8.3"
 	}
 }

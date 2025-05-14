@@ -31,7 +31,12 @@ const updateProfile = async (ctx: Context, request: av.UpdateProfileRequest): Pr
 
 	if (!res) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 
-	await QueueContainer().add(QueueName.SyncModelQueue, "SyncModel", { payload: { model: "accounts", payload: res } });
+	await QueueContainer().add(QueueName.SyncModelQueue, "SyncModel", {
+		payload: {
+			model: "accounts",
+			payload: res,
+		},
+	});
 
 	return res;
 };

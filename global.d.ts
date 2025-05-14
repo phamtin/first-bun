@@ -5,7 +5,7 @@ declare module "hono" {
 		user: {
 			_id: string;
 			email: string;
-			fullname: string;
+			username: string;
 			firstname: string;
 			lastname: string;
 		};

@@ -13,18 +13,16 @@ export const getPomodorosRequest = v.strictObject({
 export const getPomodorosResponse = v.array(vPomodoro);
 
 export const createPomodoroRequest = v.strictObject({
-	duration: v.optional(v.number()),
-	durationType: v.enum(DurationType),
+	numOfSession: v.pipe(v.number(), v.minValue(1, "Must be at least 1 session"), v.maxValue(24, "Must be at most 24 sessions")),
+	durationWork: v.pipe(v.number(), v.minValue(5, "Work duration must be at least 5 minutes"), v.maxValue(60, "Work duration must be at most 60 minutes")),
+	durationBreak: v.pipe(v.number(), v.minValue(0.5, "Break duration must be at least 1/2 minute"), v.maxValue(60, "Break duration must be at most 60 minutes")),
 	taskId: v.optional(stringObjectId),
 });
 
-export const createPomodoroResponse = v.strictObject({
-	...vPomodoro.entries,
-});
+export const createPomodoroResponse = vPomodoro;
 
 export const updatePomodoroRequest = v.strictObject({
-	duration: v.optional(v.number()),
-	durationType: v.optional(v.enum(DurationType)),
+	sessionIndex: v.number(),
 	status: v.optional(v.enum(PomodoroStatus)),
 });
 

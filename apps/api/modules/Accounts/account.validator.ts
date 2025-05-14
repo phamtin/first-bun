@@ -8,10 +8,10 @@ export const updateProfileRequest = v.strictObject({
 	profileInfo: v.optional(
 		v.strictObject({
 			email: v.optional(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())),
-			fullname: v.optional(v.string()),
+			username: v.optional(v.string()),
 			firstname: v.optional(v.string()),
 			lastname: v.optional(v.string()),
-			phoneNumber: v.optional(v.array(v.string())),
+			phoneNumber: v.optional(v.string()),
 			birthday: v.optional(v.string()),
 			avatar: v.optional(v.string()),
 			isPrivateAccount: v.optional(v.boolean()),
@@ -36,6 +36,6 @@ export const getAccountProfileResponse = v.nullable(vAccountProfile);
 
 export type GetMyProfileResponse = InferInput<typeof getMyProfileResponse>;
 export type UpdateProfileRequest = InferInput<typeof updateProfileRequest>;
-export type UpdateProfileResponse = InferInput<typeof getMyProfileResponse>;
+export type UpdateProfileResponse = InferInput<typeof vAccountProfile>;
 export type GetAccountProfileRequest = InferInput<typeof getAccountProfileRequest>;
 export type GetAccountProfileResponse = InferInput<typeof getAccountProfileResponse>;

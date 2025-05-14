@@ -11,41 +11,46 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import ProjectSrv from "../Project/project.srv";
 import AccountCache from "@/shared/services/redis/account";
 import AccountSrv from "../Accounts";
+import { ObjectId } from "mongodb";
 
 const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
-	const res: LoginGoogleResponse = {
-		_id: "",
+	const now = dayjs().toDate();
+	let res: LoginGoogleResponse = {
+		_id: new ObjectId(),
 		jwt: "",
+		signinMethod: SigninMethod.Google,
 		profileInfo: {
 			email: "",
-			fullname: "",
+			username: "",
 			firstname: "",
 			lastname: "",
-			phoneNumber: [],
+			phoneNumber: "",
 			locale: "",
 			avatar: "",
 			isPrivateAccount: false,
 		},
 		accountSettings: {
-			theme: "Light",
+			theme: Theme.Light,
+			pinnedProjects: [],
 		},
+		signupAt: now,
+		createdAt: now,
 	};
 
-	const { email, fullname, firstname, lastname, avatar = "" } = request;
+	const { email, username, firstname, lastname, avatar = "" } = request;
 
 	const account = await AccountColl.findOne({ "profileInfo.email": email });
 
 	if (!account) {
-		const now = new Date();
 		const signinMethod: SigninMethod = SigninMethod.Google;
 		const profileInfo: ProfileInfo = {
 			email,
-			fullname,
+			username,
 			firstname,
 			lastname,
 			avatar,
 			locale: "Vi",
-			phoneNumber: [],
+			phoneNumber: "",
 			isPrivateAccount: false,
 		};
 		const accountSettings: AccountSettings = {
@@ -56,6 +61,7 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 			profileInfo,
 			signinMethod,
 			accountSettings,
+			signupAt: now,
 			createdAt: now,
 			updatedAt: now,
 		});
@@ -65,7 +71,7 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 		ctx.set("user", {
 			_id: insertedId.toHexString(),
 			email,
-			fullname,
+			username,
 			firstname,
 			lastname,
 		});
@@ -81,23 +87,20 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 			throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 		}
 
-		res._id = insertedId.toHexString();
+		res._id = insertedId;
+		res.signinMethod = signinMethod;
 		res.profileInfo = profileInfo;
 		res.accountSettings = accountSettings;
+		res.signupAt = now;
+		res.createdAt = now;
 	} else {
-		res._id = account._id.toHexString();
-		res.profileInfo = account.profileInfo;
-		res.accountSettings = account.accountSettings;
+		res = { ...account, jwt: "" };
 	}
 
-	res.jwt = await generateAuthTokens(res._id);
+	res.jwt = await generateAuthTokens(res._id.toHexString());
 
 	//  Add session into redis
-	AccountCache.addAccountSession({
-		...res.profileInfo,
-		_id: toObjectId(res._id),
-		token: res.jwt,
-	});
+	AccountCache.addAccountSession({ ...res.profileInfo, _id: res._id, token: res.jwt });
 
 	return res;
 };
@@ -144,7 +147,7 @@ const generateAuthTokens = async (userId: string) => {
 	const accessToken = await signToken(userId);
 	const accessTokenExpires = dayjs()
 		.add(+(Bun.env.ACCESS_TOKEN_EXPIRE_MINUTE as string), "minute")
-		.toDate(); // 5 minutes
+		.toDate();
 	await saveToken(accessToken, userId, accessTokenExpires);
 
 	return accessToken;
@@ -157,7 +160,7 @@ const logout = async (ctx: Context): Promise<boolean> => {
 
 	AccountCache.removeSessionByAccountId(ctx.get("user")._id);
 
-	ctx.set("user", { _id: "", email: "", firstname: "", lastname: "", fullname: "" });
+	ctx.set("user", { _id: "", email: "", firstname: "", lastname: "", username: "" });
 
 	return true;
 };

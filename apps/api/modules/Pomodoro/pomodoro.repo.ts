@@ -1,13 +1,10 @@
-import type { WithoutId } from "mongodb";
-import dayjs from "@/shared/utils/dayjs";
+import type { MatchKeysAndValues, WithoutId } from "mongodb";
 
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import type { PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
 import { PomodoroColl } from "@/shared/loaders/mongo";
-import type { DeepPartial } from "@/shared/types/common.type";
-import { toPayloadUpdate } from "@/shared/utils/transfrom";
 import type * as pv from "./pomodoro.validator";
 import type { Filter } from "mongodb";
 
@@ -28,11 +25,11 @@ const findPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Pro
 		};
 	}
 
-	return await PomodoroColl.find(query).toArray();
+	return PomodoroColl.find(query).toArray();
 };
 
 const findById = async (ctx: Context, projectId: string): Promise<PomodoroModel | null> => {
-	return await PomodoroColl.findOne({ _id: toObjectId(projectId) });
+	return PomodoroColl.findOne({ _id: toObjectId(projectId) });
 };
 
 const createPomodoro = async (ctx: Context, payload: WithoutId<PomodoroModel>): Promise<PomodoroModel | null> => {
@@ -50,34 +47,33 @@ const createPomodoro = async (ctx: Context, payload: WithoutId<PomodoroModel>): 
 	};
 };
 
-const updatePomodoro = async (ctx: Context, projectId: string, payload: DeepPartial<PomodoroModel>): Promise<PomodoroModel | null> => {
-	const data = {
-		...payload,
-		updatedAt: dayjs().toDate(),
-	};
+const updatePomodoroSession = async (ctx: Context, pomodoroId: string, request: pv.UpdatePomodoroRequest[]): Promise<PomodoroModel | null> => {
+	const updateQuery: MatchKeysAndValues<WithoutId<PomodoroModel>> = {};
 
-	const updated = await PomodoroColl.findOneAndUpdate(
+	//	This will update all sessions with the same status
+	//	Apply for only this case: update session status
+	updateQuery["pomodoroSessions.$[elem].status"] = request[0].status;
+
+	const updated = await PomodoroColl.updateOne(
 		{
-			_id: toObjectId(projectId),
+			_id: toObjectId(pomodoroId),
 		},
 		{
-			$set: toPayloadUpdate(data),
+			$set: updateQuery,
 		},
-		{
-			returnDocument: "after",
-		},
+		{ arrayFilters: [{ "elem.index": { $in: request.map((item) => item.sessionIndex) } }] },
 	);
 
-	if (!updated?._id) throw new AppError("INTERNAL_SERVER_ERROR", "Fail to update pomodoro");
+	if (!updated.acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Fail to update pomodoro");
 
-	return updated;
+	return findById(ctx, pomodoroId);
 };
 
 const PomodoroRepo = {
 	findPomodoros,
 	findById,
 	createPomodoro,
-	updatePomodoro,
+	updatePomodoroSession,
 };
 
 export default PomodoroRepo;
