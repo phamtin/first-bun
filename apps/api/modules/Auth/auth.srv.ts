@@ -1,4 +1,6 @@
+import { OAuth2Client } from "google-auth-library";
 import { sign } from "hono/jwt";
+import { ObjectId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import { AccountColl, TokenColl } from "@/shared/loaders/mongo";
 
@@ -11,10 +13,17 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import FolderSrv from "../Folder/folder.srv";
 import AccountCache from "@/shared/services/redis/account";
 import AccountSrv from "../Accounts";
-import { ObjectId } from "mongodb";
 
-const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
+const oAuth2Client = new OAuth2Client({
+	clientId: Bun.env.GOOGLE_CLIENT_ID,
+	clientSecret: Bun.env.GOOGLE_CLIENT_SECRET,
+	redirectUri: "http://localhost:5173/",
+});
+
+export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
+	const { clientId, credential } = request;
 	const now = dayjs().toDate();
+
 	let res: LoginGoogleResponse = {
 		_id: new ObjectId(),
 		jwt: "",
@@ -37,7 +46,23 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 		createdAt: now,
 	};
 
-	const { email, username, firstname, lastname, avatar = "" } = request;
+	const ticket = await oAuth2Client.verifyIdToken({
+		idToken: credential,
+		audience: clientId,
+	});
+
+	const payload = ticket.getPayload();
+	if (!payload) throw new AppError("UNAUTHORIZED", "Failed to verify ID token");
+
+	const { email, given_name, family_name, picture, iat, exp } = payload;
+
+	if (!email || !given_name || !family_name || !picture || !iat || !exp) {
+		throw new AppError("UNAUTHORIZED", "Failed to verify ID token");
+	}
+	const username = `${given_name} ${family_name}`;
+	const firstname = given_name;
+	const lastname = family_name;
+	const avatar = picture;
 
 	const account = await AccountColl.findOne({ "profileInfo.email": email });
 
