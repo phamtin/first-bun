@@ -3,7 +3,7 @@ import { ChangeStreamSingleton } from "../services/mongodb/changeStream/changeSt
 import type { TaskModel } from "../database/model/task/task.model";
 import type { AccountModel } from "../database/model/account/account.model";
 import type { TokenModel } from "../database/model/token/token.schema";
-import type { ProjectModel } from "../database/model/project/project.model";
+import type { FolderModel } from "../database/model/folder/folder.model";
 import type { NotificationModel } from "../database/model/notification/notification.model";
 import type { PomodoroModel } from "../database/model/pomodoro/pomodoro.model";
 
@@ -70,7 +70,7 @@ connectToDatabase().then((db) => {
 	AccountColl = db.collection<WithoutId<AccountModel>>("accounts");
 	TaskColl = db.collection<WithoutId<TaskModel>>("tasks");
 	TokenColl = db.collection<WithoutId<TokenModel>>("tokens");
-	ProjectColl = db.collection<WithoutId<ProjectModel>>("projects");
+	FolderColl = db.collection<WithoutId<FolderModel>>("folders");
 	NotificationColl = db.collection<WithoutId<NotificationModel>>("notifications");
 	PomodoroColl = db.collection<WithoutId<PomodoroModel>>("pomodoros");
 });
@@ -78,6 +78,6 @@ connectToDatabase().then((db) => {
 export let TokenColl: CollectionType<WithoutId<TokenModel>>;
 export let AccountColl: CollectionType<WithoutId<AccountModel>>;
 export let TaskColl: CollectionType<WithoutId<TaskModel>>;
-export let ProjectColl: CollectionType<WithoutId<ProjectModel>>;
+export let FolderColl: CollectionType<WithoutId<FolderModel>>;
 export let NotificationColl: CollectionType<WithoutId<NotificationModel>>;
 export let PomodoroColl: CollectionType<WithoutId<PomodoroModel>>;

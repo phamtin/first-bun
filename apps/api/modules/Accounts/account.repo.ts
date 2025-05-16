@@ -54,7 +54,7 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 		},
 		accountSettings: {
 			...request.accountSettings,
-			pinnedProjects: request.accountSettings?.pinnedProjects ? request.accountSettings.pinnedProjects.map((projectId) => toObjectId(projectId)) : undefined,
+			pinnedFolders: request.accountSettings?.pinnedFolders ? request.accountSettings.pinnedFolders.map((folderId) => toObjectId(folderId)) : undefined,
 		},
 		updatedAt: dayjs().toDate(),
 	};

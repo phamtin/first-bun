@@ -28,8 +28,8 @@ const findPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Pro
 	return PomodoroColl.find(query).toArray();
 };
 
-const findById = async (ctx: Context, projectId: string): Promise<PomodoroModel | null> => {
-	return PomodoroColl.findOne({ _id: toObjectId(projectId) });
+const findById = async (ctx: Context, folderId: string): Promise<PomodoroModel | null> => {
+	return PomodoroColl.findOne({ _id: toObjectId(folderId) });
 };
 
 const createPomodoro = async (ctx: Context, payload: WithoutId<PomodoroModel>): Promise<PomodoroModel | null> => {

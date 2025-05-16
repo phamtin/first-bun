@@ -6,7 +6,7 @@
 	"scripts": {
 		"lint": "bun tsc --noEmit && bunx biome lint --write ./src",
 		"dev": "bun lint && bun run --watch src/pkgs/api/index.ts",
-		"dcu": "bun tsc --noEmit && docker compose -f ./docker-compose.dev.yaml up --build -w",
+		"dcu": "bun tsc --noEmit && docker compose -f ./docker-compose.dev.yaml up --build",
 		"dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans && docker image rm $(docker image ls -qf dangling=true)"
 	},
 	"workspaces": ["apps/*"]

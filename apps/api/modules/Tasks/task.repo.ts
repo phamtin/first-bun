@@ -11,8 +11,6 @@ import { EXCLUDED_TASK_STATUS } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
 const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
-	console.log("[REPO] - START findById", id);
-
 	const tasks = (await TaskColl.aggregate([
 		{
 			$match: {
@@ -37,8 +35,8 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 		},
 		{
 			$lookup: {
-				from: "projects",
-				localField: "projectId",
+				from: "folders",
+				localField: "folderId",
 				foreignField: "_id",
 				as: "availableTags",
 				pipeline: [{ $project: { _id: 0, tags: 1 } }],
@@ -68,8 +66,6 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 };
 
 const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<CreateTaskResponse> => {
-	console.log("[REPO] - START createTask", payload);
-
 	const data: WithoutId<TaskModel> = {
 		...payload,
 
@@ -88,8 +84,6 @@ const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<
 };
 
 const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskModel>): Promise<UpdateTaskResponse> => {
-	console.log("[REPO] - START updateTask", taskId, payload);
-
 	payload.updatedAt = dayjs().toDate();
 
 	const unsetTiming: Record<string, true> = {};
@@ -125,8 +119,6 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 };
 
 const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskModel[]> => {
-	console.log("[REPO] - START getTasks", request);
-
 	const { query = "", startDate = "", endDate = "", tags: _tags = [] } = request;
 
 	const statusFilter = (request.status as TaskStatus[])?.filter((s) => !EXCLUDED_TASK_STATUS[s]) || [];
@@ -138,17 +130,17 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 	const isOwnerQuery = request.isOwned === "true";
 
 	if (!isOwnerQuery) {
-		if (!request.projectId) {
-			throw new AppError("BAD_REQUEST", "Project ID is required");
+		if (!request.folderId) {
+			throw new AppError("BAD_REQUEST", "Folder ID is required");
 		}
 	}
 
 	let tasks: TaskModel[] = (await TaskColl.aggregate([
 		{
 			$match: {
-				projectId: isOwnerQuery ? { $exists: true } : toObjectId(request.projectId),
+				folderId: isOwnerQuery ? { $exists: true } : toObjectId(request.folderId),
 
-				$or: isOwnerQuery ? [{ createdBy: accountId }, { assigneeId: accountId }] : [{ projectId: { $exists: true } }],
+				$or: isOwnerQuery ? [{ createdBy: accountId }, { assigneeId: accountId }] : [{ folderId: { $exists: true } }],
 
 				deletedAt: { $exists: false },
 

@@ -4,6 +4,7 @@ import AccountCache from "@/shared/services/redis/account";
 import type { UserCheckParser } from "../../shared/types/app.type";
 import { createMiddleware } from "hono/factory";
 import { AppError } from "@/shared/utils/error";
+import AccountSrv from "@/api/modules/Accounts/account.srv";
 
 export const tokenParser = createMiddleware(async (c, next) => {
 	let token = "";
@@ -27,11 +28,12 @@ export const tokenParser = createMiddleware(async (c, next) => {
 	try {
 		const decoded = await verify(token, Bun.env.JWT_SECRET as string);
 
-		const session = await AccountCache.getAccountSessionById(decoded.accountId as string, token);
+		const [session, account] = await Promise.all([
+			AccountCache.getAccountSessionById(decoded.accountId as string, token),
+			AccountSrv.findAccountProfile(c, { accountId: decoded.accountId as string }),
+		]);
 
-		if (!session) {
-			throw new AppError("NOT_FOUND", "Session not found");
-		}
+		if (!session || !account) throw new AppError("UNAUTHORIZED");
 
 		user = {
 			_id: decoded.accountId as string,
@@ -40,7 +42,7 @@ export const tokenParser = createMiddleware(async (c, next) => {
 			firstname: session.firstname,
 			lastname: session.lastname,
 		};
-		console.log("[Redis:session] accountId = ", session._id);
+		console.log("[Redis:session] accountId: ", session._id);
 	} catch (e) {
 		console.log("[ERROR] auth.parser", e);
 		c.set("user", { _id: "", email: "", firstname: "", lastname: "", username: "" });

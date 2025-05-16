@@ -26,7 +26,7 @@ export type QueueStruct = {
 	[QueueName.SyncModelQueue]: {
 		SyncModel: {
 			payload: {
-				model: "accounts" | "projects" | "tasks" | "notifications" | "meetings" | "pomodoros";
+				model: "accounts" | "folders" | "tasks" | "notifications" | "meetings" | "pomodoros";
 				payload: AccountModel;
 			};
 		};

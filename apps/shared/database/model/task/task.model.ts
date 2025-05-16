@@ -47,7 +47,7 @@ export type TaskModel = {
 
 	title: string;
 	status: TaskStatus;
-	projectId: ObjectId;
+	folderId: ObjectId;
 	description?: string;
 	priority?: TaskPriority;
 	assigneeInfo?: Omit<AccountModel, "accountSettings">[];
@@ -70,7 +70,7 @@ export type ExtendTaskModel = {
 
 export type SubTask = Pick<TaskModel, "_id" | "title" | "description" | "priority" | "additionalInfo"> & { status?: TaskStatus };
 
-export type InlineTaskModel = Pick<TaskModel, "_id" | "projectId" | "title" | "status" | "timing" | "createdAt"> & {
+export type InlineTaskModel = Pick<TaskModel, "_id" | "folderId" | "title" | "status" | "timing" | "createdAt"> & {
 	assigneeInfo?: { _id: ObjectId }[];
 };
 
@@ -108,7 +108,7 @@ export const vTaskModel = v.strictObject({
 	_id: objectId,
 	title: v.string(),
 	status: v.enum(TaskStatus),
-	projectId: objectId,
+	folderId: objectId,
 	assigneeInfo: v.optional(v.array(v.omit(vAccountProfile, ["accountSettings"]))),
 	description: v.optional(v.string()),
 	timing: v.optional(
@@ -131,6 +131,6 @@ export const vTaskModel = v.strictObject({
 }) satisfies v.BaseSchema<TaskModel, TaskModel, v.BaseIssue<unknown>>;
 
 export const vInlineTaskModel = v.strictObject({
-	...v.pick(vTaskModel, ["_id", "projectId", "title", "status", "timing", "createdAt"]).entries,
+	...v.pick(vTaskModel, ["_id", "folderId", "title", "status", "timing", "createdAt"]).entries,
 	assigneeInfo: v.optional(v.array(v.pick(vAccountProfile, ["_id"]))),
 });

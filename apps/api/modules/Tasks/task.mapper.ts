@@ -43,7 +43,7 @@ export const buildPayloadCreateTask = (ctx: Context, request: CreateTaskRequest,
 
 	res.priority = request.priority ?? TaskPriority.Low;
 
-	res.projectId = toObjectId(request.projectId);
+	res.folderId = toObjectId(request.folderId);
 
 	res.status = request.status ?? TaskStatus.NotStartYet;
 

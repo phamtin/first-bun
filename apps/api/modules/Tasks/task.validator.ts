@@ -9,7 +9,7 @@ export const createTaskRequest = v.strictObject({
 	description: v.optional(v.string()),
 	status: v.optional(v.enum(TaskStatus)),
 	assigneeId: v.optional(stringObjectId),
-	projectId: stringObjectId,
+	folderId: stringObjectId,
 	timing: v.strictObject({
 		startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
 		endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
@@ -24,7 +24,7 @@ export const createTaskRequest = v.strictObject({
 export const createTaskResponse = vTaskModel;
 
 export const getTasksRequest = v.strictObject({
-	projectId: v.optional(stringObjectId),
+	folderId: v.optional(stringObjectId),
 	query: v.optional(v.string()),
 	status: v.pipe(
 		v.optional(v.union([v.array(v.enum(TaskStatus)), v.enum(TaskStatus)])),

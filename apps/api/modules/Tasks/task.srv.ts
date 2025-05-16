@@ -9,7 +9,7 @@ import type { TaskModel, TaskTiming } from "@/shared/database/model/task/task.mo
 import type { AccountModel } from "@/shared/database/model/account/account.model";
 import { AppError } from "@/shared/utils/error";
 import AccountSrv from "../Accounts";
-import ProjectUtil from "../Project/project.util";
+import FolderUtil from "../Folder/folder.util";
 import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 
 const findById = async (ctx: Context, id: string): Promise<tv.GetTaskByIdResponse> => {
@@ -58,10 +58,10 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 
 	if (!payload) throw new AppError("BAD_REQUEST", "Invalid payload");
 
-	const [canUserAccess, project] = await ProjectUtil.checkUserIsParticipantProject(ctx.get("user")._id, request.projectId);
+	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, request.folderId);
 
-	if (!canUserAccess || !project) {
-		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of project");
+	if (!canUserAccess || !folder) {
+		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
 	}
 
 	const assigneeId = request.assigneeId ?? ctx.get("user")._id;
@@ -84,14 +84,14 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 	}
 
 	if (request.tags) {
-		if (!project.tags?.length) {
+		if (!folder.tags?.length) {
 			throw new AppError("BAD_REQUEST", "Invalid tags");
 		}
 		const validTags: ObjectId[] = [];
-		const projectTagSet = new Set(project.tags.map((tag) => tag._id.toHexString()));
+		const folderTagSet = new Set(folder.tags.map((tag) => tag._id.toHexString()));
 
 		for (const tag of request.tags) {
-			if (projectTagSet.has(tag)) {
+			if (folderTagSet.has(tag)) {
 				validTags.push(toObjectId(tag));
 			}
 		}
@@ -183,22 +183,22 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 
 	console.log("Duration API [3]", performance.now() - bb);
 
-	const [canUserAccess, project] = await ProjectUtil.checkUserIsParticipantProject(ctx.get("user")._id, (task as TaskModel).projectId.toHexString());
+	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, (task as TaskModel).folderId.toHexString());
 
 	const cc = performance.now();
 
-	if (!canUserAccess || !project) {
-		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of project");
+	if (!canUserAccess || !folder) {
+		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
 	}
 
 	if (request.tags) {
 		let isValid = true;
 		const taskTags = [];
 
-		const projectTagStringIds = (project.tags || []).map((t) => t._id.toHexString());
+		const folderTagStringIds = (folder.tags || []).map((t) => t._id.toHexString());
 
 		for (const tag of request.tags) {
-			if (projectTagStringIds.indexOf(tag) === -1) {
+			if (folderTagStringIds.indexOf(tag) === -1) {
 				isValid = false;
 				break;
 			}
@@ -265,9 +265,9 @@ const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
 	return true;
 };
 
-const findTasksByProjectId = async (ctx: Context, projectId: string): Promise<tv.GetTasksResponse> => {
+const findTasksByFolderId = async (ctx: Context, folderId: string): Promise<tv.GetTasksResponse> => {
 	const tasks = await TaskColl.find({
-		projectId: toObjectId(projectId),
+		folderId: toObjectId(folderId),
 		deletedAt: {
 			$exists: false,
 		},
@@ -282,7 +282,7 @@ const TaskSrv = {
 	findById,
 	getTasks,
 	deleteTask,
-	findTasksByProjectId,
+	findTasksByFolderId,
 };
 
 export default TaskSrv;

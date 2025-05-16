@@ -26,7 +26,7 @@ export type ProfileInfo = {
 
 export type AccountSettings = {
 	theme: Theme;
-	pinnedProjects: ObjectId[];
+	pinnedFolders: ObjectId[];
 };
 
 /**
@@ -75,7 +75,7 @@ export const vAccountProfile = v.strictObject({
 	}),
 	accountSettings: v.strictObject({
 		theme: v.enum(Theme),
-		pinnedProjects: v.array(objectId),
+		pinnedFolders: v.array(objectId),
 	}),
 	signupAt: v.date(),
 

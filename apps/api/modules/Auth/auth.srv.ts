@@ -8,7 +8,7 @@ import type { JWTPayload } from "hono/utils/jwt/types";
 import type { Context } from "@/shared/types/app.type";
 import { AppError } from "@/shared/utils/error";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import ProjectSrv from "../Project/project.srv";
+import FolderSrv from "../Folder/folder.srv";
 import AccountCache from "@/shared/services/redis/account";
 import AccountSrv from "../Accounts";
 import { ObjectId } from "mongodb";
@@ -31,7 +31,7 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 		},
 		accountSettings: {
 			theme: Theme.Light,
-			pinnedProjects: [],
+			pinnedFolders: [],
 		},
 		signupAt: now,
 		createdAt: now,
@@ -55,7 +55,7 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 		};
 		const accountSettings: AccountSettings = {
 			theme: Theme.Light,
-			pinnedProjects: [],
+			pinnedFolders: [],
 		};
 		const { acknowledged, insertedId } = await AccountColl.insertOne({
 			profileInfo,
@@ -77,10 +77,10 @@ const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Prom
 		});
 
 		try {
-			const defaultProject = await ProjectSrv.createProject(ctx, { title: `${firstname}'s Project`, color: "#2fad64" }, true);
+			const defaultFolder = await FolderSrv.createFolder(ctx, { title: `${firstname}'s Folder`, color: "#2fad64" }, true);
 			await AccountSrv.updateProfile(ctx, {
 				accountSettings: {
-					pinnedProjects: [defaultProject._id.toHexString()],
+					pinnedFolders: [defaultFolder._id.toHexString()],
 				},
 			});
 		} catch (error) {

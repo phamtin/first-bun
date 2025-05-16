@@ -4,7 +4,7 @@ import * as v from "valibot";
 import { objectId, vAttributePattern, type AttributePattern } from "../../../types/common.type";
 
 export enum NotificationType {
-	InviteJoinProject = "InviteJoinProject",
+	InviteJoinFolder = "InviteJoinFolder",
 	AssignedTaskForYou = "AssignedTaskForYou",
 }
 

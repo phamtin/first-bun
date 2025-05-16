@@ -1,11 +1,11 @@
 import type { ClientSession } from "mongodb";
 import type { Job } from "bullmq";
-import { ProjectColl, TaskColl } from "@/shared/loaders/mongo";
+import { FolderColl, TaskColl } from "@/shared/loaders/mongo";
 import { toObjectIds, withTransaction } from "@/shared/services/mongodb/helper";
 import { AppError } from "@/shared/utils/error";
 import type { SyncModelQueueJob } from "@/shared/services/bullMQ/type";
 import type { AccountModel } from "@/shared/database/model/account/account.model";
-import { ProjectStatus } from "@/shared/database/model/project/project.model";
+import { FolderStatus } from "@/shared/database/model/folder/folder.model";
 
 const syncCollectionAccounts = async (job: Job<SyncModelQueueJob>): Promise<boolean> => {
 	const accountModel = job.data.payload.payload;
@@ -13,12 +13,12 @@ const syncCollectionAccounts = async (job: Job<SyncModelQueueJob>): Promise<bool
 
 	return withTransaction(async (session: ClientSession) => {
 		// PROJECTS: UPDATE OWNER
-		await ProjectColl.updateMany(
+		await FolderColl.updateMany(
 			{
 				"participantInfo.owner._id": accountDb._id,
 
-				"projectInfo.status": {
-					$ne: ProjectStatus.Archived,
+				"folderInfo.status": {
+					$ne: FolderStatus.Archived,
 				},
 				deletedAt: {
 					$exists: false,
@@ -33,7 +33,7 @@ const syncCollectionAccounts = async (job: Job<SyncModelQueueJob>): Promise<bool
 		);
 
 		// PROJECTS: UPDATE MEMBERS
-		await ProjectColl.updateMany(
+		await FolderColl.updateMany(
 			{
 				"participantInfo.members._id": accountDb._id,
 				deletedAt: { $exists: false },

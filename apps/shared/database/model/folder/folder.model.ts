@@ -5,26 +5,26 @@ import { objectId, vAttributePattern, type AttributePattern } from "../../../typ
 import { vAccountProfile, type AccountModel } from "../account/account.model";
 import { type InlineTaskModel, vInlineTaskModel } from "../task/task.model";
 
-export type ProjectDocument = {
+export type FolderDocument = {
 	urls: AttributePattern[];
 };
 
-export enum ProjectStatus {
+export enum FolderStatus {
 	Planning = "Planning",
 	InProgress = "InProgress",
 	Done = "Done",
 	Archived = "Archived",
 }
 
-export type ProjectInfo = {
+export type FolderInfo = {
 	title: string;
 	color: string;
-	status: ProjectStatus;
-	isDefaultProject: boolean;
+	status: FolderStatus;
+	isDefaultFolder: boolean;
 	description?: string;
 };
 
-export type ProjectInvitation = {
+export type FolderInvitation = {
 	email: string;
 	avatar: string;
 	title: string;
@@ -33,26 +33,26 @@ export type ProjectInvitation = {
 	createdAt: Date;
 };
 
-export type ProjectParticipant = {
+export type FolderParticipant = {
 	owner: Omit<AccountModel, "accountSettings">;
 	members: Omit<AccountModel, "accountSettings">[];
-	invitations: ProjectInvitation[];
+	invitations: FolderInvitation[];
 };
 
 /**
  *  -----------------------------
  *	|
- * 	| Mongo Model - Project
+ * 	| Mongo Model - Folder
  *	|
  * 	-----------------------------
  */
 
-export type ProjectModel = {
+export type FolderModel = {
 	_id: ObjectId;
 
-	projectInfo: ProjectInfo;
-	participantInfo: ProjectParticipant;
-	documents: ProjectDocument;
+	folderInfo: FolderInfo;
+	participantInfo: FolderParticipant;
+	documents: FolderDocument;
 	tags?: { _id: ObjectId; color: string; name: string }[];
 
 	createdAt: Date;
@@ -62,7 +62,7 @@ export type ProjectModel = {
 	deletedBy?: ObjectId;
 };
 
-export type ExtendProjectModel = {
+export type ExtendFolderModel = {
 	tasks: InlineTaskModel[];
 };
 
@@ -74,39 +74,39 @@ export type ExtendProjectModel = {
  * 	-----------------------------
  */
 
-export const vProjectInvitation = v.strictObject({
+export const vFolderInvitation = v.strictObject({
 	title: v.string(),
 	description: v.optional(v.string()),
 	email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
 	avatar: v.string(),
 	expiredAt: v.date(),
 	createdAt: v.date(),
-}) satisfies v.BaseSchema<ProjectInvitation, ProjectInvitation, v.BaseIssue<unknown>>;
+}) satisfies v.BaseSchema<FolderInvitation, FolderInvitation, v.BaseIssue<unknown>>;
 
-export const vProjectInfo = v.strictObject({
+export const vFolderInfo = v.strictObject({
 	title: v.string(),
 	color: v.string(),
-	status: v.enum(ProjectStatus),
-	isDefaultProject: v.boolean(),
+	status: v.enum(FolderStatus),
+	isDefaultFolder: v.boolean(),
 	description: v.optional(v.string()),
-}) satisfies v.BaseSchema<ProjectInfo, ProjectInfo, v.BaseIssue<unknown>>;
+}) satisfies v.BaseSchema<FolderInfo, FolderInfo, v.BaseIssue<unknown>>;
 
-export const vProjectParticipant = v.strictObject({
+export const vFolderParticipant = v.strictObject({
 	owner: v.omit(vAccountProfile, ["accountSettings"]),
 	members: v.array(v.omit(vAccountProfile, ["accountSettings"])),
-	invitations: v.array(vProjectInvitation),
-}) satisfies v.BaseSchema<ProjectParticipant, ProjectParticipant, v.BaseIssue<unknown>>;
+	invitations: v.array(vFolderInvitation),
+}) satisfies v.BaseSchema<FolderParticipant, FolderParticipant, v.BaseIssue<unknown>>;
 
-export const vProjectDocument = v.strictObject({
+export const vFolderDocument = v.strictObject({
 	urls: v.array(vAttributePattern),
-}) satisfies v.BaseSchema<ProjectDocument, ProjectDocument, v.BaseIssue<unknown>>;
+}) satisfies v.BaseSchema<FolderDocument, FolderDocument, v.BaseIssue<unknown>>;
 
-export const vProjectModel = v.strictObject({
+export const vFolderModel = v.strictObject({
 	_id: objectId,
 
-	projectInfo: vProjectInfo,
-	participantInfo: vProjectParticipant,
-	documents: vProjectDocument,
+	folderInfo: vFolderInfo,
+	participantInfo: vFolderParticipant,
+	documents: vFolderDocument,
 	tags: v.optional(v.array(v.strictObject({ _id: objectId, color: v.string(), name: v.string() }))),
 
 	createdAt: v.date(),
@@ -114,8 +114,8 @@ export const vProjectModel = v.strictObject({
 	updatedAt: v.optional(v.date()),
 	deletedAt: v.optional(v.date()),
 	deletedBy: v.optional(objectId),
-}) satisfies v.BaseSchema<ProjectModel, ProjectModel, v.BaseIssue<unknown>>;
+}) satisfies v.BaseSchema<FolderModel, FolderModel, v.BaseIssue<unknown>>;
 
-export const vExtendProjectModel = v.strictObject({
+export const vExtendFolderModel = v.strictObject({
 	tasks: v.array(vInlineTaskModel),
-}) satisfies v.BaseSchema<ExtendProjectModel, ExtendProjectModel, v.BaseIssue<unknown>>;
+}) satisfies v.BaseSchema<ExtendFolderModel, ExtendFolderModel, v.BaseIssue<unknown>>;

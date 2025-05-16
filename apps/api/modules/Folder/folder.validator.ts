@@ -2,46 +2,46 @@ import * as v from "valibot";
 import type { InferInput } from "valibot";
 import { stringObjectId } from "@/shared/types/common.type";
 
-import { ProjectStatus, vExtendProjectModel, vProjectModel } from "@/shared/database/model/project/project.model";
+import { FolderStatus, vExtendFolderModel, vFolderModel } from "@/shared/database/model/folder/folder.model";
 
-export const createProjectRequest = v.strictObject({
+export const createFolderRequest = v.strictObject({
 	title: v.string(),
 	color: v.string(),
 	description: v.optional(v.string()),
-	status: v.optional(v.enum(ProjectStatus)),
+	status: v.optional(v.enum(FolderStatus)),
 });
 
-export const createProjectResponse = v.strictObject({
-	...vProjectModel.entries,
-	...vExtendProjectModel.entries,
+export const createFolderResponse = v.strictObject({
+	...vFolderModel.entries,
+	...vExtendFolderModel.entries,
 });
 
-export const getMyProjectsResponse = v.omit(vProjectModel, ["documents"]);
+export const getMyFoldersResponse = v.omit(vFolderModel, ["documents"]);
 
-export const updateProjectRequest = v.strictObject({
+export const updateFolderRequest = v.strictObject({
 	title: v.optional(v.string()),
 	description: v.optional(v.string()),
-	status: v.optional(v.enum(ProjectStatus)),
+	status: v.optional(v.enum(FolderStatus)),
 	color: v.optional(v.string()),
 	tags: v.optional(v.array(v.strictObject({ _id: v.optional(stringObjectId), color: v.pipe(v.string(), v.trim()), name: v.pipe(v.string(), v.trim()) }))),
 });
 
-export const updateProjectResponse = v.strictObject({
-	...vProjectModel.entries,
-	...vExtendProjectModel.entries,
+export const updateFolderResponse = v.strictObject({
+	...vFolderModel.entries,
+	...vExtendFolderModel.entries,
 });
 
-export const getProjectByIdRequest = v.strictObject({
-	projectId: stringObjectId,
+export const getFolderByIdRequest = v.strictObject({
+	folderId: stringObjectId,
 });
 
-export const getProjectByIdResponse = v.strictObject({
-	...vProjectModel.entries,
-	...vExtendProjectModel.entries,
+export const getFolderByIdResponse = v.strictObject({
+	...vFolderModel.entries,
+	...vExtendFolderModel.entries,
 });
 
 export const inviteRequest = v.strictObject({
-	projectId: stringObjectId,
+	folderId: stringObjectId,
 	emails: v.pipe(v.array(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())), v.maxLength(64, "Too many invitations")),
 });
 
@@ -51,7 +51,7 @@ export const inviteResponse = v.strictObject({
 
 export const responseInvitationRequest = v.strictObject({
 	type: v.union([v.literal("accept"), v.literal("reject")]),
-	projectId: stringObjectId,
+	folderId: stringObjectId,
 	email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
 });
 
@@ -60,7 +60,7 @@ export const responseInvitationResponse = v.strictObject({
 });
 
 export const removeRequest = v.strictObject({
-	projectId: stringObjectId,
+	folderId: stringObjectId,
 	memberEmail: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
 });
 
@@ -68,13 +68,13 @@ export const removeResponse = v.strictObject({
 	success: v.boolean(),
 });
 
-export type GetMyProjectsResponse = InferInput<typeof getMyProjectsResponse>;
-export type CreateProjectRequest = InferInput<typeof createProjectRequest>;
-export type CreateProjectResponse = InferInput<typeof createProjectResponse>;
-export type UpdateProjectRequest = InferInput<typeof updateProjectRequest>;
-export type UpdateProjectResponse = InferInput<typeof updateProjectResponse>;
-export type GetProjectByIdRequest = InferInput<typeof getProjectByIdRequest>;
-export type GetProjectByIdResponse = InferInput<typeof getProjectByIdResponse>;
+export type GetMyFoldersResponse = InferInput<typeof getMyFoldersResponse>;
+export type CreateFolderRequest = InferInput<typeof createFolderRequest>;
+export type CreateFolderResponse = InferInput<typeof createFolderResponse>;
+export type UpdateFolderRequest = InferInput<typeof updateFolderRequest>;
+export type UpdateFolderResponse = InferInput<typeof updateFolderResponse>;
+export type GetFolderByIdRequest = InferInput<typeof getFolderByIdRequest>;
+export type GetFolderByIdResponse = InferInput<typeof getFolderByIdResponse>;
 export type InviteRequest = InferInput<typeof inviteRequest>;
 export type InviteResponse = InferInput<typeof inviteResponse>;
 export type ResponseInvitationRequest = InferInput<typeof responseInvitationRequest>;

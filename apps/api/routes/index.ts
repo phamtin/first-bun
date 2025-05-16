@@ -4,7 +4,7 @@ import authRoute from "../modules/Auth/auth.route";
 import accountRoute from "../modules/Accounts/account.route";
 import { tokenParser } from "../middlewares/auth.parser";
 import taskRoute from "../modules/Tasks/task.route";
-import projectRoute from "../modules/Project/project.route";
+import folderRoute from "../modules/Folder/folder.route";
 import pomodoroRoute from "../modules/Pomodoro/pomodoro.route";
 import { creadentialParser } from "../middlewares/credential.parser";
 
@@ -26,7 +26,7 @@ routes.route("/accounts", accountRoute);
 
 routes.route("/tasks", taskRoute);
 
-routes.route("/projects", projectRoute);
+routes.route("/folders", folderRoute);
 
 routes.route("/pomodoros", pomodoroRoute);
 

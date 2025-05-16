@@ -1,29 +1,29 @@
 import type { DeepPartial } from "@/shared/types/common.type";
-import type { ProjectModel } from "@/shared/database/model/project/project.model";
-import type { UpdateProjectRequest } from "./project.validator";
+import type { FolderModel } from "@/shared/database/model/folder/folder.model";
+import type { UpdateFolderRequest } from "./folder.validator";
 import { ObjectId } from "mongodb";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 
-export const buildPayloadUpdate = (request: UpdateProjectRequest, model?: Readonly<ProjectModel>): DeepPartial<ProjectModel> | undefined => {
-	let res: DeepPartial<ProjectModel> | undefined = undefined;
+export const buildPayloadUpdate = (request: UpdateFolderRequest, model?: Readonly<FolderModel>): DeepPartial<FolderModel> | undefined => {
+	let res: DeepPartial<FolderModel> | undefined = undefined;
 
 	if (Object.keys(request).length === 0) return res;
 
-	res = {} satisfies DeepPartial<ProjectModel>;
+	res = {} satisfies DeepPartial<FolderModel>;
 
-	res.projectInfo = {} satisfies DeepPartial<ProjectModel["projectInfo"]>;
+	res.folderInfo = {} satisfies DeepPartial<FolderModel["folderInfo"]>;
 
 	if (request.title) {
-		res.projectInfo.title = request.title;
+		res.folderInfo.title = request.title;
 	}
 	if (request.description) {
-		res.projectInfo.description = request.description;
+		res.folderInfo.description = request.description;
 	}
 	if (request.status) {
-		res.projectInfo.status = request.status;
+		res.folderInfo.status = request.status;
 	}
 	if (request.color) {
-		res.projectInfo.color = request.color;
+		res.folderInfo.color = request.color;
 	}
 	if (request.tags) {
 		const tagsToCreate = [];
