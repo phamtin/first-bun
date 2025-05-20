@@ -25,16 +25,6 @@ export enum TaskStatus {
 	Archived = "Archived",
 }
 
-export enum PodomoroType {
-	"25-5" = "25-5",
-	"50-10" = "50-10",
-}
-
-export type Podomoro = {
-	quantity: number;
-	type: PodomoroType;
-};
-
 /**
  *  -----------------------------
  *	|

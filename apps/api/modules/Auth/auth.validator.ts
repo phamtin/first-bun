@@ -6,6 +6,7 @@ export const LoginGoogleRequestSchema = v.strictObject({
 	clientId: v.string(),
 	credential: v.string(),
 	selectBy: v.string(),
+	isMobile: v.optional(v.boolean()),
 });
 
 export const LoginGoogleResponseSchema = v.strictObject({

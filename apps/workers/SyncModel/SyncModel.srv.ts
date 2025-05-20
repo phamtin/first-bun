@@ -81,4 +81,4 @@ const syncModelProcessor = async (job: Job<SyncModelQueueJob>) => {
 	return { status: "success" };
 };
 
-export { syncCollectionAccounts, syncModelProcessor };
+export { syncModelProcessor };
