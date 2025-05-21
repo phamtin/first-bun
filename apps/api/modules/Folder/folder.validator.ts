@@ -3,6 +3,26 @@ import type { InferInput } from "valibot";
 import { stringObjectId } from "@/shared/types/common.type";
 
 import { FolderStatus, vExtendFolderModel, vFolderModel } from "@/shared/database/model/folder/folder.model";
+import { TaskStatus } from "@/shared/database/model/task/task.model";
+
+export const getFoldersRequest = v.strictObject({
+	ownerId: v.optional(stringObjectId),
+	memberId: v.optional(stringObjectId),
+	title: v.optional(v.string()),
+	description: v.optional(v.string()),
+	status: v.optional(v.enum(FolderStatus)),
+});
+
+export const getFoldersResponse = v.strictObject({
+	folder: v.omit(vFolderModel, ["documents"]),
+	taskStats: v.strictObject({
+		Total: v.number(),
+		[TaskStatus.NotStartYet]: v.number(),
+		[TaskStatus.InProgress]: v.number(),
+		[TaskStatus.Pending]: v.number(),
+		[TaskStatus.Done]: v.number(),
+	}),
+});
 
 export const createFolderRequest = v.strictObject({
 	title: v.string(),
@@ -15,8 +35,6 @@ export const createFolderResponse = v.strictObject({
 	...vFolderModel.entries,
 	...vExtendFolderModel.entries,
 });
-
-export const getMyFoldersResponse = v.omit(vFolderModel, ["documents"]);
 
 export const updateFolderRequest = v.strictObject({
 	title: v.optional(v.string()),
@@ -68,7 +86,8 @@ export const removeResponse = v.strictObject({
 	success: v.boolean(),
 });
 
-export type GetMyFoldersResponse = InferInput<typeof getMyFoldersResponse>;
+export type GetFoldersRequest = InferInput<typeof getFoldersRequest>;
+export type GetFoldersResponse = InferInput<typeof getFoldersResponse>;
 export type CreateFolderRequest = InferInput<typeof createFolderRequest>;
 export type CreateFolderResponse = InferInput<typeof createFolderResponse>;
 export type UpdateFolderRequest = InferInput<typeof updateFolderRequest>;

@@ -5,7 +5,7 @@
 	"private": true,
 	"dependencies": {
 		"@hono/valibot-validator": "^0.5.2",
-		"bullmq": "^5.52.3",
+		"bullmq": "^5.53.0",
 		"csv-parse": "^5.6.0",
 		"dayjs": "^1.11.13",
 		"google-auth-library": "^9.15.1",

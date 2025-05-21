@@ -1,8 +1,7 @@
-import type { ObjectId, WithoutId } from "mongodb";
+import type { Filter, ObjectId, WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import { FolderColl } from "@/shared/loaders/mongo";
-import type { GetMyFoldersResponse, GetFolderByIdResponse } from "./folder.validator";
-
+import type { GetFolderByIdResponse, GetFoldersRequest } from "./folder.validator";
 import { FolderStatus, type ExtendFolderModel, type FolderModel } from "@/shared/database/model/folder/folder.model";
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
@@ -29,25 +28,39 @@ const checkActiveFolder = async (ctx: Context, folderId: string): Promise<Folder
 	return p;
 };
 
-const getMyFolders = async (ctx: Context): Promise<GetMyFoldersResponse[]> => {
-	const userId = toObjectId(ctx.get("user")._id);
-
-	const res = (await FolderColl.find({
-		$or: [
-			{
-				"participantInfo.owner._id": userId,
-			},
-			{
-				"participantInfo.members": { $elemMatch: { _id: userId } },
-			},
-		],
-		status: {
+const getFolders = async (ctx: Context, request: GetFoldersRequest): Promise<FolderModel[]> => {
+	const filter: Filter<FolderModel> = {
+		"folderInfo.status": {
 			$ne: FolderStatus.Archived,
 		},
 		deletedAt: {
 			$exists: false,
 		},
-	}).toArray()) as FolderModel[];
+	};
+
+	if (request.ownerId) {
+		filter["participantInfo.owner._id"] = toObjectId(request.ownerId);
+	}
+	if (request.memberId) {
+		filter["participantInfo.members_.id"] = toObjectId(request.memberId);
+	}
+	if (request.status) {
+		filter["folderInfo.status"] = request.status;
+	}
+	if (request.title) {
+		filter["folderInfo.title"] = request.title;
+	}
+	if (request.description) {
+		filter["folderInfo.description"] = request.description;
+	}
+
+	const res = await FolderColl.find(filter, {
+		projection: {
+			documents: 0,
+			"participantInfo.owner.accountSettings": 0,
+			"participantInfo.members.accountSettings": 0,
+		},
+	}).toArray();
 
 	return res;
 };
@@ -214,7 +227,7 @@ const removeMember = async (ctx: Context, folderId: string, memberEmail: string)
 };
 
 const FolderRepo = {
-	getMyFolders,
+	getFolders,
 	createFolder,
 	getFolderById,
 	updateFolder,

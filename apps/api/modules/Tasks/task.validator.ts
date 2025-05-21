@@ -13,7 +13,7 @@ export const createTaskRequest = v.strictObject({
 	timing: v.strictObject({
 		startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
 		endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
-		estimation: v.optional(v.string()),
+		estimation: v.optional(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours"))),
 	}),
 	priority: v.optional(v.enum(TaskPriority)),
 	additionalInfo: v.optional(v.array(vAttributePattern)),
@@ -55,7 +55,7 @@ export const updateTaskRequest = v.strictObject({
 		v.strictObject({
 			startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
 			endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
-			estimation: v.optional(v.string()),
+			estimation: v.optional(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours"))),
 		}),
 	),
 	additionalInfo: v.optional(v.array(vAttributePattern)),

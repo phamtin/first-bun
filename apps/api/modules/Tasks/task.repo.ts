@@ -6,7 +6,7 @@ import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTa
 import type { ExtendTaskModel, TaskModel, TaskPriority, TaskStatus } from "@/shared/database/model/task/task.model";
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
-import { toObjectId } from "@/shared/services/mongodb/helper";
+import { toObjectId, toObjectIds } from "@/shared/services/mongodb/helper";
 import { EXCLUDED_TASK_STATUS } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
@@ -209,6 +209,9 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 			$project: {
 				"assigneeInfo.accountSettings": 0,
 			},
+		},
+		{
+			$sort: { createdAt: -1 },
 		},
 	]).toArray()) as TaskModel[];
 

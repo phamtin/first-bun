@@ -5,7 +5,7 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import TaskRepo from "./task.repo";
 import dayjs from "@/shared/utils/dayjs";
 import { TaskColl } from "@/shared/loaders/mongo";
-import type { TaskModel, TaskTiming } from "@/shared/database/model/task/task.model";
+import { TaskStatus, type TaskModel, type TaskTiming } from "@/shared/database/model/task/task.model";
 import type { AccountModel } from "@/shared/database/model/account/account.model";
 import { AppError } from "@/shared/utils/error";
 import AccountSrv from "../Accounts";
@@ -276,6 +276,22 @@ const findTasksByFolderId = async (ctx: Context, folderId: string): Promise<tv.G
 	return tasks;
 };
 
+const findTasksByFolderIds = async (ctx: Context, folderIds: string[]): Promise<tv.GetTasksResponse> => {
+	const tasks = await TaskColl.find({
+		folderId: {
+			$in: folderIds.map((id) => toObjectId(id)),
+		},
+		status: {
+			$ne: TaskStatus.Archived,
+		},
+		deletedAt: {
+			$exists: false,
+		},
+	}).toArray();
+
+	return tasks;
+};
+
 const TaskSrv = {
 	updateTask,
 	createTask,
@@ -283,6 +299,7 @@ const TaskSrv = {
 	getTasks,
 	deleteTask,
 	findTasksByFolderId,
+	findTasksByFolderIds,
 };
 
 export default TaskSrv;

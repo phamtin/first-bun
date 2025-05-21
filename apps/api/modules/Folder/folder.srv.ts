@@ -14,10 +14,48 @@ import TaskSrv from "../Tasks/task.srv";
 import { DEFAULT_INVITATION_TITLE, PROJECT_INVITATION_EXPIRED_MINUTE } from "./folder.const";
 import NotificationSrv from "../Notification";
 import { NotificationType } from "@/shared/database/model/notification/notification.model";
+import { TaskStatus } from "@/shared/database/model/task/task.model";
 
-const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
-	const folder = await FolderRepo.getMyFolders(ctx);
-	return folder;
+const getMyFolders = async (ctx: Context): Promise<pv.GetFoldersResponse[]> => {
+	const res: pv.GetFoldersResponse[] = [];
+
+	const folders = await FolderRepo.getFolders(ctx, {
+		ownerId: ctx.get("user")._id,
+	});
+	const tasks = await TaskSrv.findTasksByFolderIds(
+		ctx,
+		folders.map((f) => f._id.toHexString()),
+	);
+
+	/**
+	 * TODO: Group tasks by folderId, this implementation is temporary used for small dataset.
+	 * For future-proof, after setup load test, will do benchmark and convert it to
+	 * use Map, fuck these loops.
+	 */
+	for (let i = 0; i < folders.length; i++) {
+		const folder = folders[i];
+		const belongTasks = tasks.filter((t) => t.folderId.equals(folder._id)) || [];
+
+		const taskStats: Record<Exclude<keyof typeof TaskStatus, "Archived"> | "Total", number> = {
+			Total: belongTasks.length,
+			[TaskStatus.NotStartYet]: 0,
+			[TaskStatus.InProgress]: 0,
+			[TaskStatus.Pending]: 0,
+			[TaskStatus.Done]: 0,
+		};
+
+		for (let j = 0; j < belongTasks.length; j++) {
+			const task = belongTasks[j];
+
+			if (task.status !== TaskStatus.Archived) {
+				taskStats[task.status as Exclude<keyof typeof TaskStatus, "Archived">]++;
+			}
+		}
+
+		res.push({ folder, taskStats });
+	}
+
+	return res;
 };
 
 const checkActiveFolder = async (ctx: Context, folderId: string): Promise<FolderModel | null> => {

@@ -20,11 +20,6 @@ const oAuth2Client = new OAuth2Client({
 	redirectUri: "http://localhost:5173/",
 });
 
-const mobileOAuth2Client = new OAuth2Client({
-	clientId: Bun.env.GOOGLE_IOS_CLIENT_ID,
-	clientSecret: Bun.env.GOOGLE_CLIENT_SECRET,
-});
-
 export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
 	const { clientId, credential, isMobile } = request;
 	const now = dayjs().toDate();
@@ -51,7 +46,7 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		createdAt: now,
 	};
 
-	const ticket = await (isMobile ? mobileOAuth2Client : oAuth2Client).verifyIdToken({
+	const ticket = await oAuth2Client.verifyIdToken({
 		idToken: credential,
 		audience: clientId,
 	});

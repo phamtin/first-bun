@@ -7,7 +7,7 @@ import { vAccountProfile, type AccountModel } from "../account/account.model";
 export type TaskTiming = {
 	startDate?: Date;
 	endDate?: Date;
-	estimation?: string;
+	estimation?: number; //	Default is HOUR
 };
 
 export enum TaskPriority {
@@ -105,7 +105,7 @@ export const vTaskModel = v.strictObject({
 		v.strictObject({
 			startDate: v.optional(v.date()),
 			endDate: v.optional(v.date()),
-			estimation: v.optional(v.string()),
+			estimation: v.optional(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours"))),
 		}),
 	),
 	tags: v.optional(v.array(objectId)),
