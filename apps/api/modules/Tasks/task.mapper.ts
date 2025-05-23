@@ -68,6 +68,8 @@ export const buildPayloadUpdateTask = (ctx: Context, request: UpdateTaskRequest,
 	}
 	if (request.description) {
 		res.description = request.description;
+	} else if (request.description === "") {
+		res.description = "";
 	}
 	if (request.status) {
 		res.status = request.status;

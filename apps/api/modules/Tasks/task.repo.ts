@@ -6,7 +6,7 @@ import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTa
 import type { ExtendTaskModel, TaskModel, TaskPriority, TaskStatus } from "@/shared/database/model/task/task.model";
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
-import { toObjectId, toObjectIds } from "@/shared/services/mongodb/helper";
+import { toObjectId } from "@/shared/services/mongodb/helper";
 import { EXCLUDED_TASK_STATUS } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 

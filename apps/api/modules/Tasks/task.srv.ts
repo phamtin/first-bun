@@ -137,7 +137,6 @@ const validateDateRange = (timingDb?: TaskTiming, timingRequest?: tv.UpdateTaskR
 };
 
 const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRequest): Promise<tv.UpdateTaskResponse> => {
-	console.log("Duration API [1]", performance.now());
 	const aa = performance.now();
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
@@ -170,7 +169,7 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 	if (request.assigneeId) {
 		promisors.push(AccountSrv.findAccountProfile(ctx, { accountId: request.assigneeId }));
 	}
-	console.log("Duration API [2]", performance.now() - aa);
+	console.log("Duration API [1]", performance.now() - aa);
 
 	const [task, assignee] = await Promise.all(promisors);
 	const bb = performance.now();
@@ -181,7 +180,7 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 
 	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
 
-	console.log("Duration API [3]", performance.now() - bb);
+	console.log("Duration API [2]", performance.now() - bb);
 
 	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, (task as TaskModel).folderId.toHexString());
 
@@ -228,7 +227,7 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 			payload.subTasks = subTasks;
 		}
 	}
-	console.log("Duration API [4]", performance.now() - cc);
+	console.log("Duration API [3]", performance.now() - cc);
 	const res = await TaskRepo.updateTask(ctx, taskId, payload);
 
 	if (!res?._id) {
