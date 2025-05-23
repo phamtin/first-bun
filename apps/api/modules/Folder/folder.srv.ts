@@ -16,44 +16,89 @@ import NotificationSrv from "../Notification";
 import { NotificationType } from "@/shared/database/model/notification/notification.model";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
 
-const getMyFolders = async (ctx: Context): Promise<pv.GetFoldersResponse[]> => {
-	const res: pv.GetFoldersResponse[] = [];
+const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
+	const result = (await FolderColl.aggregate([
+		{
+			$match: {
+				"participantInfo.owner._id": toObjectId(ctx.get("user")._id),
+				deletedAt: {
+					$exists: false,
+				},
+			},
+		},
+		{
+			$lookup: {
+				from: "tasks",
+				localField: "_id",
+				foreignField: "folderId",
+				pipeline: [
+					{
+						$match: {
+							status: { $ne: TaskStatus.Archived },
+							deletedAt: { $exists: false },
+						},
+					},
+					{
+						$project: {
+							_id: 1,
+							status: 1,
+							folderId: 1,
+						},
+					},
+					{
+						$group: {
+							_id: "$folderId",
+							Total: { $sum: 1 },
+							[TaskStatus.NotStartYet]: {
+								$sum: { $cond: [{ $eq: ["$status", TaskStatus.NotStartYet] }, 1, 0] },
+							},
+							[TaskStatus.InProgress]: {
+								$sum: { $cond: [{ $eq: ["$status", TaskStatus.InProgress] }, 1, 0] },
+							},
+							[TaskStatus.Pending]: {
+								$sum: { $cond: [{ $eq: ["$status", TaskStatus.Pending] }, 1, 0] },
+							},
+							[TaskStatus.Done]: {
+								$sum: { $cond: [{ $eq: ["$status", TaskStatus.Done] }, 1, 0] },
+							},
+						},
+					},
+				],
+				as: "taskStats",
+			},
+		},
+		{
+			$addFields: {
+				taskStats: { $arrayElemAt: ["$taskStats", 0] },
+			},
+		},
+		{
+			$project: {
+				folder: "$$ROOT",
+				taskStats: 1,
+			},
+		},
+		{
+			$project: {
+				_id: 0,
+				"taskStats._id": 0,
+				"folder.documents": 0,
+				"folder.taskStats": 0,
+				"folder.participantInfo.owner.accountSettings": 0,
+				"folder.participantInfo.members.accountSettings": 0,
+			},
+		},
+	]).toArray()) as pv.GetMyFoldersResponse[];
 
-	const folders = await FolderRepo.getFolders(ctx, {
-		ownerId: ctx.get("user")._id,
-	});
-	const tasks = await TaskSrv.findTasksByFolderIds(
-		ctx,
-		folders.map((f) => f._id.toHexString()),
-	);
+	return result;
+};
 
-	/**
-	 * TODO: Group tasks by folderId, this implementation is temporary used for small dataset.
-	 * For future-proof, after setup load test, will do benchmark and convert it to
-	 * use Map, fuck these loops.
-	 */
-	for (let i = 0; i < folders.length; i++) {
-		const folder = folders[i];
-		const belongTasks = tasks.filter((t) => t.folderId.equals(folder._id)) || [];
+const getFoldersSharedWithMe = async (ctx: Context): Promise<FolderModel[]> => {
+	let res: FolderModel[] = [];
 
-		const taskStats: Record<Exclude<keyof typeof TaskStatus, "Archived"> | "Total", number> = {
-			Total: belongTasks.length,
-			[TaskStatus.NotStartYet]: 0,
-			[TaskStatus.InProgress]: 0,
-			[TaskStatus.Pending]: 0,
-			[TaskStatus.Done]: 0,
-		};
+	console.log(ctx.get("user")._id);
 
-		for (let j = 0; j < belongTasks.length; j++) {
-			const task = belongTasks[j];
-
-			if (task.status !== TaskStatus.Archived) {
-				taskStats[task.status as Exclude<keyof typeof TaskStatus, "Archived">]++;
-			}
-		}
-
-		res.push({ folder, taskStats });
-	}
+	res = await FolderRepo.getFolders(ctx, { memberId: ctx.get("user")._id });
 
 	return res;
 };
@@ -332,6 +377,7 @@ const removeMember = async (ctx: Context, request: pv.RemoveRequest): Promise<pv
 
 const FolderSrv = {
 	getMyFolders,
+	getFoldersSharedWithMe,
 	updateFolder,
 	createFolder,
 	getFolderById,

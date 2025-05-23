@@ -25,6 +25,13 @@ folderRoute.post(
 );
 
 /**
+ * 	Get a list of folders shared with me
+ */
+folderRoute.get("/shared-with-me", async (c) => {
+	return responseOK(c, await FolderSrv.getFoldersSharedWithMe(c));
+});
+
+/**
  * 	Get a list of my folders
  */
 folderRoute.get("/my-folders", async (c) => {

@@ -13,7 +13,7 @@ export const getFoldersRequest = v.strictObject({
 	status: v.optional(v.enum(FolderStatus)),
 });
 
-export const getFoldersResponse = v.strictObject({
+export const getMyFoldersResponse = v.strictObject({
 	folder: v.omit(vFolderModel, ["documents"]),
 	taskStats: v.strictObject({
 		Total: v.number(),
@@ -87,7 +87,7 @@ export const removeResponse = v.strictObject({
 });
 
 export type GetFoldersRequest = InferInput<typeof getFoldersRequest>;
-export type GetFoldersResponse = InferInput<typeof getFoldersResponse>;
+export type GetMyFoldersResponse = InferInput<typeof getMyFoldersResponse>;
 export type CreateFolderRequest = InferInput<typeof createFolderRequest>;
 export type CreateFolderResponse = InferInput<typeof createFolderResponse>;
 export type UpdateFolderRequest = InferInput<typeof updateFolderRequest>;

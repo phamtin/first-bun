@@ -42,7 +42,7 @@ const getFolders = async (ctx: Context, request: GetFoldersRequest): Promise<Fol
 		filter["participantInfo.owner._id"] = toObjectId(request.ownerId);
 	}
 	if (request.memberId) {
-		filter["participantInfo.members_.id"] = toObjectId(request.memberId);
+		filter["participantInfo.members"] = { $elemMatch: { _id: toObjectId(request.memberId) } };
 	}
 	if (request.status) {
 		filter["folderInfo.status"] = request.status;
@@ -77,23 +77,13 @@ const getFolderById = async (ctx: Context, id: string): Promise<GetFolderByIdRes
 		{
 			$lookup: {
 				from: "tasks",
-				let: { folderId: "$_id" },
+				localField: "_id",
+				foreignField: "folderId",
 				pipeline: [
 					{
 						$match: {
-							$expr: {
-								$and: [
-									{
-										$eq: ["$folderId", "$$folderId"],
-									},
-									{
-										$ne: ["$status", TaskStatus.Archived],
-									},
-									{
-										$not: [{ $ifNull: ["$deletedAt", false] }],
-									},
-								],
-							},
+							status: { $ne: TaskStatus.Archived },
+							deletedAt: { $exists: false },
 						},
 					},
 					{

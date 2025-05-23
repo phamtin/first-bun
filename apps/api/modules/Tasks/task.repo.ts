@@ -1,4 +1,4 @@
-import type { Filter, WithoutId } from "mongodb";
+import type { WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import { TaskColl } from "@/shared/loaders/mongo";
 import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
@@ -39,7 +39,7 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 				localField: "folderId",
 				foreignField: "_id",
 				as: "availableTags",
-				pipeline: [{ $project: { _id: 0, tags: 1 } }],
+				pipeline: [{ $project: { tags: 1 } }],
 			},
 		},
 		{
