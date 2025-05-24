@@ -8,6 +8,10 @@ declare module "hono" {
 			username: string;
 			firstname: string;
 			lastname: string;
+			phoneNumber: string;
+			locale: string;
+			isPrivateAccount: boolean;
+			avatar: string;
 		};
 	}
 }

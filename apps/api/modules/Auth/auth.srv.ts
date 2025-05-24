@@ -100,6 +100,10 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 			username,
 			firstname,
 			lastname,
+			phoneNumber: "",
+			locale: profileInfo.locale,
+			isPrivateAccount: profileInfo.isPrivateAccount,
+			avatar,
 		});
 
 		try {
@@ -186,7 +190,17 @@ const logout = async (ctx: Context): Promise<boolean> => {
 
 	AccountCache.removeSessionByAccountId(ctx.get("user")._id);
 
-	ctx.set("user", { _id: "", email: "", firstname: "", lastname: "", username: "" });
+	ctx.set("user", {
+		_id: "",
+		email: "",
+		firstname: "",
+		lastname: "",
+		username: "",
+		phoneNumber: "",
+		locale: "",
+		isPrivateAccount: false,
+		avatar: "",
+	});
 
 	return true;
 };

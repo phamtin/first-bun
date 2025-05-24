@@ -10,7 +10,17 @@ export const tokenParser = createMiddleware(async (c, next) => {
 	let token = "";
 	const authorization = c.req.header("authorization");
 
-	let user: UserCheckParser = { _id: "", email: "", firstname: "", lastname: "", username: "" };
+	let user: UserCheckParser = {
+		_id: "",
+		email: "",
+		firstname: "",
+		lastname: "",
+		username: "",
+		avatar: "",
+		phoneNumber: "",
+		locale: "",
+		isPrivateAccount: false,
+	};
 
 	if (authorization?.startsWith("Bearer")) {
 		token = authorization.split(" ")[1];
@@ -41,11 +51,25 @@ export const tokenParser = createMiddleware(async (c, next) => {
 			username: session.username,
 			firstname: session.firstname,
 			lastname: session.lastname,
+			avatar: account.profileInfo.avatar,
+			phoneNumber: session.phoneNumber,
+			locale: session.locale,
+			isPrivateAccount: session.isPrivateAccount,
 		};
 		console.log("[Redis:session] accountId: ", session._id);
 	} catch (e) {
 		console.log("[ERROR] auth.parser", e);
-		c.set("user", { _id: "", email: "", firstname: "", lastname: "", username: "" });
+		c.set("user", {
+			_id: "",
+			email: "",
+			firstname: "",
+			lastname: "",
+			username: "",
+			avatar: "",
+			phoneNumber: "",
+			locale: "",
+			isPrivateAccount: false,
+		});
 
 		return responseError(c, "UNAUTHORIZED", "Unauthorized. Invalid token");
 	}

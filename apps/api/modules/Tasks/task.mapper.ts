@@ -87,12 +87,18 @@ export const buildPayloadUpdateTask = (ctx: Context, request: UpdateTaskRequest,
 
 		if (startDate) {
 			res.timing.startDate = dayjs(startDate).toDate();
+		} else if (startDate === null) {
+			res.timing.startDate = null;
 		}
 		if (endDate) {
 			res.timing.endDate = dayjs(endDate).toDate();
+		} else if (endDate === null) {
+			res.timing.endDate = null;
 		}
 		if (estimation) {
 			res.timing.estimation = estimation satisfies TaskTiming["estimation"];
+		} else if (estimation === null) {
+			res.timing.estimation = null;
 		}
 	}
 

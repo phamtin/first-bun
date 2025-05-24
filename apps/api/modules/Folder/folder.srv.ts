@@ -73,6 +73,11 @@ const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> =>
 			},
 		},
 		{
+			$sort: {
+				createdAt: -1,
+			},
+		},
+		{
 			$project: {
 				folder: "$$ROOT",
 				taskStats: 1,

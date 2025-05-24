@@ -10,6 +10,10 @@ export type UserCheckParser = {
 	username: string;
 	firstname: string;
 	lastname: string;
+	avatar: string;
+	phoneNumber: string;
+	locale: string;
+	isPrivateAccount: boolean;
 };
 
 export type Context = HonoContext;

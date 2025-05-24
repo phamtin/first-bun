@@ -7,7 +7,7 @@ import type { ExtendTaskModel, TaskModel, TaskPriority, TaskStatus } from "@/sha
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import { EXCLUDED_TASK_STATUS } from "./task.helper";
+import { buildActivities, EXCLUDED_TASK_STATUS } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
 const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
@@ -83,20 +83,28 @@ const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<
 	};
 };
 
-const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskModel>): Promise<UpdateTaskResponse> => {
+const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskModel>, model?: TaskModel): Promise<UpdateTaskResponse> => {
 	payload.updatedAt = dayjs().toDate();
 
 	const unsetTiming: Record<string, true> = {};
 
 	if (payload.timing) {
-		const { startDate, endDate } = payload.timing;
+		const { startDate, endDate, estimation } = payload.timing;
 
-		if (!startDate) {
+		if (startDate === null) {
 			unsetTiming["timing.startDate"] = true;
 		}
-		if (!endDate) {
+		if (endDate === null) {
 			unsetTiming["timing.endDate"] = true;
 		}
+		if (estimation === null) {
+			unsetTiming["timing.estimation"] = true;
+		}
+	}
+
+	if (model) {
+		const activities = buildActivities(ctx.get("user"), payload, model);
+		payload.activities = activities.concat(model.activities || []);
 	}
 
 	const updated = await TaskColl.findOneAndUpdate(

@@ -228,7 +228,7 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 		}
 	}
 	console.log("Duration API [3]", performance.now() - cc);
-	const res = await TaskRepo.updateTask(ctx, taskId, payload);
+	const res = await TaskRepo.updateTask(ctx, taskId, payload, task as TaskModel);
 
 	if (!res?._id) {
 		throw new AppError("INTERNAL_SERVER_ERROR");

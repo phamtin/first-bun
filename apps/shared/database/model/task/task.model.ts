@@ -5,9 +5,9 @@ import { objectId, vAttributePattern, type AttributePattern } from "../../../typ
 import { vAccountProfile, type AccountModel } from "../account/account.model";
 
 export type TaskTiming = {
-	startDate?: Date;
-	endDate?: Date;
-	estimation?: number; //	Default is HOUR
+	startDate?: Date | null;
+	endDate?: Date | null;
+	estimation?: number | null; //	Default is HOUR
 };
 
 export enum TaskPriority {
@@ -25,6 +25,23 @@ export enum TaskStatus {
 	Archived = "Archived",
 }
 
+export type TaskActivity = {
+	account: Pick<AccountModel, "_id" | "profileInfo">;
+	action: string;
+	fieldChange: {
+		field:
+			| keyof Pick<TaskModel, "title" | "status" | "description" | "priority" | "tags" | "assigneeInfo" | "additionalInfo">
+			| keyof Pick<TaskTiming, "startDate" | "endDate" | "estimation">;
+
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		oldValue: any;
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		newValue: any;
+	};
+	updatedAt: Date;
+	changeGroupId?: string;
+};
+
 /**
  *  -----------------------------
  *	|
@@ -38,6 +55,7 @@ export type TaskModel = {
 	title: string;
 	status: TaskStatus;
 	folderId: ObjectId;
+	activities: TaskActivity[];
 	description?: string;
 	priority?: TaskPriority;
 	assigneeInfo?: Omit<AccountModel, "accountSettings">[];
@@ -91,18 +109,42 @@ export const vExtendTaskModel = v.strictObject({
 	),
 }) satisfies v.BaseSchema<ExtendTaskModel, ExtendTaskModel, v.BaseIssue<unknown>>;
 
+export const vTaskActivity = v.strictObject({
+	account: v.pick(vAccountProfile, ["_id", "profileInfo"]),
+	action: v.string(),
+	fieldChange: v.strictObject({
+		field: v.union([
+			v.literal("title"),
+			v.literal("status"),
+			v.literal("description"),
+			v.literal("priority"),
+			v.literal("assigneeInfo"),
+			v.literal("additionalInfo"),
+			v.literal("tags"),
+			v.literal("startDate"),
+			v.literal("endDate"),
+			v.literal("estimation"),
+		]),
+		oldValue: v.any(),
+		newValue: v.any(),
+	}),
+	changeGroupId: v.optional(v.string()),
+	updatedAt: v.date(),
+}) satisfies v.BaseSchema<TaskActivity, TaskActivity, v.BaseIssue<unknown>>;
+
 export const vTaskModel = v.strictObject({
 	_id: objectId,
 	title: v.string(),
 	status: v.enum(TaskStatus),
 	folderId: objectId,
+	activities: v.array(vTaskActivity),
 	assigneeInfo: v.optional(v.array(v.omit(vAccountProfile, ["accountSettings"]))),
 	description: v.optional(v.string()),
 	timing: v.optional(
 		v.strictObject({
-			startDate: v.optional(v.date()),
-			endDate: v.optional(v.date()),
-			estimation: v.optional(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours"))),
+			startDate: v.optional(v.nullable(v.date())),
+			endDate: v.optional(v.nullable(v.date())),
+			estimation: v.optional(v.nullable(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours")))),
 		}),
 	),
 	tags: v.optional(v.array(objectId)),

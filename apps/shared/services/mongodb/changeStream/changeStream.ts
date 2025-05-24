@@ -1,21 +1,23 @@
+import type { TaskModel } from "@/shared/database/model/task/task.model";
+import { taskWatcher } from "@/api/modules/Tasks/task.watcher";
 import { connectToDatabase } from "../../../loaders/mongo";
-import type { ChangeStream } from "mongodb";
+import type { ChangeStream, ChangeStreamDocument, Document, ChangeStreamOptions } from "mongodb";
 
 // Singleton pattern for change streams
 export class ChangeStreamSingleton {
-	private static instances: { [key: string]: ChangeStream } = {};
+	private static instances: { [key: string]: ChangeStream<Document> } = {};
 
-	static async getChangeStream(collectionName: string): Promise<ChangeStream> {
+	static async getChangeStream<T extends Document>(collectionName: string, options?: ChangeStreamOptions): Promise<ChangeStream<T>> {
 		if (!ChangeStreamSingleton.instances[collectionName]) {
 			const db = await connectToDatabase();
 
-			if (!db) {
-				throw new Error("Failed to connect to database");
-			}
+			if (!db) throw new Error("Failed to connect to database");
+
 			const collection = db.collection(collectionName);
 
-			const changeStream = collection.watch([], {
+			const changeStream = collection.watch<T, ChangeStreamDocument<T>>([], {
 				fullDocument: "updateLookup",
+				...options,
 			});
 			ChangeStreamSingleton.instances[collectionName] = changeStream;
 
@@ -28,7 +30,7 @@ export class ChangeStreamSingleton {
 			});
 		}
 
-		return ChangeStreamSingleton.instances[collectionName];
+		return ChangeStreamSingleton.instances[collectionName] as ChangeStream<T>;
 	}
 
 	private static async closeChangeStream(collectionName: string): Promise<void> {
@@ -61,20 +63,14 @@ export class ChangeStreamSingleton {
 	}
 }
 
-// Usage example
-// async function startMonitoring() {
-//     try {
-//         const changeStream = await ChangeStreamSingleton.getChangeStream('your-collection-name');
+async function initChangeStream() {
+	try {
+		const changeStream = await ChangeStreamSingleton.getChangeStream<TaskModel>("tasks");
+		changeStream.on("change", taskWatcher);
+	} catch (err) {
+		ChangeStreamSingleton.closeAllChangeStreams();
+		console.error("Failed to start change stream:", err);
+	}
+}
 
-//         changeStream.on('change', change => {
-//             if (change.operationType === 'update') {
-//                 console.log('Change in electronics category:', change.fullDocument);
-//                 // Handle changes for documents in the 'electronics' category
-//             }
-//         });
-//     } catch (err) {
-//         console.error('Failed to start change stream:', err);
-//     }
-// }
-
-// startMonitoring();
+export { initChangeStream };
