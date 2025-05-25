@@ -85,7 +85,7 @@ folderRoute.delete("/:id", async (c) => {
  */
 folderRoute.post(
 	"/invite",
-	vValidator("json", inviteRequest, (result, c) => {
+	vValidator("json", inviteRequest, (result) => {
 		if (!result.success) {
 			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
 		}

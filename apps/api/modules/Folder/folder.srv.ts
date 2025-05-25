@@ -101,8 +101,6 @@ const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> =>
 const getFoldersSharedWithMe = async (ctx: Context): Promise<FolderModel[]> => {
 	let res: FolderModel[] = [];
 
-	console.log(ctx.get("user")._id);
-
 	res = await FolderRepo.getFolders(ctx, { memberId: ctx.get("user")._id });
 
 	return res;
@@ -199,7 +197,7 @@ const deleteFolder = async (ctx: Context, folderId: string): Promise<boolean> =>
 	}
 	const deletetaskPromisors: Promise<boolean>[] = [];
 
-	const tasks = await TaskSrv.findTasksByFolderId(ctx, folderId);
+	const tasks = await TaskSrv.findTasksByFolderIds(ctx, [folderId]);
 
 	for (const task of tasks) {
 		deletetaskPromisors.push(TaskSrv.deleteTask(ctx, task._id.toHexString()));

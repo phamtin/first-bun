@@ -13,7 +13,7 @@ const pomodoroRoute = new Hono();
  */
 pomodoroRoute.get(
 	"/",
-	vValidator("query", getPomodorosRequest, (result, c) => {
+	vValidator("query", getPomodorosRequest, (result) => {
 		if (!result.success) {
 			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
 		}
@@ -29,7 +29,7 @@ pomodoroRoute.get(
  */
 pomodoroRoute.post(
 	"/create",
-	vValidator("json", createPomodoroRequest, (result, c) => {
+	vValidator("json", createPomodoroRequest, (result) => {
 		if (!result.success) {
 			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
 		}
@@ -45,7 +45,7 @@ pomodoroRoute.post(
  */
 pomodoroRoute.patch(
 	"/:pomodoroId",
-	vValidator("json", updatePomodoroRequest, (result, c) => {
+	vValidator("json", updatePomodoroRequest, (result) => {
 		if (!result.success) {
 			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
 		}

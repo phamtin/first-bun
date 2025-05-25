@@ -9,7 +9,7 @@ import { getValidationErrorMsg } from "@/shared/utils/error";
 const taskRoute = new Hono();
 
 /**
- * 	Get a list of my tasks
+ * 	Get a list of tasks
  */
 taskRoute.get(
 	"/",

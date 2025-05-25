@@ -1,9 +1,9 @@
-import type { WithoutId } from "mongodb";
+import type { Condition, Filter, FindOptions, InsertOneOptions, WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import { TaskColl } from "@/shared/loaders/mongo";
 import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 
-import type { ExtendTaskModel, TaskModel, TaskPriority, TaskStatus } from "@/shared/database/model/task/task.model";
+import { type ExtendTaskModel, type TaskModel, type TaskPriority, TaskStatus } from "@/shared/database/model/task/task.model";
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
 import { toObjectId } from "@/shared/services/mongodb/helper";
@@ -15,6 +15,10 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 		{
 			$match: {
 				_id: toObjectId(id),
+
+				status: {
+					$ne: TaskStatus.Archived,
+				},
 				deletedAt: {
 					$exists: false,
 				},
@@ -65,7 +69,7 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 	return tasks[0];
 };
 
-const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<CreateTaskResponse> => {
+const createTask = async (ctx: Context, payload: WithoutId<TaskModel>, opt?: InsertOneOptions): Promise<CreateTaskResponse> => {
 	const data: WithoutId<TaskModel> = {
 		...payload,
 
@@ -73,7 +77,7 @@ const createTask = async (ctx: Context, payload: WithoutId<TaskModel>): Promise<
 		createdBy: toObjectId(ctx.get("user")._id),
 	};
 
-	const { acknowledged, insertedId } = await TaskColl.insertOne(data);
+	const { acknowledged, insertedId } = await TaskColl.insertOne(data, opt);
 
 	if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR");
 
@@ -127,111 +131,71 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 };
 
 const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskModel[]> => {
-	const { query = "", startDate = "", endDate = "", tags: _tags = [] } = request;
-
-	const statusFilter = (request.status as TaskStatus[])?.filter((s) => !EXCLUDED_TASK_STATUS[s]) || [];
-
-	const priorities: TaskPriority[] = (request.priorities as TaskPriority[]) || [];
-
 	const accountId = toObjectId(ctx.get("user")._id);
 
-	const isOwnerQuery = request.isOwned === "true";
+	const filter: Filter<TaskModel> = {
+		status: {
+			$ne: TaskStatus.Archived,
+		},
+		deletedAt: {
+			$exists: false,
+		},
+	};
 
-	if (!isOwnerQuery) {
-		if (!request.folderId) {
-			throw new AppError("BAD_REQUEST", "Folder ID is required");
-		}
+	if ((request.query?.length || 0) > 1) {
+		const regexQuery: Condition<string> = { $regex: request.query, $options: "i" };
+
+		filter.$or = [{ title: regexQuery }, { description: regexQuery }];
 	}
 
-	let tasks: TaskModel[] = (await TaskColl.aggregate([
-		{
-			$match: {
-				folderId: isOwnerQuery ? { $exists: true } : toObjectId(request.folderId),
-
-				$or: isOwnerQuery ? [{ createdBy: accountId }, { assigneeId: accountId }] : [{ folderId: { $exists: true } }],
-
-				deletedAt: { $exists: false },
-
-				$expr: {
-					$and: [
-						//	Apply search task
-						{
-							$cond: {
-								if: {
-									$gte: [query.length, 2],
-								},
-								then: {
-									$or: [
-										{
-											$regexMatch: { input: "$title", regex: query, options: "i" },
-										},
-										{
-											$regexMatch: { input: "$description", regex: query, options: "i" },
-										},
-									],
-								},
-								else: {},
-							},
-						},
-						//	Apply filter task status
-						{
-							$cond: {
-								if: {
-									$gte: [statusFilter.length, 1],
-								},
-								then: {
-									$in: ["$status", statusFilter],
-								},
-								else: {},
-							},
-						},
-						//	Apply filter task priority
-						{
-							$cond: {
-								if: {
-									$gte: [priorities.length, 1],
-								},
-								then: {
-									$in: ["$priority", priorities],
-								},
-								else: {},
-							},
-						},
-
-						startDate.length > 0
-							? {
-									$gte: ["$timing.startDate", { $toDate: startDate }],
-								}
-							: {},
-
-						endDate.length > 0
-							? {
-									$lte: ["$timing.endDate", { $toDate: endDate }],
-								}
-							: {},
-					],
-				},
-			},
-		},
-		{
-			$project: {
-				"assigneeInfo.accountSettings": 0,
-			},
-		},
-		{
-			$sort: { createdAt: -1 },
-		},
-	]).toArray()) as TaskModel[];
-
-	if (_tags.length) {
-		const tagsSet = new Set(_tags as string[]);
-
-		tasks = tasks.filter((task) => {
-			return (task.tags ?? []).some((tag) => tagsSet.has(tag.toString()));
-		});
+	if (request.isMine) {
+		filter.assigneeInfo = { $elemMatch: { _id: accountId } };
 	}
 
-	return tasks;
+	if (request.folderIds.length) {
+		filter.folderId = {
+			$in: request.folderIds.map((id) => toObjectId(id)),
+		};
+	}
+
+	if (request.status?.length) {
+		filter.status = {
+			$in: request.status,
+		};
+	}
+
+	if (request.priorities?.length) {
+		filter.priority = {
+			$in: request.priorities,
+		};
+	}
+
+	if (request.startDate) {
+		filter["timing.startDate"] = {
+			$gte: dayjs(request.startDate).toDate(),
+		};
+	}
+
+	if (request.endDate) {
+		filter["timing.endDate"] = {
+			$lte: dayjs(request.endDate).toDate(),
+		};
+	}
+
+	if (request.tags?.length) {
+		filter.tags = {
+			$in: request.tags.map((id) => toObjectId(id)),
+		};
+	}
+
+	const queryOptions: FindOptions<TaskModel> = {
+		limit: 10000,
+		sort: {
+			createdAt: -1,
+		},
+	};
+
+	return await TaskColl.find(filter, queryOptions).toArray();
 };
 
 const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
@@ -253,12 +217,36 @@ const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
 	return !!res?.deletedAt;
 };
 
+const findTasksByFolderIds = async (ctx: Context, folderIds: string[], opt?: FindOptions<TaskModel>): Promise<TaskModel[]> => {
+	if (!folderIds?.length) return [];
+
+	const filter: Filter<TaskModel> = {
+		status: {
+			$ne: TaskStatus.Archived,
+		},
+		deletedAt: {
+			$exists: false,
+		},
+	};
+
+	if (folderIds.length === 1) {
+		filter.folderId = toObjectId(folderIds[0]);
+	} else {
+		filter.folderId = {
+			$in: folderIds.map((id) => toObjectId(id)),
+		};
+	}
+
+	return await TaskColl.find(filter, opt).toArray();
+};
+
 const TaskRepo = {
 	createTask,
 	getTasks,
 	findById,
 	updateTask,
 	deleteTask,
+	findTasksByFolderIds,
 };
 
 export default TaskRepo;

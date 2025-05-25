@@ -5,12 +5,13 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import TaskRepo from "./task.repo";
 import dayjs from "@/shared/utils/dayjs";
 import { TaskColl } from "@/shared/loaders/mongo";
-import { TaskStatus, type TaskModel, type TaskTiming } from "@/shared/database/model/task/task.model";
+import type { TaskModel, TaskTiming } from "@/shared/database/model/task/task.model";
 import type { AccountModel } from "@/shared/database/model/account/account.model";
 import { AppError } from "@/shared/utils/error";
 import AccountSrv from "../Accounts";
 import FolderUtil from "../Folder/folder.util";
 import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
+import type { FolderModel } from "@/shared/database/model/folder/folder.model";
 
 const findById = async (ctx: Context, id: string): Promise<tv.GetTaskByIdResponse> => {
 	const task = await TaskRepo.findById(ctx, id);
@@ -24,6 +25,23 @@ const getTasks = async (ctx: Context, request: tv.GetTasksRequest): Promise<tv.G
 		if (startDate) {
 			if (dayjs(endDate).isSameOrBefore(startDate, "second")) {
 				throw new AppError("BAD_REQUEST", "Start date - end date range is invalid");
+			}
+		}
+	}
+
+	if (request.folderIds?.length) {
+		const userId = ctx.get("user")._id;
+
+		const promisors = request.folderIds.map((id) => FolderUtil.checkUserIsParticipantFolder(userId, id));
+
+		const results = await Promise.all(promisors);
+
+		for (const [accessGranted, folder] of results) {
+			if (!accessGranted) {
+				throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
+			}
+			if (!folder) {
+				throw new AppError("NOT_FOUND", "Folder not found");
 			}
 		}
 	}
@@ -264,31 +282,25 @@ const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
 	return true;
 };
 
-const findTasksByFolderId = async (ctx: Context, folderId: string): Promise<tv.GetTasksResponse> => {
-	const tasks = await TaskColl.find({
-		folderId: toObjectId(folderId),
-		deletedAt: {
-			$exists: false,
-		},
-	}).toArray();
-
-	return tasks;
-};
-
 const findTasksByFolderIds = async (ctx: Context, folderIds: string[]): Promise<tv.GetTasksResponse> => {
-	const tasks = await TaskColl.find({
-		folderId: {
-			$in: folderIds.map((id) => toObjectId(id)),
-		},
-		status: {
-			$ne: TaskStatus.Archived,
-		},
-		deletedAt: {
-			$exists: false,
-		},
-	}).toArray();
+	let promisors: Promise<[boolean, FolderModel | null]>[] = [];
 
-	return tasks;
+	for (const folderId of folderIds) {
+		promisors = promisors.concat(FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, folderId));
+	}
+
+	const results = await Promise.all(promisors);
+
+	for (const [canUserAccess, folder] of results) {
+		if (!canUserAccess) {
+			throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
+		}
+		if (!folder) {
+			throw new AppError("NOT_FOUND", "Folder not found");
+		}
+	}
+
+	return await TaskRepo.findTasksByFolderIds(ctx, folderIds);
 };
 
 const TaskSrv = {
@@ -297,7 +309,6 @@ const TaskSrv = {
 	findById,
 	getTasks,
 	deleteTask,
-	findTasksByFolderId,
 	findTasksByFolderIds,
 };
 

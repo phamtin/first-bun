@@ -7,26 +7,28 @@ export const checkUserIsParticipantFolder = async (userId: string, folderId: str
 		return [false, null];
 	}
 
+	const userObjectId = toObjectId(userId);
+
 	const folder = await FolderColl.findOne({
 		_id: toObjectId(folderId),
+
 		deletedAt: {
 			$exists: false,
 		},
+
+		$or: [
+			{
+				"participantInfo.owner._id": userObjectId,
+			},
+			{
+				"participantInfo.members": { $elemMatch: { _id: userObjectId } },
+			},
+		],
 	});
 
 	if (!folder) return [false, null];
 
-	if (folder.participantInfo.owner._id.equals(userId)) {
-		return [true, folder];
-	}
-
-	for (const member of folder.participantInfo.members) {
-		if (member._id.toHexString() === userId) {
-			return [true, folder];
-		}
-	}
-
-	return [false, null];
+	return [true, folder];
 };
 
 const FolderUtil = {

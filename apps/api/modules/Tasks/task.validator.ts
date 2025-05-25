@@ -11,8 +11,8 @@ export const createTaskRequest = v.strictObject({
 	assigneeId: v.optional(stringObjectId),
 	folderId: stringObjectId,
 	timing: v.strictObject({
-		startDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted")))),
-		endDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted")))),
+		startDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
+		endDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
 		estimation: v.optional(v.nullable(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours")))),
 	}),
 	priority: v.optional(v.enum(TaskPriority)),
@@ -24,23 +24,14 @@ export const createTaskRequest = v.strictObject({
 export const createTaskResponse = vTaskModel;
 
 export const getTasksRequest = v.strictObject({
-	folderId: v.optional(stringObjectId),
+	folderIds: v.array(stringObjectId),
 	query: v.optional(v.string()),
-	status: v.pipe(
-		v.optional(v.union([v.array(v.enum(TaskStatus)), v.enum(TaskStatus)])),
-		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i)),
-	),
-	priorities: v.pipe(
-		v.optional(v.union([v.array(v.enum(TaskPriority)), v.enum(TaskPriority)])),
-		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i)),
-	),
-	startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
-	endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted"))),
-	tags: v.pipe(
-		v.optional(v.union([v.array(stringObjectId), stringObjectId])),
-		v.transform((input) => (Array.isArray(input) ? input : [input]).filter((i) => !!i)),
-	),
-	isOwned: v.optional(v.union([v.literal("true"), v.literal("false")])),
+	isMine: v.optional(v.boolean()),
+	status: v.optional(v.array(v.enum(TaskStatus))),
+	priorities: v.optional(v.array(v.enum(TaskPriority))),
+	tags: v.optional(v.array(stringObjectId)),
+	startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
+	endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
 });
 
 export const getTasksResponse = v.array(vTaskModel);
@@ -53,8 +44,8 @@ export const updateTaskRequest = v.strictObject({
 	priority: v.optional(v.enum(TaskPriority)),
 	timing: v.optional(
 		v.strictObject({
-			startDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted")))),
-			endDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is badly formatted")))),
+			startDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
+			endDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
 			estimation: v.optional(v.nullable(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours")))),
 		}),
 	),
