@@ -189,7 +189,7 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 	}
 
 	const queryOptions: FindOptions<TaskModel> = {
-		limit: 10000,
+		limit: 1000,
 		sort: {
 			createdAt: -1,
 		},

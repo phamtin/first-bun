@@ -7,7 +7,8 @@ import taskRoute from "../modules/Tasks/task.route";
 import folderRoute from "../modules/Folder/folder.route";
 import pomodoroRoute from "../modules/Pomodoro/pomodoro.route";
 import { creadentialParser } from "../middlewares/credential.parser";
-import sandboxRoute from "../modules/Sandbox/sandbox.route";
+// import sandboxRoute from "../modules/Sandbox/etl-task/sandbox.route";
+import notificationRoute from "../modules/Notification/noti.route";
 
 const routes = new Hono();
 
@@ -29,8 +30,10 @@ routes.route("/tasks", taskRoute);
 
 routes.route("/folders", folderRoute);
 
+routes.route("/notifications", notificationRoute);
+
 routes.route("/pomodoros", pomodoroRoute);
 
-routes.route("/sandbox", sandboxRoute);
+// routes.route("/sandbox", sandboxRoute);
 
 export default routes;

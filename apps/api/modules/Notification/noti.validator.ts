@@ -13,25 +13,26 @@ export const createRequest = v.strictObject({
 
 export const createResponse = objectId;
 
-export const getNotificationsByAccountIdRequest = v.strictObject({
-	accountId: stringObjectId,
+export const getNotificationsRequest = v.strictObject({
+	createdFrom: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
+	createdTo: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
 });
 
-export const getNotificationsByAccountIdResponse = v.array(vNotificationModel);
+export const getNotificationsResponse = v.array(vNotificationModel);
 
 export const markAsReadRequest = v.strictObject({
-	markAll: v.boolean(),
-	notificationId: stringObjectId,
+	markAll: v.optional(v.boolean()),
+	notificationId: v.optional(stringObjectId),
 });
 
 export const deleteRequest = v.strictObject({
-	deleteAll: v.boolean(),
-	notificationId: stringObjectId,
+	deleteAll: v.optional(v.boolean()),
+	notificationId: v.optional(stringObjectId),
 });
 
 export type CreateRequest = InferInput<typeof createRequest>;
 export type CreateResponse = InferInput<typeof createResponse>;
-export type GetNotificationsByAccountIdRequest = InferInput<typeof getNotificationsByAccountIdRequest>;
-export type GetNotificationsByAccountIdResponse = InferInput<typeof getNotificationsByAccountIdResponse>;
+export type GetNotificationsRequest = InferInput<typeof getNotificationsRequest>;
+export type GetNotificationsResponse = InferInput<typeof getNotificationsResponse>;
 export type MarkAsReadRequest = InferInput<typeof markAsReadRequest>;
 export type DeleteRequest = InferInput<typeof deleteRequest>;

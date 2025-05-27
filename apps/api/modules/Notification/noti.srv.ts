@@ -6,6 +6,7 @@ import type { NotificationModel } from "@/shared/database/model/notification/not
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import { NotificationColl } from "@/shared/loaders/mongo";
 import { AppError } from "@/shared/utils/error";
+import NotificationRepo from "./noti.repo";
 
 const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.CreateResponse> => {
 	const newNotification: WithoutId<NotificationModel> = {
@@ -44,19 +45,8 @@ const bulkCreate = async (ctx: Context, request: nv.CreateRequest[], option?: Up
 	return created.acknowledged;
 };
 
-const getNotificationsByAccountId = async (ctx: Context, request: nv.GetNotificationsByAccountIdRequest): Promise<nv.GetNotificationsByAccountIdResponse> => {
-	const items = await NotificationColl.find(
-		{
-			accountId: toObjectId(request.accountId),
-			deletedAt: {
-				$exists: false,
-			},
-		},
-		{
-			limit: 1000,
-		},
-	).toArray();
-
+const getNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<nv.GetNotificationsResponse> => {
+	const items = await NotificationRepo.findNotifications(ctx, request);
 	return items;
 };
 
@@ -65,6 +55,7 @@ const markAsRead = async (ctx: Context, request: nv.MarkAsReadRequest): Promise<
 		throw new AppError("BAD_REQUEST", "Should use one criterial");
 	}
 	const now = dayjs().toDate();
+
 	if (request.markAll) {
 		await NotificationColl.updateMany(
 			{
@@ -121,7 +112,7 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 const NotificationSrv = {
 	create,
 	bulkCreate,
-	getNotificationsByAccountId,
+	getNotifications,
 	markAsRead,
 	deleteNotifications,
 };
