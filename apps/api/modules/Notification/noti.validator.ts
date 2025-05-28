@@ -25,6 +25,13 @@ export const markAsReadRequest = v.strictObject({
 	notificationId: v.optional(stringObjectId),
 });
 
+export const updateNotiRequest = v.strictObject({
+	notificationId: stringObjectId,
+	title: v.optional(v.string()),
+	read: v.optional(v.boolean()),
+	payload: v.optional(v.array(vAttributePattern)),
+});
+
 export const deleteRequest = v.strictObject({
 	deleteAll: v.optional(v.boolean()),
 	notificationId: v.optional(stringObjectId),
@@ -35,4 +42,5 @@ export type CreateResponse = InferInput<typeof createResponse>;
 export type GetNotificationsRequest = InferInput<typeof getNotificationsRequest>;
 export type GetNotificationsResponse = InferInput<typeof getNotificationsResponse>;
 export type MarkAsReadRequest = InferInput<typeof markAsReadRequest>;
+export type UpdateNotiRequest = InferInput<typeof updateNotiRequest>;
 export type DeleteRequest = InferInput<typeof deleteRequest>;

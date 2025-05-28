@@ -24,8 +24,28 @@ const findNotifications = async (ctx: Context, request: nv.GetNotificationsReque
 
 	return NotificationColl.find(query).toArray();
 };
+
+const updateNotification = async (ctx: Context, request: nv.UpdateNotiRequest): Promise<boolean> => {
+	const updated = await NotificationColl.updateOne(
+		{
+			_id: toObjectId(request.notificationId),
+		},
+		{
+			$set: {
+				title: request.title,
+				read: request.read,
+				payload: request.payload,
+				updatedAt: dayjs().toDate(),
+			},
+		},
+	);
+
+	return updated.modifiedCount > 0;
+};
+
 const NotificationRepo = {
 	findNotifications,
+	updateNotification,
 };
 
 export default NotificationRepo;

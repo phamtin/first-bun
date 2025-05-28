@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/shared/utils/response";
 import NotificationSrv from "./noti.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
-import { getNotificationsRequest, markAsReadRequest } from "./noti.validator";
+import { getNotificationsRequest, markAsReadRequest, updateNotiRequest } from "./noti.validator";
 
 const notificationRoute = new Hono();
 
@@ -36,6 +36,22 @@ notificationRoute.patch(
 	}),
 	async (c) => {
 		const r = await NotificationSrv.markAsRead(c, c.req.valid("json"));
+		return responseOK(c, r);
+	},
+);
+
+/**
+ * 	Mark notification as read
+ */
+notificationRoute.patch(
+	"/",
+	vValidator("json", updateNotiRequest, (result) => {
+		if (!result.success) {
+			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
+		}
+	}),
+	async (c) => {
+		const r = await NotificationSrv.updateNotification(c, c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );

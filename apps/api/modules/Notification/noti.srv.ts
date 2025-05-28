@@ -22,6 +22,12 @@ const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.Creat
 	return created.insertedId;
 };
 
+const updateNotification = async (ctx: Context, request: nv.UpdateNotiRequest): Promise<boolean> => {
+	const updated = await NotificationRepo.updateNotification(ctx, request);
+
+	return updated;
+};
+
 const bulkCreate = async (ctx: Context, request: nv.CreateRequest[], option?: UpdateOptions): Promise<boolean> => {
 	for (const r of request) {
 		if (!r.accountId && !r.email) {
@@ -111,6 +117,7 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 
 const NotificationSrv = {
 	create,
+	updateNotification,
 	bulkCreate,
 	getNotifications,
 	markAsRead,
