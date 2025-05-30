@@ -5,7 +5,7 @@
 	"private": true,
 	"dependencies": {
 		"@hono/valibot-validator": "^0.5.2",
-		"bullmq": "^5.53.0",
+		"bullmq": "^5.53.1",
 		"csv-parse": "^5.6.0",
 		"dayjs": "^1.11.13",
 		"google-auth-library": "^9.15.1",
@@ -19,7 +19,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
 		"@bull-board/hono": "^6.9.6",
-		"@types/bun": "^1.2.14",
-		"typescript": "^5.8.3"
+		"@types/bun": "^1.2.15",
+		"@typescript/native-preview": "^7.0.0-dev.20250530.1"
 	}
 }

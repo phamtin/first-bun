@@ -9,8 +9,22 @@ services:
             - "8080:8080"
             - "443:443" # HTTPS
         restart: unless-stopped
-        networks:
-            - app-network
+        network_mode: host
+
+    # nats:
+    #     image: nats:latest
+    #     container_name: "nats"
+    #     ports:
+    #         - "4222:4222"
+    #         - "6222:6222"
+    #     restart: unless-stopped
+    #     network_mode: host
+    #     healthcheck:
+    #         test: ["CMD", "nats", "cli", "health"]
+    #         interval: 10s
+    #         timeout: 5s
+    #         retries: 5
+    #         start_period: 5s    
 
     redis-stack:
         image: redis/redis-stack-server:latest
@@ -26,14 +40,13 @@ services:
             retries: 5
             start_period: 5s
             timeout: 5s
-        networks:
-            - app-network
+        network_mode: host
         deploy:
             resources:
                 limits:
                     memory: 250M
 
-    app:
+    api:
         image: tinphamtp/blitz-api:1.0.0
         env_file:
             - .env
@@ -45,9 +58,13 @@ services:
         depends_on:
             redis-stack:
                 condition: service_healthy
-        networks:
-            - app-network
+        network_mode: host
 
-networks:
-    app-network:
-        driver: bridge
+    worker:
+        image: tinphamtp/blitz-worker:1.0.0
+        env_file:
+            - .env
+        restart: always
+        network_mode: host
+        depends_on:
+            - api
