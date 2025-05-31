@@ -12,6 +12,7 @@ import AccountSrv from "../Accounts";
 import FolderUtil from "../Folder/folder.util";
 import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 import type { FolderModel } from "@/shared/database/model/folder/folder.model";
+import FolderSrv from "../Folder/folder.srv";
 
 const findById = async (ctx: Context, id: string): Promise<tv.GetTaskByIdResponse> => {
 	const task = await TaskRepo.findById(ctx, id);
@@ -28,25 +29,22 @@ const getTasks = async (ctx: Context, request: tv.GetTasksRequest): Promise<tv.G
 			}
 		}
 	}
+	const [folderCreatedByMe, folderSharedWithMe] = await Promise.all([FolderSrv.getFoldersCreatedByMe(ctx, {}), FolderSrv.getFoldersSharedWithMe(ctx, {})]);
 
-	if (request.folderIds?.length) {
-		const userId = ctx.get("user")._id;
+	const grandFolderIds = folderCreatedByMe.concat(folderSharedWithMe).map((f) => f._id.toHexString());
 
-		const promisors = request.folderIds.map((id) => FolderUtil.checkUserIsParticipantFolder(userId, id));
+	const requestFolderIds = request.folderIds || [];
 
-		const results = await Promise.all(promisors);
-
-		for (const [accessGranted, folder] of results) {
-			if (!accessGranted) {
-				throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
-			}
-			if (!folder) {
-				throw new AppError("NOT_FOUND", "Folder not found");
-			}
+	if (requestFolderIds.length > 0) {
+		if (requestFolderIds.some((id) => grandFolderIds.indexOf(id) === -1)) {
+			throw new AppError("BAD_REQUEST", "You're not participant of folder");
 		}
+		request.folderIds = requestFolderIds;
+	} else {
+		request.folderIds = grandFolderIds;
 	}
 
-	const tasks: TaskModel[] = await TaskRepo.getTasks(ctx, request);
+	const tasks = await TaskRepo.getTasks(ctx, request);
 
 	return tasks;
 };

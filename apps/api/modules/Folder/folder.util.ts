@@ -1,6 +1,7 @@
 import { FolderColl } from "@/shared/loaders/mongo";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import type { FolderModel } from "@/shared/database/model/folder/folder.model";
+import { FolderStatus } from "@/shared/database/model/folder/folder.model";
 
 export const checkUserIsParticipantFolder = async (userId: string, folderId: string): Promise<[boolean, FolderModel | null]> => {
 	if (!userId || !folderId) {
@@ -11,6 +12,10 @@ export const checkUserIsParticipantFolder = async (userId: string, folderId: str
 
 	const folder = await FolderColl.findOne({
 		_id: toObjectId(folderId),
+
+		"folderInfo.status": {
+			$ne: FolderStatus.Archived,
+		},
 
 		deletedAt: {
 			$exists: false,

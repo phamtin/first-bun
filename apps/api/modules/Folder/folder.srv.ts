@@ -98,12 +98,12 @@ const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> =>
 	return result;
 };
 
-const getFoldersSharedWithMe = async (ctx: Context): Promise<FolderModel[]> => {
-	let res: FolderModel[] = [];
+const getFoldersCreatedByMe = async (ctx: Context, request: pv.GetFoldersRequest): Promise<FolderModel[]> => {
+	return await FolderRepo.getFolders(ctx, { ownerId: ctx.get("user")._id });
+};
 
-	res = await FolderRepo.getFolders(ctx, { memberId: ctx.get("user")._id });
-
-	return res;
+const getFoldersSharedWithMe = async (ctx: Context, request: pv.GetFoldersRequest): Promise<FolderModel[]> => {
+	return await FolderRepo.getFolders(ctx, { memberId: ctx.get("user")._id });
 };
 
 const checkActiveFolder = async (ctx: Context, folderId: string): Promise<FolderModel | null> => {
@@ -381,6 +381,7 @@ const removeMember = async (ctx: Context, request: pv.RemoveRequest): Promise<pv
 const FolderSrv = {
 	getMyFolders,
 	getFoldersSharedWithMe,
+	getFoldersCreatedByMe,
 	updateFolder,
 	createFolder,
 	getFolderById,

@@ -13,9 +13,9 @@ import notificationRoute from "../modules/Notification/noti.route";
 const routes = new Hono();
 
 routes.get("/ping", (c) => {
-	console.log("It works like a fking charm! - 1.0.0-4");
+	console.log("It works like a fking charm! - 1.0.0");
 
-	return c.json({ pong: "It works like a fking charm! - 1.0.0-4" });
+	return c.json({ pong: "It works like a fking charm! - 1.0.0" });
 });
 
 routes.use(creadentialParser);

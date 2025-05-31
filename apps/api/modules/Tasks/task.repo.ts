@@ -152,7 +152,7 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 		filter.assigneeInfo = { $elemMatch: { _id: accountId } };
 	}
 
-	if (request.folderIds.length) {
+	if (request.folderIds?.length) {
 		filter.folderId = {
 			$in: request.folderIds.map((id) => toObjectId(id)),
 		};
