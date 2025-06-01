@@ -32,7 +32,7 @@ services:
     #         start_period: 5s
 
     redis-stack:
-        image: redis/redis-stack:latest
+        image: redis/redis-stack-server:latest
         container_name: "redis-stack"
         volumes:
             - ./data/redis:/data
@@ -80,7 +80,7 @@ services:
     worker:
         build:
             context: .
-            dockerfile: ./apps/workers/Dockerfile.dev.yml
+            dockerfile: apps/workers/Dockerfile.dev.yml
         env_file:
             - .env.local
         restart: always

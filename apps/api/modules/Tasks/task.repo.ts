@@ -3,11 +3,11 @@ import dayjs from "@/shared/utils/dayjs";
 import { TaskColl } from "@/shared/loaders/mongo";
 import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 
-import { type ExtendTaskModel, type TaskModel, type TaskPriority, TaskStatus } from "@/shared/database/model/task/task.model";
+import { type ExtendTaskModel, type TaskModel, TaskStatus } from "@/shared/database/model/task/task.model";
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import { buildActivities, EXCLUDED_TASK_STATUS } from "./task.helper";
+import { buildActivities } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
 const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
@@ -148,7 +148,7 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 		filter.$or = [{ title: regexQuery }, { description: regexQuery }];
 	}
 
-	if (request.isMine) {
+	if (request.isMine === "true") {
 		filter.assigneeInfo = { $elemMatch: { _id: accountId } };
 	}
 

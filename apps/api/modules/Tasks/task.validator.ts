@@ -26,7 +26,7 @@ export const createTaskResponse = vTaskModel;
 export const getTasksRequest = v.strictObject({
 	folderIds: v.optional(v.array(stringObjectId)),
 	query: v.optional(v.string()),
-	isMine: v.optional(v.boolean()),
+	isMine: v.optional(v.union([v.literal("true"), v.literal("false")])),
 	status: v.optional(v.array(v.enum(TaskStatus))),
 	priorities: v.optional(v.array(v.enum(TaskPriority))),
 	tags: v.optional(v.array(stringObjectId)),
