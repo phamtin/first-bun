@@ -26,19 +26,6 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 		},
 		{
 			$lookup: {
-				from: "accounts",
-				localField: "createdBy",
-				foreignField: "_id",
-				as: "created",
-			},
-		},
-		{
-			$unwind: {
-				path: "$created",
-			},
-		},
-		{
-			$lookup: {
 				from: "folders",
 				localField: "folderId",
 				foreignField: "_id",

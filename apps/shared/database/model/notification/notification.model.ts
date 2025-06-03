@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import * as v from "valibot";
 
-import { objectId, vAttributePattern, type AttributePattern } from "../../../types/common.type";
+import { objectId } from "../../../types/common.type";
 
 export enum NotificationType {
 	InviteJoinFolder = "InviteJoinFolder",
@@ -23,7 +23,7 @@ export type NotificationModel = {
 	read: boolean;
 	type: NotificationType;
 	accountId: ObjectId;
-	payload: AttributePattern[];
+	payload: Record<string, string | string[] | boolean>;
 
 	createdAt: Date;
 	createdBy?: ObjectId;
@@ -47,7 +47,7 @@ export const vNotificationModel = v.strictObject({
 	read: v.boolean(),
 	type: v.enum(NotificationType),
 	accountId: objectId,
-	payload: v.array(vAttributePattern),
+	payload: v.record(v.string(), v.union([v.string(), v.boolean(), v.array(v.string())])),
 
 	createdAt: v.date(),
 	createdBy: v.optional(objectId),

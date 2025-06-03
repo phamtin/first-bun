@@ -5,6 +5,7 @@ import type { NotificationModel } from "@/shared/database/model/notification/not
 import { NotificationColl } from "@/shared/loaders/mongo";
 import type * as nv from "./noti.validator";
 import dayjs from "@/shared/utils/dayjs";
+import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
 const findNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel[]> => {
 	const query: Filter<NotificationModel> = {
@@ -26,18 +27,18 @@ const findNotifications = async (ctx: Context, request: nv.GetNotificationsReque
 };
 
 const updateNotification = async (ctx: Context, request: nv.UpdateNotiRequest): Promise<boolean> => {
+	const payload = toPayloadUpdate(request);
+
+	payload.updatedAt = dayjs().toDate();
+
 	const updated = await NotificationColl.updateOne(
 		{
 			_id: toObjectId(request.notificationId),
 		},
 		{
-			$set: {
-				title: request.title,
-				read: request.read,
-				payload: request.payload,
-				updatedAt: dayjs().toDate(),
-			},
+			$set: payload,
 		},
+		{ ignoreUndefined: true },
 	);
 
 	return updated.modifiedCount > 0;

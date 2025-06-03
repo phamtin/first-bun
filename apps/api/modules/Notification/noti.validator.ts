@@ -6,7 +6,7 @@ import { objectId, stringObjectId, vAttributePattern } from "@/shared/types/comm
 export const createRequest = v.strictObject({
 	title: v.string(),
 	type: v.enum(NotificationType),
-	payload: v.array(vAttributePattern),
+	payload: v.record(v.string(), v.union([v.string(), v.boolean(), v.array(v.string())])),
 	accountId: v.optional(stringObjectId),
 	email: v.optional(stringObjectId),
 });
@@ -29,7 +29,7 @@ export const updateNotiRequest = v.strictObject({
 	notificationId: stringObjectId,
 	title: v.optional(v.string()),
 	read: v.optional(v.boolean()),
-	payload: v.optional(v.array(vAttributePattern)),
+	payload: v.optional(v.record(v.string(), v.union([v.string(), v.boolean(), v.array(v.string())]))),
 });
 
 export const deleteRequest = v.strictObject({

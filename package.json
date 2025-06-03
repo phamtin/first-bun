@@ -6,7 +6,8 @@
 	"scripts": {
 		"lint": "bun tsc --noEmit && bunx biome lint --write ./src",
 		"dev": "bun lint && bun run --watch src/pkgs/api/index.ts",
-		"dcu": "bun tsc --noEmit && COMPOSE_BAKE=true docker compose -f ./docker-compose.dev.yaml up --build",
+		"dcu": "bun tsc --noEmit && docker compose -f ./docker-compose.dev.yaml up --build",
+		"build-prod": "bun tsc --noEmit && docker compose -f ./docker-compose.build.yml build",
 		"dcd": "docker compose -f ./docker-compose.dev.yaml down --remove-orphans && docker image rm $(docker image ls -qf dangling=true)"
 	},
 	"workspaces": ["apps/*"]

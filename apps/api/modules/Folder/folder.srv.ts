@@ -282,20 +282,16 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 					title: DEFAULT_INVITATION_TITLE,
 					type: NotificationType.InviteJoinFolder,
 					accountId: i._id.toHexString(),
-					payload: [
-						{
-							k: "folderId",
-							v: request.folderId,
-						},
-						{
-							k: "inviteeEmail",
-							v: i.profileInfo.email,
-						},
-						{
-							k: "inviteeFirstname",
-							v: i.profileInfo.firstname,
-						},
-					],
+					payload: {
+						folderId: request.folderId,
+						folderName: folder.folderInfo.title,
+						inviteeEmail: i.profileInfo.email,
+						inviteeFirstname: i.profileInfo.firstname,
+						invitorId: ctx.get("user")._id,
+						invitorEmail: ctx.get("user").email,
+						invitorAvatar: ctx.get("user").avatar,
+						invitorFirstname: ctx.get("user").firstname,
+					},
 				})),
 			{ session },
 		);
