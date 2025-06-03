@@ -1,4 +1,5 @@
-FROM oven/bun
+# Stage 1: Build
+FROM oven/bun:alpine AS builder
 
 WORKDIR /app
 
@@ -14,6 +15,26 @@ WORKDIR /app/apps/workers
 
 RUN bun install
 
+# FIX: Build all worker entry points.
+# This command builds the main index.ts (WorkerContainer) and all index.ts files
+# found within immediate subdirectories (e.g., worker1/index.ts, worker2/index.ts).
+# Adjust -maxdepth if your worker subdirectories are nested deeper.
+RUN bun build ./index.ts $(find . -maxdepth 3 -type f -name 'index.ts' ! -path './index.ts') --target bun --outdir ./build --minify
+
+RUN rm -rf node_modules
+RUN rm -rf bun.lockb
+RUN rm -rf tsconfig.json
+RUN rm -rf apps/shared
+RUN rm -rf apps/api
+
+# Runtime stage
+FROM oven/bun:alpine
+
+WORKDIR /app/apps/workers
+
+COPY --from=builder /app/apps/workers/build ./build
+COPY --from=builder /app/.env ../../.env
+
 ENV BUN_ENV=development
 
-CMD ["bun", "run", "index.ts"]
+CMD ["bun", "run", "./build/index.js"]

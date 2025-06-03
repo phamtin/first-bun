@@ -2,21 +2,23 @@ import type { Context } from "hono";
 import type { UpdateOptions, WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import type * as nv from "./noti.validator";
-import type { NotificationModel } from "@/shared/database/model/notification/notification.model";
+import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import { NotificationColl } from "@/shared/loaders/mongo";
 import { AppError } from "@/shared/utils/error";
 import NotificationRepo from "./noti.repo";
+import { NotificationBuilderFactory } from "./noti.util";
 
 const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.CreateResponse> => {
-	const newNotification: WithoutId<NotificationModel> = {
+	const newNotification: WithoutId<NotificationModel<NotificationType>> = {
 		title: request.title,
-		read: false,
 		type: request.type,
-		payload: request.payload,
+		payload: NotificationBuilderFactory(request.type, request.payload),
 		accountId: toObjectId(request.accountId ?? ctx.get("user")._id),
+		read: false,
 		createdAt: dayjs().toDate(),
 	};
+
 	const created = await NotificationColl.insertOne(newNotification);
 
 	return created.insertedId;
@@ -41,7 +43,7 @@ const bulkCreate = async (ctx: Context, request: nv.CreateRequest[], option?: Up
 		payload.push({
 			...request[i],
 			read: false,
-			payload: request[i].payload,
+			payload: NotificationBuilderFactory(request[i].type, request[i].payload),
 			accountId: toObjectId(request[i].accountId),
 			createdAt: now,
 		});
@@ -51,7 +53,7 @@ const bulkCreate = async (ctx: Context, request: nv.CreateRequest[], option?: Up
 	return created.acknowledged;
 };
 
-const getNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<nv.GetNotificationsResponse> => {
+const getNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel<NotificationType>[]> => {
 	const items = await NotificationRepo.findNotifications(ctx, request);
 	return items;
 };
@@ -87,17 +89,16 @@ const markAsRead = async (ctx: Context, request: nv.MarkAsReadRequest): Promise<
 };
 
 const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Promise<boolean> => {
-	if (request.deleteAll && request.notificationId) {
-		throw new Error("Should use one criterial");
+	if ((request.deleteAll && request.notificationId) || (!request.deleteAll && !request.notificationId)) {
+		throw new AppError("BAD_REQUEST", "Should use one criterial");
 	}
-	const now = dayjs().toDate();
 	if (request.deleteAll) {
 		await NotificationColl.updateMany(
 			{
 				accountId: toObjectId(ctx.get("user")._id),
 			},
 			{
-				$set: { deletedAt: now },
+				$set: { deletedAt: dayjs().toDate() },
 			},
 		);
 	}
@@ -107,7 +108,7 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 				_id: toObjectId(request.notificationId),
 			},
 			{
-				$set: { deletedAt: now },
+				$set: { deletedAt: dayjs().toDate() },
 			},
 		);
 	}

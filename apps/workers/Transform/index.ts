@@ -1,12 +1,12 @@
 import type Redis from "@/shared/loaders/redis";
 import { connectToRedis } from "@/shared/loaders/redis";
 import { Worker } from "bullmq";
-import { extractDataProcessor } from "./Extract.srv";
+import { transformDataProcessor } from "./Transform.srv";
 import { IO_CONCURRENCY, QueueName, type ETLQueueJob } from "@/shared/services/bullMQ/type";
 
 (() => {
 	async function initializeWorker() {
-		const worker = new Worker<ETLQueueJob>(QueueName.ETLQueue, extractDataProcessor, {
+		const worker = new Worker<ETLQueueJob>(QueueName.ETLQueue, transformDataProcessor, {
 			connection: (await connectToRedis()) as Redis,
 			concurrency: IO_CONCURRENCY,
 		});

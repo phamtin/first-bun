@@ -1,14 +1,14 @@
 import type { Context } from "hono";
 import type { Filter } from "mongodb";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import type { NotificationModel } from "@/shared/database/model/notification/notification.model";
+import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
 import { NotificationColl } from "@/shared/loaders/mongo";
 import type * as nv from "./noti.validator";
 import dayjs from "@/shared/utils/dayjs";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
-const findNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel[]> => {
-	const query: Filter<NotificationModel> = {
+const findNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel<NotificationType>[]> => {
+	const query: Filter<NotificationModel<NotificationType>> = {
 		accountId: toObjectId(ctx.get("user")._id),
 	};
 

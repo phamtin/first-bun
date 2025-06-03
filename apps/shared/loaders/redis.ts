@@ -13,11 +13,11 @@ class Redis {
 			try {
 				const host = getEnv.redis.host;
 				const port = +getEnv.redis.port;
-				console.log("Redis host: ", Bun.env.BUN_ENV, host, port);
 
 				Redis.client = new IoRedis({ host, port, maxRetriesPerRequest: null });
 
-				const r = await Redis.client.set("ping", "pong");
+				await Redis.client.set("ping", "pong");
+				await Redis.client.del("ping");
 
 				return Redis.client;
 			} catch (error) {

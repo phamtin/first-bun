@@ -4,7 +4,7 @@ import type { TaskModel } from "../database/model/task/task.model";
 import type { AccountModel } from "../database/model/account/account.model";
 import type { TokenModel } from "../database/model/token/token.schema";
 import type { FolderModel } from "../database/model/folder/folder.model";
-import type { NotificationModel } from "../database/model/notification/notification.model";
+import type { NotificationModel, NotificationType } from "../database/model/notification/notification.model";
 import type { PomodoroModel } from "../database/model/pomodoro/pomodoro.model";
 
 const MONGO_URL = Bun.env.MONGODB_URL_ATLAS as string;
@@ -71,7 +71,7 @@ connectToDatabase().then((db) => {
 	TaskColl = db.collection<WithoutId<TaskModel>>("tasks");
 	TokenColl = db.collection<WithoutId<TokenModel>>("tokens");
 	FolderColl = db.collection<WithoutId<FolderModel>>("folders");
-	NotificationColl = db.collection<WithoutId<NotificationModel>>("notifications");
+	NotificationColl = db.collection<WithoutId<NotificationModel<NotificationType>>>("notifications");
 	PomodoroColl = db.collection<WithoutId<PomodoroModel>>("pomodoros");
 });
 
@@ -79,5 +79,5 @@ export let TokenColl: CollectionType<WithoutId<TokenModel>>;
 export let AccountColl: CollectionType<WithoutId<AccountModel>>;
 export let TaskColl: CollectionType<WithoutId<TaskModel>>;
 export let FolderColl: CollectionType<WithoutId<FolderModel>>;
-export let NotificationColl: CollectionType<WithoutId<NotificationModel>>;
+export let NotificationColl: CollectionType<WithoutId<NotificationModel<NotificationType>>>;
 export let PomodoroColl: CollectionType<WithoutId<PomodoroModel>>;

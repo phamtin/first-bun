@@ -1,4 +1,5 @@
-FROM oven/bun
+# Stage 1: Build
+FROM oven/bun:alpine as builder
 
 WORKDIR /app
 
@@ -11,9 +12,24 @@ COPY .env.local .env
 WORKDIR /app/apps/api
 
 RUN bun install
+RUN bun build ./index.ts --target bun --outdir ./build --minify
+
+RUN rm -rf node_modules
+RUN rm -rf bun.lockb
+RUN rm -rf tsconfig.json
+RUN rm -rf apps/shared
+
+# Stage 2: Runtime
+FROM oven/bun:alpine
+
+WORKDIR /app/apps/api
+
+# Copy only the necessary files from the builder stage
+COPY --from=builder /app/apps/api/build ./build 
+COPY --from=builder /app/.env ../../.env
 
 ENV BUN_ENV=development
 
-CMD ["bun", "run", "index.ts"]
+CMD ["bun", "run", "./build/index.js"]
 
 EXPOSE 8000

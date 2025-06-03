@@ -13,8 +13,10 @@ import dayjs from "@/shared/utils/dayjs";
 import TaskSrv from "../Tasks/task.srv";
 import { DEFAULT_INVITATION_TITLE, PROJECT_INVITATION_EXPIRED_MINUTE } from "./folder.const";
 import NotificationSrv from "../Notification";
-import { NotificationType } from "@/shared/database/model/notification/notification.model";
+import { InviteJoinFolderPayloadStatus, NotificationType } from "@/shared/database/model/notification/notification.model";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
+import type { AccountModel } from "@/shared/database/model/account/account.model";
+import { NotificationBuilderFactory } from "../Notification/noti.util";
 
 const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
 	const userId = toObjectId(ctx.get("user")._id);
@@ -249,20 +251,20 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 		throw new AppError("BAD_REQUEST", "Already be member");
 	}
 
-	const invitations: FolderInvitation[] = [];
-	const createdAt = dayjs().toDate();
+	const now = dayjs().toDate();
 	const expiredAt = dayjs().add(PROJECT_INVITATION_EXPIRED_MINUTE, "minute").toDate();
+	const invitations: FolderInvitation[] = [];
+	const inviteePromisors: Promise<AccountModel | null>[] = [];
 
 	for (const validEmail of validEmails) {
 		invitations.push({
 			email: validEmail,
 			avatar: "",
 			title: DEFAULT_INVITATION_TITLE,
-			createdAt,
+			createdAt: now,
 			expiredAt,
 		});
 	}
-	const inviteePromisors = [];
 	for (const invitation of invitations) {
 		inviteePromisors.push(AccountSrv.findAccountProfile(ctx, { email: invitation.email }));
 	}
@@ -273,6 +275,7 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 		if (!invitee) continue;
 		invitation.avatar = invitee.profileInfo.avatar;
 	}
+
 	const isTransactionSuccess = await withTransaction(async (session: ClientSession) => {
 		//	ADD INVITATIONS TO PROJECT
 		await FolderColl.updateOne(
@@ -280,10 +283,16 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 				_id: toObjectId(request.folderId),
 			},
 			{
-				$push: { "participantInfo.invitations": { $each: invitations } },
+				$push: {
+					"participantInfo.invitations": { $each: invitations },
+				},
+				$set: {
+					updatedAt: now,
+				},
 			},
 			{ session },
 		);
+
 		//	CREATE NOTIFICATION
 		await NotificationSrv.bulkCreate(
 			ctx,
@@ -293,7 +302,8 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 					title: DEFAULT_INVITATION_TITLE,
 					type: NotificationType.InviteJoinFolder,
 					accountId: i._id.toHexString(),
-					payload: {
+					payload: NotificationBuilderFactory(NotificationType.InviteJoinFolder, {
+						status: InviteJoinFolderPayloadStatus.Active,
 						folderId: request.folderId,
 						folderName: folder.folderInfo.title,
 						inviteeEmail: i.profileInfo.email,
@@ -302,7 +312,8 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 						invitorEmail: ctx.get("user").email,
 						invitorAvatar: ctx.get("user").avatar,
 						invitorUsername: ctx.get("user").username,
-					},
+					}),
+					createdAt: now,
 				})),
 			{ session },
 		);

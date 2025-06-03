@@ -39,7 +39,8 @@ export type QueueStruct = {
 		};
 		Transform: {
 			payload: {
-				task: unknown;
+				batchId: string;
+				tasks: unknown[];
 			};
 		};
 		Load: {

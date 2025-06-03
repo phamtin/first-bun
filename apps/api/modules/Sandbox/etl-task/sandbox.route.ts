@@ -8,9 +8,17 @@ import SandboxSrv from "./sandbox.srv";
 const sandboxRoute = new Hono();
 
 /**
- * 	Create a Task
+ * 	Read CSV file
  */
-sandboxRoute.post("/create", async (c) => {
+sandboxRoute.post("/read-csv", async (c) => {
+	const r = await SandboxSrv.readCsvFile(c, []);
+	return responseOK(c, r);
+});
+
+/**
+ * 	Bulk create tasks
+ */
+sandboxRoute.post("/bulk-create", async (c) => {
 	const r = await SandboxSrv.bulkCreateTask(c, []);
 	return responseOK(c, r);
 });
