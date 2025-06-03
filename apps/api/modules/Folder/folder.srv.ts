@@ -17,10 +17,21 @@ import { NotificationType } from "@/shared/database/model/notification/notificat
 import { TaskStatus } from "@/shared/database/model/task/task.model";
 
 const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
+	const userId = toObjectId(ctx.get("user")._id);
 	const result = (await FolderColl.aggregate([
 		{
 			$match: {
-				"participantInfo.owner._id": toObjectId(ctx.get("user")._id),
+				$or: [
+					{
+						"participantInfo.owner._id": userId,
+					},
+					{
+						"participantInfo.members._id": userId,
+					},
+				],
+				status: {
+					$ne: FolderStatus.Archived,
+				},
 				deletedAt: {
 					$exists: false,
 				},
