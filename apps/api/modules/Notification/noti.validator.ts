@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import type { InferInput } from "valibot";
-import { NotificationType, vNotificationPayload, vNotificationModel } from "@/shared/database/model/notification/notification.model";
+import { NotificationType, vNotificationPayload } from "@/shared/database/model/notification/notification.model";
 import { objectId, stringObjectId } from "@/shared/types/common.type";
 
 export const createRequest = v.strictObject({
@@ -23,7 +23,7 @@ export const markAsReadRequest = v.strictObject({
 	notificationId: v.optional(stringObjectId),
 });
 
-export const updateNotiRequest = v.strictObject({
+export const updateNotiByIdRequest = v.strictObject({
 	notificationId: stringObjectId,
 	title: v.optional(v.string()),
 	read: v.optional(v.boolean()),
@@ -35,9 +35,16 @@ export const deleteRequest = v.strictObject({
 	notificationId: v.optional(stringObjectId),
 });
 
+export const updateNotificationsRequest = v.strictObject({
+	accountId: v.optional(stringObjectId),
+	read: v.optional(v.boolean()),
+	payload: v.optional(v.record(v.string(), v.union([v.string(), v.boolean(), v.array(v.string())]))),
+});
+
 export type CreateRequest = InferInput<typeof createRequest>;
 export type CreateResponse = InferInput<typeof createResponse>;
 export type GetNotificationsRequest = InferInput<typeof getNotificationsRequest>;
 export type MarkAsReadRequest = InferInput<typeof markAsReadRequest>;
-export type UpdateNotiRequest = InferInput<typeof updateNotiRequest>;
+export type UpdateNotiByIdRequest = InferInput<typeof updateNotiByIdRequest>;
 export type DeleteRequest = InferInput<typeof deleteRequest>;
+export type UpdateNotificationsRequest = InferInput<typeof updateNotificationsRequest>;

@@ -50,6 +50,9 @@ const buildInviteJoinFolderPayload = (request: any): NotificationModel<Notificat
 
 const buildAssignedTaskPayload = (request: unknown): NotificationModel<NotificationType.AssignedTaskForYou>["payload"] => {
 	const r: NotificationModel<NotificationType.AssignedTaskForYou>["payload"] = {
+		taskId: "",
+		assigneeId: "",
+		assigneeEmail: "",
 		title: "",
 		assignerId: "",
 		assignerAvatar: "",

@@ -17,24 +17,19 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 	if (!payload) return [];
 	const aa = performance.now();
 
-	const activities: TaskActivity[] = [];
-
-	const accountInfo: TaskActivity["account"] = { _id: toObjectId(account._id), profileInfo: account };
-
+	const res: TaskActivity[] = [];
 	const now = dayjs().toDate();
-
-	const changeGroupId = randomUUIDv7();
-
+	const accountInfo: TaskActivity["account"] = { _id: toObjectId(account._id), profileInfo: account };
 	const baseChangeItem: Omit<TaskActivity, "fieldChange"> = {
 		account: accountInfo,
 		action: "updated",
 		updatedAt: now,
-		changeGroupId,
+		changeGroupId: randomUUIDv7(),
 	};
 
 	if (payload.title) {
 		if (payload.title !== model.title) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				fieldChange: {
 					field: "title",
@@ -47,7 +42,7 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 
 	if (payload.description) {
 		if (payload.description !== model.description) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: model.description ? "updated" : "added",
 				fieldChange: {
@@ -59,7 +54,7 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 		}
 	} else if (payload.description === "" || payload.description === null) {
 		if (model.description) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: "removed",
 				fieldChange: {
@@ -73,7 +68,7 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 
 	if (payload.priority) {
 		if (payload.priority !== model.priority) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				fieldChange: {
 					field: "priority",
@@ -86,7 +81,7 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 
 	if (payload.status) {
 		if (payload.status !== model.status) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				fieldChange: {
 					field: "status",
@@ -116,7 +111,7 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 		}
 
 		if (hasChanged) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				fieldChange: {
 					field: "assigneeInfo",
@@ -145,15 +140,17 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 				newItems.push(additionalPayloads[i]);
 			}
 		}
-		activities.push({
-			...baseChangeItem,
-			action: "added",
-			fieldChange: {
-				field: "additionalInfo",
-				oldValue: undefined,
-				newValue: newItems,
-			},
-		});
+		if (newItems.length > 0) {
+			res.push({
+				...baseChangeItem,
+				action: "added",
+				fieldChange: {
+					field: "additionalInfo",
+					oldValue: undefined,
+					newValue: newItems,
+				},
+			});
+		}
 
 		/**
 		 * 	Case remove item
@@ -167,13 +164,13 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 			}
 		}
 		if (removedItems.length > 0) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: "removed",
 				fieldChange: {
 					field: "additionalInfo",
 					oldValue: removedItems,
-					newValue: undefined,
+					newValue: [],
 				},
 			});
 		}
@@ -185,17 +182,17 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 		const beforeUpdateItems: TaskModel["additionalInfo"] = [];
 
 		for (let i = 0; i < additionalModels.length; i++) {
-			const model = additionalModels[i];
-			const payload = additionalPayloads.find((a) => a.k === model.k);
+			const additionalModel = additionalModels[i];
+			const payload = additionalPayloads.find((a) => a.k === additionalModel.k);
 			if (payload) {
-				if (payload.v !== model.v) {
+				if (payload.v !== additionalModel.v) {
+					beforeUpdateItems.push(additionalModel);
 					updatedItems.push(payload);
-					beforeUpdateItems.push(model);
 				}
 			}
 		}
 		if (updatedItems.length > 0) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				fieldChange: {
 					field: "additionalInfo",
@@ -222,7 +219,7 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 			}
 		}
 		if (newItems.length > 0) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: "added",
 				fieldChange: {
@@ -245,13 +242,13 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 			}
 		}
 		if (removedItems.length > 0) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: "removed",
 				fieldChange: {
 					field: "tags",
 					oldValue: removedItems,
-					newValue: undefined,
+					newValue: [],
 				},
 			});
 		}
@@ -262,7 +259,7 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 
 		if (startDate) {
 			if (dayjs(startDate).diff(model.timing?.startDate, "hour") > 0) {
-				activities.push({
+				res.push({
 					...baseChangeItem,
 					fieldChange: {
 						field: "startDate",
@@ -272,20 +269,20 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 				});
 			}
 		} else if (startDate === null && model.timing?.startDate) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: "removed",
 				fieldChange: {
 					field: "startDate",
 					oldValue: model.timing.startDate,
-					newValue: undefined,
+					newValue: null,
 				},
 			});
 		}
 
 		if (endDate) {
 			if (dayjs(endDate).diff(model.timing?.endDate, "hour") > 0) {
-				activities.push({
+				res.push({
 					...baseChangeItem,
 					fieldChange: {
 						field: "endDate",
@@ -295,20 +292,20 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 				});
 			}
 		} else if (endDate === null && model.timing?.endDate) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: "removed",
 				fieldChange: {
 					field: "endDate",
 					oldValue: model.timing.endDate,
-					newValue: undefined,
+					newValue: null,
 				},
 			});
 		}
 
 		if (estimation) {
 			if (model.timing?.estimation !== estimation) {
-				activities.push({
+				res.push({
 					...baseChangeItem,
 					action: model.timing?.estimation ? "updated" : "added",
 					fieldChange: {
@@ -319,20 +316,20 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 				});
 			}
 		} else if (estimation === null && model.timing?.estimation) {
-			activities.push({
+			res.push({
 				...baseChangeItem,
 				action: "removed",
 				fieldChange: {
 					field: "estimation",
 					oldValue: model.timing?.estimation || undefined,
-					newValue: undefined,
+					newValue: null,
 				},
 			});
 		}
 	}
 	console.log("Duration buildActivities: ", performance.now() - aa);
 
-	return activities;
+	return res;
 };
 
 export { EXCLUDED_TASK_STATUS, buildActivities };

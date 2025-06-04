@@ -23,13 +23,14 @@ const findNotifications = async (ctx: Context, request: nv.GetNotificationsReque
 		};
 	}
 
-	return NotificationColl.find(query).toArray();
+	return NotificationColl.find(query, { sort: { createdAt: -1 } }).toArray();
 };
 
-const updateNotification = async (ctx: Context, request: nv.UpdateNotiRequest): Promise<boolean> => {
+const updateNotificationById = async (ctx: Context, request: nv.UpdateNotiByIdRequest): Promise<boolean> => {
 	const payload = toPayloadUpdate(request);
 
 	payload.updatedAt = dayjs().toDate();
+	payload.updatedBy = toObjectId(ctx.get("user")._id);
 
 	const updated = await NotificationColl.updateOne(
 		{
@@ -41,12 +42,34 @@ const updateNotification = async (ctx: Context, request: nv.UpdateNotiRequest): 
 		{ ignoreUndefined: true },
 	);
 
-	return updated.modifiedCount > 0;
+	return updated.acknowledged;
+};
+
+const updateNotifications = async (
+	ctx: Context,
+	request: nv.UpdateNotificationsRequest & {
+		filter: Filter<NotificationModel<NotificationType>>;
+	},
+): Promise<boolean> => {
+	const payload = toPayloadUpdate(request);
+	payload.updatedAt = dayjs().toDate();
+	payload.updatedBy = toObjectId(ctx.get("user")._id);
+
+	const updated = await NotificationColl.updateMany(
+		request.filter,
+		{
+			$set: payload,
+		},
+		{ ignoreUndefined: true },
+	);
+
+	return updated.acknowledged;
 };
 
 const NotificationRepo = {
 	findNotifications,
-	updateNotification,
+	updateNotificationById,
+	updateNotifications,
 };
 
 export default NotificationRepo;

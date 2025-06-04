@@ -1,7 +1,7 @@
-import type { Condition, Filter, FindOptions, InsertOneOptions, WithoutId } from "mongodb";
+import type { Condition, Document, Filter, FindOptions, InsertOneOptions, WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import { TaskColl } from "@/shared/loaders/mongo";
-import type { CreateTaskResponse, GetTasksRequest, GetTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
+import type { CreateTaskResponse, GetTasksRequest, FindTaskByIdResponse, UpdateTaskResponse } from "./task.validator";
 
 import { type ExtendTaskModel, type TaskModel, TaskStatus } from "@/shared/database/model/task/task.model";
 import { AppError } from "@/shared/utils/error";
@@ -10,8 +10,40 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import { buildActivities } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
-const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> => {
-	const tasks = (await TaskColl.aggregate([
+const FIELD_SELECT: Record<keyof TaskModel, 0> = {
+	_id: 0,
+	title: 0,
+	description: 0,
+	status: 0,
+	priority: 0,
+	activities: 0,
+	tags: 0,
+	assigneeInfo: 0,
+	additionalInfo: 0,
+	timing: 0,
+	subTasks: 0,
+	createdAt: 0,
+	updatedAt: 0,
+	createdBy: 0,
+	folderId: 0,
+	deletedAt: 0,
+	deletedBy: 0,
+};
+
+const findById = async (ctx: Context, id: string, selects: string[] = []): Promise<FindTaskByIdResponse> => {
+	const selectFields: Record<string, number> = {
+		_id: 1,
+	};
+
+	for (const s of selects) {
+		if (s === "_id") continue;
+
+		if (s in FIELD_SELECT) {
+			selectFields[s] = 1;
+		}
+	}
+
+	const pipeline: Document[] = [
 		{
 			$match: {
 				_id: toObjectId(id),
@@ -22,6 +54,19 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 				deletedAt: {
 					$exists: false,
 				},
+			},
+		},
+		{
+			$lookup: {
+				from: "accounts",
+				localField: "createdBy",
+				foreignField: "_id",
+				as: "created",
+			},
+		},
+		{
+			$unwind: {
+				path: "$created",
 			},
 		},
 		{
@@ -49,7 +94,13 @@ const findById = async (ctx: Context, id: string): Promise<GetTaskByIdResponse> 
 				"assigneeInfo.accountSettings": 0,
 			},
 		},
-	]).toArray()) as (TaskModel & ExtendTaskModel)[];
+	];
+
+	if (Object.keys(selectFields).length > 1) {
+		pipeline.push({ $project: selectFields });
+	}
+
+	const tasks = (await TaskColl.aggregate(pipeline).toArray()) as (TaskModel & ExtendTaskModel)[];
 
 	if (tasks.length === 0) throw new AppError("NOT_FOUND", "Task not found");
 
@@ -129,6 +180,11 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 		},
 	};
 
+	const queryOptions: FindOptions<TaskModel> = {
+		limit: 1000,
+		sort: { createdAt: -1 },
+	};
+
 	if ((request.query?.length || 0) > 1) {
 		const regexQuery: Condition<string> = { $regex: request.query, $options: "i" };
 
@@ -175,12 +231,23 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 		};
 	}
 
-	const queryOptions: FindOptions<TaskModel> = {
-		limit: 1000,
-		sort: {
-			createdAt: -1,
-		},
-	};
+	if (request.select?.length) {
+		const selectFields: Record<string, number> = {
+			_id: 1,
+		};
+
+		for (const s of request.select) {
+			if (s === "_id") continue;
+
+			if (s in FIELD_SELECT) {
+				selectFields[s] = 1;
+			}
+		}
+
+		if (Object.keys(selectFields).length > 1) {
+			queryOptions.projection = selectFields;
+		}
+	}
 
 	return await TaskColl.find(filter, queryOptions).toArray();
 };

@@ -15,7 +15,7 @@ const getPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Prom
 
 const createPomodoro = async (ctx: Context, request: pv.CreatePomodoroRequest): Promise<PomodoroModel> => {
 	if (request.taskId) {
-		const task = await TaskSrv.findById(ctx, request.taskId);
+		const task = await TaskSrv.findById(ctx, { id: request.taskId });
 
 		if (!task) throw new AppError("NOT_FOUND", "Task not found");
 

@@ -352,7 +352,19 @@ const acceptInvitation = async (ctx: Context, folder: FolderModel, email: string
 
 	const success = await FolderRepo.addMemberToFolder(ctx, folder._id.toHexString(), invitee);
 
-	//	CREATE NOTIFICATION
+	//	UPDATE NOTIFICATION
+	NotificationSrv.updateNotifications(ctx, {
+		filter: {
+			type: NotificationType.InviteJoinFolder,
+			"payload.inviteeEmail": email,
+			"payload.folderId": folder._id.toHexString(),
+			"payload.status": InviteJoinFolderPayloadStatus.Active,
+		},
+		read: true,
+		payload: {
+			status: InviteJoinFolderPayloadStatus.Accepted,
+		},
+	});
 
 	return { success };
 };
@@ -373,7 +385,19 @@ const rejectInvitation = async (ctx: Context, folder: FolderModel, email: string
 		},
 	);
 
-	//	CREATE NOTIFICATION
+	//	UPDATE NOTIFICATION
+	NotificationSrv.updateNotifications(ctx, {
+		filter: {
+			type: NotificationType.InviteJoinFolder,
+			"payload.inviteeEmail": email,
+			"payload.folderId": folder._id.toHexString(),
+			"payload.status": InviteJoinFolderPayloadStatus.Active,
+		},
+		read: true,
+		payload: {
+			status: InviteJoinFolderPayloadStatus.Declined,
+		},
+	});
 
 	return { success: r.acknowledged };
 };

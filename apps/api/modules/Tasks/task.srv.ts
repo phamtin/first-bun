@@ -14,8 +14,9 @@ import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 import type { FolderModel } from "@/shared/database/model/folder/folder.model";
 import FolderSrv from "../Folder/folder.srv";
 
-const findById = async (ctx: Context, id: string): Promise<tv.GetTaskByIdResponse> => {
-	const task = await TaskRepo.findById(ctx, id);
+const findById = async (ctx: Context, request: tv.FindTaskByIdRequest): Promise<tv.FindTaskByIdResponse> => {
+	const task = await TaskRepo.findById(ctx, request.id, request.select);
+
 	return task;
 };
 
@@ -131,7 +132,7 @@ const validateDateRange = (timingDb?: TaskTiming, timingRequest?: tv.UpdateTaskR
 	const { startDate, endDate } = timingRequest;
 
 	if (!startDate && !endDate) {
-		return isValid;
+		return true;
 	}
 
 	if (timingDb?.endDate) {
@@ -185,10 +186,9 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 	if (request.assigneeId) {
 		promisors.push(AccountSrv.findAccountProfile(ctx, { accountId: request.assigneeId }));
 	}
-	console.log("Duration API [1]", performance.now() - aa);
+	console.log("Duration [1] ", performance.now() - aa);
 
 	const [task, assignee] = await Promise.all(promisors);
-	const bb = performance.now();
 
 	if (!task) throw new AppError("NOT_FOUND", "Task not found");
 
@@ -196,11 +196,7 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 
 	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
 
-	console.log("Duration API [2]", performance.now() - bb);
-
 	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, (task as TaskModel).folderId.toHexString());
-
-	const cc = performance.now();
 
 	if (!canUserAccess || !folder) {
 		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
@@ -243,7 +239,6 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 			payload.subTasks = subTasks;
 		}
 	}
-	console.log("Duration API [3]", performance.now() - cc);
 	const res = await TaskRepo.updateTask(ctx, taskId, payload, task as TaskModel);
 
 	if (!res?._id) {

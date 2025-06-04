@@ -1,10 +1,11 @@
+import * as v from "valibot";
 import { Hono } from "hono";
 import { vValidator } from "@hono/valibot-validator";
 import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/shared/utils/response";
 import NotificationSrv from "./noti.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
-import { getNotificationsRequest, markAsReadRequest, updateNotiRequest } from "./noti.validator";
+import { getNotificationsRequest, markAsReadRequest, updateNotiByIdRequest } from "./noti.validator";
 
 const notificationRoute = new Hono();
 
@@ -41,17 +42,23 @@ notificationRoute.patch(
 );
 
 /**
- * 	Mark notification as read
+ * 	Update notification by id
  */
 notificationRoute.patch(
-	"/",
-	vValidator("json", updateNotiRequest, (result) => {
+	"/:notificationId",
+	vValidator("json", v.omit(updateNotiByIdRequest, ["notificationId"]), (result) => {
 		if (!result.success) {
 			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
 		}
 	}),
 	async (c) => {
-		const r = await NotificationSrv.updateNotification(c, c.req.valid("json"));
+		if (!c.req.param("notificationId")) {
+			throw new HTTPException(400, { message: "Notification ID is required" });
+		}
+		const r = await NotificationSrv.updateNotificationById(c, {
+			...c.req.valid("json"),
+			notificationId: c.req.param("notificationId"),
+		});
 		return responseOK(c, r);
 	},
 );

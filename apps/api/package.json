@@ -11,7 +11,7 @@
 		"google-auth-library": "^9.15.1",
 		"hono": "^4.7.11",
 		"ioredis": "^5.6.1",
-		"mongodb": "^6.16.0",
+		"mongodb": "^6.17.0",
 		"mutative": "^1.2.0",
 		"piscina": "^5.0.0",
 		"valibot": "^1.1.0"

@@ -27,8 +27,8 @@ services:
     #         start_period: 5s    
 
     redis-stack:
-        image: redis/redis-stack-server:latest
-        container_name: "redis-stack"
+        image: redis:8.0.2-alpine
+        container_name: "redis"
         volumes:
             - ./data/redis:/data
         restart: always
@@ -47,10 +47,7 @@ services:
                     memory: 250M
 
     api:
-        # image: tinphamtp/blitz-api:1.0.0
-        build:
-            context: .
-            dockerfile: apps/api/Dockerfile.yml
+        image: first-bun-api:latest
         env_file:
             - .env
         entrypoint: []
@@ -64,10 +61,7 @@ services:
         network_mode: host
 
     worker:
-        # image: tinphamtp/blitz-worker:1.0.0
-        build:
-            context: .
-            dockerfile: apps/workers/Dockerfile.yml
+        image: first-bun-worker:latest
         env_file:
             - .env
         restart: always

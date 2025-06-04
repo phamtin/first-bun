@@ -13,6 +13,8 @@ export enum NotificationType {
 
 export enum InviteJoinFolderPayloadStatus {
 	Active = "Active",
+	Declined = "Declined",
+	Accepted = "Accepted",
 	Expired = "Expired",
 }
 
@@ -30,6 +32,9 @@ export type InviteJoinFolderPayload = {
 
 export type AssignedTaskForYouPayload = {
 	title: string;
+	taskId: string;
+	assigneeId: string;
+	assigneeEmail: string;
 	assignerId: string;
 	assignerAvatar: string;
 	assignerUsername: string;
@@ -125,6 +130,9 @@ export const vInviteJoinFolderPayload = v.strictObject({
 
 export const vAssignedTaskForYouPayload = v.strictObject({
 	title: v.string(),
+	taskId: v.string(),
+	assigneeId: v.string(),
+	assigneeEmail: v.string(),
 	assignerId: v.string(),
 	assignerAvatar: v.string(),
 	assignerUsername: v.string(),

@@ -4,6 +4,16 @@ import type { InferInput } from "valibot";
 import { TaskPriority, TaskStatus, vExtendTaskModel, vSubTask, vTaskModel } from "@/shared/database/model/task/task.model";
 import { stringObjectId, vAttributePattern } from "@/shared/types/common.type";
 
+export const findTaskByIdRequest = v.strictObject({
+	id: stringObjectId,
+	select: v.optional(v.array(v.string())),
+});
+
+export const findTaskByIdResponse = v.strictObject({
+	...vTaskModel.entries,
+	...vExtendTaskModel.entries,
+});
+
 export const createTaskRequest = v.strictObject({
 	title: v.pipe(v.string(), v.minLength(2, "Title min 2 characters long")),
 	description: v.optional(v.string()),
@@ -32,6 +42,7 @@ export const getTasksRequest = v.strictObject({
 	tags: v.optional(v.array(stringObjectId)),
 	startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
 	endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
+	select: v.optional(v.array(v.string())),
 });
 
 export const getTasksResponse = v.array(vTaskModel);
@@ -66,20 +77,11 @@ export const updateTaskResponse = v.strictObject({
 	...vExtendTaskModel.entries,
 });
 
-export const getTaskByIdRequest = v.strictObject({
-	taskId: stringObjectId,
-});
-
-export const getTaskByIdResponse = v.strictObject({
-	...vTaskModel.entries,
-	...vExtendTaskModel.entries,
-});
-
+export type FindTaskByIdRequest = InferInput<typeof findTaskByIdRequest>;
+export type FindTaskByIdResponse = InferInput<typeof findTaskByIdResponse>;
 export type CreateTaskRequest = InferInput<typeof createTaskRequest>;
 export type CreateTaskResponse = InferInput<typeof createTaskResponse>;
 export type GetTasksRequest = InferInput<typeof getTasksRequest>;
 export type GetTasksResponse = InferInput<typeof getTasksResponse>;
 export type UpdateTaskRequest = InferInput<typeof updateTaskRequest>;
 export type UpdateTaskResponse = InferInput<typeof updateTaskResponse>;
-export type GetTaskByIdRequest = InferInput<typeof getTaskByIdRequest>;
-export type GetTaskByIdResponse = InferInput<typeof getTaskByIdResponse>;

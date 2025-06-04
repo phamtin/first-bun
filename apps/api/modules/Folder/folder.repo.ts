@@ -188,6 +188,7 @@ const addMemberToFolder = async (ctx: Context, folderId: string, member: Account
 				updatedAt: dayjs().toDate(),
 			},
 		},
+		{ ignoreUndefined: true },
 	);
 
 	return updated.acknowledged;
@@ -209,8 +210,10 @@ const removeMember = async (ctx: Context, folderId: string, memberEmail: string)
 			},
 			$set: {
 				updatedAt: dayjs().toDate(),
+				updatedBy: toObjectId(ctx.get("user")._id),
 			},
 		},
+		{ ignoreUndefined: true },
 	);
 
 	return updated.acknowledged;

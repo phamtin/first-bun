@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { UpdateOptions, WithoutId } from "mongodb";
+import type { Filter, UpdateOptions, WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import type * as nv from "./noti.validator";
 import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
@@ -24,8 +24,8 @@ const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.Creat
 	return created.insertedId;
 };
 
-const updateNotification = async (ctx: Context, request: nv.UpdateNotiRequest): Promise<boolean> => {
-	const updated = await NotificationRepo.updateNotification(ctx, request);
+const updateNotificationById = async (ctx: Context, request: nv.UpdateNotiByIdRequest): Promise<boolean> => {
+	const updated = await NotificationRepo.updateNotificationById(ctx, request);
 
 	return updated;
 };
@@ -116,9 +116,21 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 	return true;
 };
 
+const updateNotifications = async (
+	ctx: Context,
+	request: nv.UpdateNotificationsRequest & {
+		filter: Filter<NotificationModel<NotificationType>>;
+	},
+): Promise<boolean> => {
+	const updated = await NotificationRepo.updateNotifications(ctx, request);
+
+	return updated;
+};
+
 const NotificationSrv = {
 	create,
-	updateNotification,
+	updateNotificationById,
+	updateNotifications,
 	bulkCreate,
 	getNotifications,
 	markAsRead,
