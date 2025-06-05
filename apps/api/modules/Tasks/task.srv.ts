@@ -13,6 +13,10 @@ import FolderUtil from "../Folder/folder.util";
 import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 import type { FolderModel } from "@/shared/database/model/folder/folder.model";
 import FolderSrv from "../Folder/folder.srv";
+import NotificationSrv from "../Notification";
+import { type NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
+import { NotificationBuilderFactory } from "../Notification/noti.util";
+import { TITLE_ASSIGNED_TASK_FOR_YOU } from "./task.constant";
 
 const findById = async (ctx: Context, request: tv.FindTaskByIdRequest): Promise<tv.FindTaskByIdResponse> => {
 	const task = await TaskRepo.findById(ctx, request.id, request.select);
@@ -120,6 +124,10 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 	}
 
 	const created = await TaskRepo.createTask(ctx, payload);
+
+	if (await checkCreateAssignedTaskNotification(ctx, created._id.toHexString(), ctx.get("user")._id, assigneeId)) {
+		createNotificationAssignedTaskForYou(ctx, assigneeAccount as AccountModel, folder as FolderModel, created);
+	}
 
 	return created;
 };
@@ -245,7 +253,50 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 		throw new AppError("INTERNAL_SERVER_ERROR");
 	}
 
+	if (await checkCreateAssignedTaskNotification(ctx, res._id.toHexString(), ctx.get("user")._id, request.assigneeId)) {
+		createNotificationAssignedTaskForYou(ctx, assignee as AccountModel, folder as FolderModel, res);
+	}
+
 	return res;
+};
+
+const checkCreateAssignedTaskNotification = async (ctx: Context, taskId: string, assignerId: string, assigneeId?: string) => {
+	if (!assigneeId || assigneeId === ctx.get("user")._id) {
+		return false;
+	}
+	const DEBOUNCE_TIME = 60 * 60 * 1000; // 1 hour;
+	const createdFrom = dayjs().subtract(DEBOUNCE_TIME, "ms").toISOString();
+
+	const exists = (await NotificationSrv.getNotifications(ctx, { accountId: assigneeId, createdFrom })).filter((item) => {
+		const n = item as NotificationModel<NotificationType.AssignedTaskForYou>;
+		return (
+			n.type === NotificationType.AssignedTaskForYou && n.payload.taskId === taskId && n.payload.assigneeId === assigneeId && n.payload.assignerId === assignerId
+		);
+	});
+
+	return exists.length === 0;
+};
+
+const createNotificationAssignedTaskForYou = async (ctx: Context, assignee: AccountModel, folder: FolderModel, res: TaskModel) => {
+	const newAssignee = assignee as AccountModel;
+	const newAssigneeId = newAssignee._id;
+
+	NotificationSrv.create(ctx, {
+		title: TITLE_ASSIGNED_TASK_FOR_YOU,
+		accountId: newAssigneeId.toHexString(),
+		type: NotificationType.AssignedTaskForYou,
+		payload: NotificationBuilderFactory(NotificationType.AssignedTaskForYou, {
+			title: res.title,
+			taskId: res._id.toHexString(),
+			assigneeId: newAssigneeId.toHexString(),
+			assigneeEmail: newAssignee.profileInfo.email,
+			assignerId: ctx.get("user")._id,
+			assignerAvatar: ctx.get("user").avatar,
+			assignerUsername: ctx.get("user").username,
+			folderId: folder._id.toHexString(),
+			folderName: folder.folderInfo.title,
+		}),
+	});
 };
 
 const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {

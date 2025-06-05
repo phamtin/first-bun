@@ -7,13 +7,14 @@ export const createRequest = v.strictObject({
 	title: v.string(),
 	type: v.enum(NotificationType),
 	payload: vNotificationPayload,
-	accountId: v.optional(stringObjectId),
+	accountId: stringObjectId,
 	email: v.optional(stringObjectId),
 });
 
 export const createResponse = objectId;
 
 export const getNotificationsRequest = v.strictObject({
+	accountId: v.optional(stringObjectId),
 	createdFrom: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
 	createdTo: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
 });

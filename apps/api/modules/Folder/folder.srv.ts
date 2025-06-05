@@ -15,8 +15,8 @@ import { DEFAULT_INVITATION_TITLE, PROJECT_INVITATION_EXPIRED_MINUTE } from "./f
 import NotificationSrv from "../Notification";
 import { InviteJoinFolderPayloadStatus, NotificationType } from "@/shared/database/model/notification/notification.model";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
-import type { AccountModel } from "@/shared/database/model/account/account.model";
 import { NotificationBuilderFactory } from "../Notification/noti.util";
+import { ErrorKey } from "@/shared/utils/error-key";
 
 const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
 	const userId = toObjectId(ctx.get("user")._id);
@@ -337,7 +337,7 @@ const acceptInvitation = async (ctx: Context, folder: FolderModel, email: string
 		return invitation.inviteeEmail === email && dayjs().isBefore(invitation.expiredAt);
 	});
 
-	if (!invitation) throw new AppError("BAD_REQUEST", "Invitation link has expired :(");
+	if (!invitation) throw new AppError("BAD_REQUEST", "Invitation link has expired", ErrorKey.FolderInvitationExpired);
 
 	const invitee = await AccountSrv.findAccountProfile(ctx, { email });
 

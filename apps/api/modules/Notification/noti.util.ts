@@ -48,35 +48,35 @@ const buildInviteJoinFolderPayload = (request: any): NotificationModel<Notificat
 	return r;
 };
 
-const buildAssignedTaskPayload = (request: unknown): NotificationModel<NotificationType.AssignedTaskForYou>["payload"] => {
+const buildAssignedTaskPayload = (request: any): NotificationModel<NotificationType.AssignedTaskForYou>["payload"] => {
 	const r: NotificationModel<NotificationType.AssignedTaskForYou>["payload"] = {
-		taskId: "",
-		assigneeId: "",
-		assigneeEmail: "",
-		title: "",
-		assignerId: "",
-		assignerAvatar: "",
-		assignerUsername: "",
-		folderId: "",
-		folderName: "",
+		taskId: request.taskId,
+		assigneeId: request.assigneeId,
+		assigneeEmail: request.assigneeEmail,
+		title: request.title,
+		assignerId: request.assignerId,
+		assignerAvatar: request.assignerAvatar,
+		assignerUsername: request.assignerUsername,
+		folderId: request.folderId,
+		folderName: request.folderName,
 	};
 
 	return r;
 };
 
-const buildRemindImportantTasksPayload = (request: unknown): NotificationModel<NotificationType.RemindImportantTasks>["payload"] => {
+const buildRemindImportantTasksPayload = (request: any): NotificationModel<NotificationType.RemindImportantTasks>["payload"] => {
 	const r: NotificationModel<NotificationType.RemindImportantTasks>["payload"] = {
-		taskId: "",
-		title: "",
-		folderId: "",
-		folderName: "",
+		taskId: request.taskId,
+		title: request.title,
+		folderId: request.folderId,
+		folderName: request.folderName,
 		dueDate: "",
 	};
 
 	return r;
 };
 
-const buildWeeklyStatsPayload = (request: unknown): NotificationModel<NotificationType.WeeklyStats>["payload"] => {
+const buildWeeklyStatsPayload = (request: any): NotificationModel<NotificationType.WeeklyStats>["payload"] => {
 	const r: NotificationModel<NotificationType.WeeklyStats>["payload"] = {
 		week: "",
 		totalTasks: 0,
@@ -86,7 +86,7 @@ const buildWeeklyStatsPayload = (request: unknown): NotificationModel<Notificati
 	return r;
 };
 
-const buildMonthlyStatsPayload = (request: unknown): NotificationModel<NotificationType.MonthlyStats>["payload"] => {
+const buildMonthlyStatsPayload = (request: any): NotificationModel<NotificationType.MonthlyStats>["payload"] => {
 	const r: NotificationModel<NotificationType.MonthlyStats>["payload"] = {
 		month: "",
 		totalTasks: 0,

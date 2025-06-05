@@ -1,5 +1,6 @@
 import type { Context } from "../types/app.type";
 import { type ErrorCode, type ErrorResponse, codeToStatus } from "./error";
+import type { ErrorKey } from "./error-key";
 
 export const responseOK = <T>(c: Context, data: T) => {
 	return c.json({
@@ -8,11 +9,12 @@ export const responseOK = <T>(c: Context, data: T) => {
 	});
 };
 
-export const responseError = (c: Context, code: ErrorCode, message: string) => {
+export const responseError = (c: Context, code: ErrorCode, message: string, errkey?: ErrorKey) => {
 	return c.json<ErrorResponse>({
 		status: codeToStatus(code),
 		code,
 		message,
 		requestId: c.get("requestId"),
+		errkey,
 	});
 };

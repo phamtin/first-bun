@@ -9,7 +9,7 @@ import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
 const findNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel<NotificationType>[]> => {
 	const query: Filter<NotificationModel<NotificationType>> = {
-		accountId: toObjectId(ctx.get("user")._id),
+		accountId: request.accountId ? toObjectId(request.accountId) : toObjectId(ctx.get("user")._id),
 	};
 
 	if (request.createdFrom) {

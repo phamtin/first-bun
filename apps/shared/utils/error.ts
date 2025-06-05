@@ -1,9 +1,10 @@
-import { literal, string, object, union, type ValiError } from "valibot";
+import { literal, string, object, union, optional, enum as enumSchema } from "valibot";
 import type { BaseIssue, InferInput } from "valibot";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { StatusCode } from "hono/utils/http-status";
 import { responseError } from "./response";
+import { ErrorKey } from "./error-key";
 
 const ErrorCodeSchema = union([
 	literal("BAD_REQUEST"),
@@ -24,6 +25,7 @@ export const ErrorSchema = object({
 	code: ErrorCodeSchema,
 	message: string(),
 	requestId: string(),
+	errkey: optional(enumSchema(ErrorKey)),
 });
 
 export type ErrorCode = InferInput<typeof ErrorCodeSchema>;
@@ -76,10 +78,12 @@ function statusToCode(status: StatusCode): ErrorCode {
 
 export class AppError extends HTTPException {
 	public readonly code: ErrorCode;
+	public readonly errkey?: ErrorKey;
 
-	constructor(code: ErrorCode, message = "") {
+	constructor(code: ErrorCode, message = "", errkey?: ErrorKey) {
 		super(codeToStatus(code), { message });
 		this.code = code;
+		this.errkey = errkey;
 	}
 }
 
@@ -95,7 +99,7 @@ export const handleError = (err: Error, c: Context): Response => {
 				status: err.status,
 			});
 		}
-		return responseError(c, err.code, err.message);
+		return responseError(c, err.code, err.message, err.errkey);
 	}
 
 	/**
@@ -121,7 +125,5 @@ export const handleError = (err: Error, c: Context): Response => {
 };
 
 export const getValidationErrorMsg = (issues: BaseIssue<unknown>["issues"]) => {
-	const msg = `${issues?.[0].path?.[0].key}: ${issues?.[0].message}`;
-
-	return msg;
+	return `${issues?.[0].path?.[0].key}: ${issues?.[0].message}`;
 };
