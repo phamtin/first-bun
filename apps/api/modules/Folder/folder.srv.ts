@@ -250,30 +250,23 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 	if (validEmails.length === 0) {
 		throw new AppError("BAD_REQUEST", "Already be member");
 	}
+	const invitees = await Promise.all(validEmails.map((email) => AccountSrv.findAccountProfile(ctx, { email })));
 
-	const now = dayjs().toDate();
-	const expiredAt = dayjs().add(PROJECT_INVITATION_EXPIRED_MINUTE, "minute").toDate();
+	const _dayjs = dayjs();
+	const now = _dayjs.toDate();
+	const expiredAt = _dayjs.add(PROJECT_INVITATION_EXPIRED_MINUTE, "minute").toDate();
 	const invitations: FolderInvitation[] = [];
-	const inviteePromisors: Promise<AccountModel | null>[] = [];
 
-	for (const validEmail of validEmails) {
+	for (const invitee of invitees) {
+		if (!invitee) continue;
 		invitations.push({
-			email: validEmail,
-			avatar: "",
 			title: DEFAULT_INVITATION_TITLE,
+			inviteeEmail: invitee.profileInfo.email,
+			inviteeAvatar: invitee.profileInfo.avatar,
+			inviteeUsername: invitee.profileInfo.username,
 			createdAt: now,
 			expiredAt,
 		});
-	}
-	for (const invitation of invitations) {
-		inviteePromisors.push(AccountSrv.findAccountProfile(ctx, { email: invitation.email }));
-	}
-	const invitees = await Promise.all(inviteePromisors);
-
-	for (const invitation of invitations) {
-		const invitee = invitees.find((i) => i?.profileInfo.email === invitation.email);
-		if (!invitee) continue;
-		invitation.avatar = invitee.profileInfo.avatar;
 	}
 
 	const isTransactionSuccess = await withTransaction(async (session: ClientSession) => {
@@ -341,7 +334,7 @@ const responseInvitation = async (ctx: Context, request: pv.ResponseInvitationRe
 
 const acceptInvitation = async (ctx: Context, folder: FolderModel, email: string): Promise<pv.ResponseInvitationResponse> => {
 	const invitation = folder.participantInfo.invitations.find((invitation) => {
-		return invitation.email === email && dayjs().isBefore(invitation.expiredAt);
+		return invitation.inviteeEmail === email && dayjs().isBefore(invitation.expiredAt);
 	});
 
 	if (!invitation) throw new AppError("BAD_REQUEST", "Invitation link has expired :(");
@@ -360,9 +353,11 @@ const acceptInvitation = async (ctx: Context, folder: FolderModel, email: string
 			"payload.folderId": folder._id.toHexString(),
 			"payload.status": InviteJoinFolderPayloadStatus.Active,
 		},
-		read: true,
 		payload: {
-			status: InviteJoinFolderPayloadStatus.Accepted,
+			read: true,
+			payload: {
+				status: InviteJoinFolderPayloadStatus.Accepted,
+			},
 		},
 	});
 
@@ -377,7 +372,7 @@ const rejectInvitation = async (ctx: Context, folder: FolderModel, email: string
 		},
 		{
 			$pull: {
-				"participantInfo.invitations": { email },
+				"participantInfo.invitations": { inviteeEmail: email },
 			},
 			$set: {
 				updatedAt: dayjs().toDate(),
@@ -393,9 +388,11 @@ const rejectInvitation = async (ctx: Context, folder: FolderModel, email: string
 			"payload.folderId": folder._id.toHexString(),
 			"payload.status": InviteJoinFolderPayloadStatus.Active,
 		},
-		read: true,
 		payload: {
-			status: InviteJoinFolderPayloadStatus.Declined,
+			read: true,
+			payload: {
+				status: InviteJoinFolderPayloadStatus.Declined,
+			},
 		},
 	});
 

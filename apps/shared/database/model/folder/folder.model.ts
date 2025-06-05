@@ -25,9 +25,10 @@ export type FolderInfo = {
 };
 
 export type FolderInvitation = {
-	email: string;
-	avatar: string;
 	title: string;
+	inviteeEmail: string;
+	inviteeAvatar: string;
+	inviteeUsername: string;
 	description?: string;
 	expiredAt: Date;
 	createdAt: Date;
@@ -77,8 +78,9 @@ export type ExtendFolderModel = {
 export const vFolderInvitation = v.strictObject({
 	title: v.string(),
 	description: v.optional(v.string()),
-	email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
-	avatar: v.string(),
+	inviteeEmail: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
+	inviteeAvatar: v.string(),
+	inviteeUsername: v.string(),
 	expiredAt: v.date(),
 	createdAt: v.date(),
 }) satisfies v.BaseSchema<FolderInvitation, FolderInvitation, v.BaseIssue<unknown>>;

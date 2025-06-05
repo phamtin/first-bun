@@ -118,11 +118,15 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 
 const updateNotifications = async (
 	ctx: Context,
-	request: nv.UpdateNotificationsRequest & {
+	request: {
 		filter: Filter<NotificationModel<NotificationType>>;
+		payload: nv.UpdateNotificationsRequest;
 	},
 ): Promise<boolean> => {
-	const updated = await NotificationRepo.updateNotifications(ctx, request);
+	const updated = await NotificationRepo.updateNotifications(ctx, {
+		filter: request.filter,
+		payload: request.payload,
+	});
 
 	return updated;
 };

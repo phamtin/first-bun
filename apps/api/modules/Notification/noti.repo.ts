@@ -47,18 +47,20 @@ const updateNotificationById = async (ctx: Context, request: nv.UpdateNotiByIdRe
 
 const updateNotifications = async (
 	ctx: Context,
-	request: nv.UpdateNotificationsRequest & {
+	request: {
 		filter: Filter<NotificationModel<NotificationType>>;
+		payload: nv.UpdateNotificationsRequest;
 	},
 ): Promise<boolean> => {
-	const payload = toPayloadUpdate(request);
-	payload.updatedAt = dayjs().toDate();
-	payload.updatedBy = toObjectId(ctx.get("user")._id);
+	const { filter, payload } = request;
 
 	const updated = await NotificationColl.updateMany(
-		request.filter,
+		filter,
 		{
-			$set: payload,
+			$set: {
+				...toPayloadUpdate(payload),
+				updatedAt: dayjs().toDate(),
+			},
 		},
 		{ ignoreUndefined: true },
 	);

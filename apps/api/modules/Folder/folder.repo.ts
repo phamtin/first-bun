@@ -181,7 +181,7 @@ const addMemberToFolder = async (ctx: Context, folderId: string, member: Account
 			},
 			$pull: {
 				"participantInfo.invitations": {
-					email: member.profileInfo.email,
+					inviteeEmail: member.profileInfo.email,
 				},
 			},
 			$set: {
@@ -205,7 +205,7 @@ const removeMember = async (ctx: Context, folderId: string, memberEmail: string)
 					"profileInfo.email": memberEmail,
 				},
 				"participantInfo.invitations": {
-					email: memberEmail,
+					inviteeEmail: memberEmail,
 				},
 			},
 			$set: {

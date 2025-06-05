@@ -1,25 +1,32 @@
-FROM oven/bun AS builder
+# Stage 1: Build
+FROM oven/bun:alpine as builder
 
 WORKDIR /app
 
 COPY package.json .
 COPY tsconfig.json .
-COPY .env .env
-
 COPY apps/shared apps/shared
 COPY apps/api apps/api
+COPY .env .env
 
 WORKDIR /app/apps/api
 
 RUN bun install
-
 RUN bun build ./index.ts --target bun --outdir ./build --minify
 
-# Runtime stage
-FROM oven/bun:slim
+RUN rm -rf node_modules
+RUN rm -rf bun.lockb
+RUN rm -rf tsconfig.json
+RUN rm -rf apps/shared
 
-COPY --from=builder /app/apps/api/build ./build
-COPY --from=builder /app/.env .env 
+# Stage 2: Runtime
+FROM oven/bun:alpine
+
+WORKDIR /app/apps/api
+
+# Copy only the necessary files from the builder stage
+COPY --from=builder /app/apps/api/build ./build 
+COPY --from=builder /app/.env ../../.env
 
 ENV BUN_ENV=production
 
