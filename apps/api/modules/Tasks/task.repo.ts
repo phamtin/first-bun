@@ -10,7 +10,7 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import { buildActivities } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
-const FIELD_SELECT: Record<keyof TaskModel, 0> = {
+const FIELD_SELECT: Record<keyof TaskModel & ExtendTaskModel, 0> = {
 	_id: 0,
 	title: 0,
 	description: 0,
@@ -28,6 +28,8 @@ const FIELD_SELECT: Record<keyof TaskModel, 0> = {
 	folderId: 0,
 	deletedAt: 0,
 	deletedBy: 0,
+	created: 0,
+	availableTags: 0,
 };
 
 const findById = async (ctx: Context, id: string, selects: string[] = []): Promise<FindTaskByIdResponse> => {
