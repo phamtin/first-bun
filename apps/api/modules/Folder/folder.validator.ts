@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import type { InferInput } from "valibot";
-import { stringObjectId } from "@/shared/types/common.type";
+import { stringObjectId, coercedArray } from "@/shared/types/common.type";
 
 import { FolderStatus, vExtendFolderModel, vFolderModel } from "@/shared/database/model/folder/folder.model";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
@@ -41,7 +41,7 @@ export const updateFolderRequest = v.strictObject({
 	description: v.optional(v.string()),
 	status: v.optional(v.enum(FolderStatus)),
 	color: v.optional(v.string()),
-	tags: v.optional(v.array(v.strictObject({ _id: v.optional(stringObjectId), color: v.pipe(v.string(), v.trim()), name: v.pipe(v.string(), v.trim()) }))),
+	tags: v.optional(coercedArray(v.strictObject({ _id: v.optional(stringObjectId), color: v.pipe(v.string(), v.trim()), name: v.pipe(v.string(), v.trim()) }))),
 });
 
 export const updateFolderResponse = v.strictObject({
@@ -60,7 +60,7 @@ export const getFolderByIdResponse = v.strictObject({
 
 export const inviteRequest = v.strictObject({
 	folderId: stringObjectId,
-	emails: v.pipe(v.array(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())), v.maxLength(64, "Too many invitations")),
+	emails: v.pipe(coercedArray(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())), v.maxLength(64, "Too many invitations")),
 });
 
 export const inviteResponse = v.strictObject({

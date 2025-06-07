@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import type { InferInput } from "valibot";
-import { stringObjectId } from "@/shared/types/common.type";
+import { stringObjectId, coercedArray } from "@/shared/types/common.type";
 
 import { Theme, vAccountProfile } from "@/shared/database/model/account/account.model";
 
@@ -20,7 +20,7 @@ export const updateProfileRequest = v.strictObject({
 	accountSettings: v.optional(
 		v.strictObject({
 			theme: v.optional(v.enum(Theme)),
-			pinnedFolders: v.optional(v.array(stringObjectId)),
+			pinnedFolders: v.optional(coercedArray(stringObjectId)),
 		}),
 	),
 });

@@ -2,7 +2,7 @@ import * as v from "valibot";
 import type { InferInput } from "valibot";
 
 import { TaskPriority, TaskStatus, vExtendTaskModel, vSubTask, vTaskModel } from "@/shared/database/model/task/task.model";
-import { stringObjectId, vAttributePattern } from "@/shared/types/common.type";
+import { coercedArray, stringObjectId, vAttributePattern } from "@/shared/types/common.type";
 
 export const findTaskByIdRequest = v.strictObject({
 	id: stringObjectId,
@@ -26,23 +26,23 @@ export const createTaskRequest = v.strictObject({
 		estimation: v.optional(v.nullable(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours")))),
 	}),
 	priority: v.optional(v.enum(TaskPriority)),
-	additionalInfo: v.optional(v.array(vAttributePattern)),
-	subTasks: v.optional(v.array(v.omit(vSubTask, ["_id"]))),
-	tags: v.optional(v.pipe(v.array(stringObjectId), v.maxLength(9, "Too many tags"))),
+	additionalInfo: v.optional(coercedArray(vAttributePattern)),
+	subTasks: v.optional(coercedArray(v.omit(vSubTask, ["_id"]))),
+	tags: v.optional(v.pipe(coercedArray(stringObjectId), v.maxLength(9, "Too many tags"))),
 });
 
 export const createTaskResponse = vTaskModel;
 
 export const getTasksRequest = v.strictObject({
-	folderIds: v.optional(v.array(stringObjectId)),
+	folderIds: v.optional(coercedArray(stringObjectId)),
 	query: v.optional(v.string()),
 	isMine: v.optional(v.union([v.literal("true"), v.literal("false")])),
-	status: v.optional(v.array(v.enum(TaskStatus))),
-	priorities: v.optional(v.array(v.enum(TaskPriority))),
-	tags: v.optional(v.array(stringObjectId)),
+	status: v.optional(coercedArray(v.enum(TaskStatus))),
+	priorities: v.optional(coercedArray(v.enum(TaskPriority))),
+	tags: v.optional(coercedArray(stringObjectId)),
 	startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
 	endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
-	select: v.optional(v.array(v.string())),
+	select: v.optional(coercedArray(v.string())),
 });
 
 export const getTasksResponse = v.array(vTaskModel);
@@ -60,16 +60,16 @@ export const updateTaskRequest = v.strictObject({
 			estimation: v.optional(v.nullable(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours")))),
 		}),
 	),
-	additionalInfo: v.optional(v.array(vAttributePattern)),
+	additionalInfo: v.optional(coercedArray(vAttributePattern)),
 	subTasks: v.optional(
-		v.array(
+		coercedArray(
 			v.strictObject({
 				...v.omit(vSubTask, ["_id"]).entries,
 				_id: v.optional(stringObjectId),
 			}),
 		),
 	),
-	tags: v.optional(v.pipe(v.array(stringObjectId), v.maxLength(9, "Too many tags"))),
+	tags: v.optional(v.pipe(coercedArray(stringObjectId), v.maxLength(9, "Too many tags"))),
 });
 
 export const updateTaskResponse = v.strictObject({
