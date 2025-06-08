@@ -69,7 +69,11 @@ export const stringObjectId = custom<string>((value) => {
 	return true;
 });
 
-export function coercedArray<T>(schema: BaseSchema<T, T, BaseIssue<unknown>>): BaseSchema<T[], T[], BaseIssue<unknown>> {
+/**
+ * 	IMPORTANT!: use to coerce a value to an array ONLY for params of http GET request
+ *  Otherwise - use valibot array schema
+ */
+export function httpGETRequestParamArray<T>(schema: BaseSchema<T, T, BaseIssue<unknown>>): BaseSchema<T[], T[], BaseIssue<unknown>> {
 	return pipe(
 		union([array(schema), schema]),
 		transform((input): T[] => (Array.isArray(input) ? (input.length === 1 ? [input[0], input[0]] : input) : [input, input])),

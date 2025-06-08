@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import type { InferInput } from "valibot";
 import { NotificationType, vNotificationPayload } from "@/shared/database/model/notification/notification.model";
-import { coercedArray, objectId, stringObjectId } from "@/shared/types/common.type";
+import { objectId, stringObjectId } from "@/shared/types/common.type";
 
 export const createRequest = v.strictObject({
 	title: v.string(),
@@ -28,7 +28,7 @@ export const updateNotiByIdRequest = v.strictObject({
 	notificationId: stringObjectId,
 	title: v.optional(v.string()),
 	read: v.optional(v.boolean()),
-	payload: v.optional(v.record(v.string(), v.union([v.string(), v.boolean(), coercedArray(v.string())]))),
+	payload: v.optional(v.record(v.string(), v.union([v.string(), v.boolean(), v.array(v.string())]))),
 });
 
 export const deleteRequest = v.strictObject({
@@ -39,7 +39,7 @@ export const deleteRequest = v.strictObject({
 export const updateNotificationsRequest = v.strictObject({
 	accountId: v.optional(stringObjectId),
 	read: v.optional(v.boolean()),
-	payload: v.optional(v.record(v.string(), v.union([v.string(), v.boolean(), coercedArray(v.string())]))),
+	payload: v.optional(v.record(v.string(), v.union([v.string(), v.boolean(), v.array(v.string())]))),
 });
 
 export type CreateRequest = InferInput<typeof createRequest>;

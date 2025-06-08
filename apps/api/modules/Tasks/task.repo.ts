@@ -9,42 +9,9 @@ import type { Context } from "hono";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import { buildActivities } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
-
-const FIELD_SELECT: Record<keyof TaskModel & ExtendTaskModel, 0> = {
-	_id: 0,
-	title: 0,
-	description: 0,
-	status: 0,
-	priority: 0,
-	activities: 0,
-	tags: 0,
-	assigneeInfo: 0,
-	additionalInfo: 0,
-	timing: 0,
-	subTasks: 0,
-	createdAt: 0,
-	updatedAt: 0,
-	createdBy: 0,
-	folderId: 0,
-	deletedAt: 0,
-	deletedBy: 0,
-	created: 0,
-	availableTags: 0,
-};
+import { selectFields } from "@/shared/utils/response";
 
 const findById = async (ctx: Context, id: string, selects: string[] = []): Promise<FindTaskByIdResponse> => {
-	const selectFields: Record<string, number> = {
-		_id: 1,
-	};
-
-	for (const s of selects) {
-		if (s === "_id") continue;
-
-		if (s in FIELD_SELECT) {
-			selectFields[s] = 1;
-		}
-	}
-
 	const pipeline: Document[] = [
 		{
 			$match: {
@@ -98,9 +65,7 @@ const findById = async (ctx: Context, id: string, selects: string[] = []): Promi
 		},
 	];
 
-	if (Object.keys(selectFields).length > 1) {
-		pipeline.push({ $project: selectFields });
-	}
+	if (selects.length > 0) pipeline.push({ $project: selectFields(selects) });
 
 	const tasks = (await TaskColl.aggregate(pipeline).toArray()) as (TaskModel & ExtendTaskModel)[];
 
@@ -234,21 +199,7 @@ const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskMod
 	}
 
 	if (request.select?.length) {
-		const selectFields: Record<string, number> = {
-			_id: 1,
-		};
-
-		for (const s of request.select) {
-			if (s === "_id") continue;
-
-			if (s in FIELD_SELECT) {
-				selectFields[s] = 1;
-			}
-		}
-
-		if (Object.keys(selectFields).length > 1) {
-			queryOptions.projection = selectFields;
-		}
+		queryOptions.projection = selectFields(request.select);
 	}
 
 	return await TaskColl.find(filter, queryOptions).toArray();

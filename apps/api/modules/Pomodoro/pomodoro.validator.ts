@@ -1,16 +1,16 @@
 import * as v from "valibot";
 import type { InferInput } from "valibot";
 import { DurationType, PomodoroStatus, vPomodoro } from "@/shared/database/model/pomodoro/pomodoro.model";
-import { coercedArray, stringObjectId } from "@/shared/types/common.type";
+import { httpGETRequestParamArray, stringObjectId } from "@/shared/types/common.type";
 
 export const getPomodorosRequest = v.strictObject({
 	accountId: stringObjectId,
 	durationType: v.optional(v.enum(DurationType)),
 	status: v.optional(v.enum(PomodoroStatus)),
-	taskIds: v.optional(coercedArray(stringObjectId)),
+	taskIds: v.optional(httpGETRequestParamArray(stringObjectId)),
 });
 
-export const getPomodorosResponse = coercedArray(vPomodoro);
+export const getPomodorosResponse = v.array(vPomodoro);
 
 export const createPomodoroRequest = v.strictObject({
 	numOfSession: v.pipe(v.number(), v.minValue(1, "Must be at least 1 session"), v.maxValue(24, "Must be at most 24 sessions")),

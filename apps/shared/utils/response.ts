@@ -18,3 +18,17 @@ export const responseError = (c: Context, code: ErrorCode, message: string, errk
 		errkey,
 	});
 };
+
+export const selectFields = <T>(fields: (keyof T)[]) => {
+	const selectFields: Record<string, number> = { _id: 1 };
+
+	if (fields.length === 0) return selectFields;
+
+	for (const field of fields) {
+		if (field === "_id") continue;
+
+		selectFields[field as string] = 1;
+	}
+
+	return selectFields;
+};
