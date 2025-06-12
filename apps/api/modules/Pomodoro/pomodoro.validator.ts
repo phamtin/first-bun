@@ -24,6 +24,8 @@ export const createPomodoroResponse = vPomodoro;
 export const updatePomodoroRequest = v.strictObject({
 	sessionIndex: v.number(),
 	status: v.optional(v.enum(PomodoroStatus)),
+	pausedAt: v.optional(v.number()),
+	taskId: v.optional(stringObjectId),
 });
 
 export const updatePomodoroResponse = v.strictObject({

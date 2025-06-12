@@ -17,9 +17,9 @@ export enum PomodoroStatus {
 
 export type PomodoroSession = {
 	index: number;
-
 	durationType: DurationType;
 	status: PomodoroStatus;
+	pausedAt?: number;
 };
 
 /**
@@ -57,6 +57,7 @@ const vPomodoroSession = v.strictObject({
 	index: v.number(),
 	durationType: v.enum(DurationType),
 	status: v.enum(PomodoroStatus),
+	pausedAt: v.optional(v.number()),
 });
 
 export const vPomodoro = v.strictObject({

@@ -48,11 +48,21 @@ const createPomodoro = async (ctx: Context, payload: WithoutId<PomodoroModel>): 
 };
 
 const updatePomodoroSession = async (ctx: Context, pomodoroId: string, request: pv.UpdatePomodoroRequest[]): Promise<PomodoroModel | null> => {
-	const updateQuery: MatchKeysAndValues<WithoutId<PomodoroModel>> = {};
+	let unsetTaskId: Record<string, true> = {};
+
+	if (request[0].taskId === null) {
+		unsetTaskId = {
+			taskId: true,
+		};
+	}
 
 	//	This will update all sessions with the same status
 	//	Apply for only this case: update session status
-	updateQuery["pomodoroSessions.$[elem].status"] = request[0].status;
+	const updateQuery: MatchKeysAndValues<WithoutId<PomodoroModel>> = {
+		"pomodoroSessions.$[elem].status": request[0].status,
+		"pomodoroSessions.$[elem].pausedAt": request[0].pausedAt || undefined,
+		taskId: request[0].taskId ? toObjectId(request[0].taskId) : undefined,
+	};
 
 	const updated = await PomodoroColl.updateOne(
 		{
@@ -60,8 +70,16 @@ const updatePomodoroSession = async (ctx: Context, pomodoroId: string, request: 
 		},
 		{
 			$set: updateQuery,
+			$unset: unsetTaskId,
 		},
-		{ arrayFilters: [{ "elem.index": { $in: request.map((item) => item.sessionIndex) } }] },
+		{
+			arrayFilters: [
+				{
+					"elem.index": { $in: request.map((item) => item.sessionIndex) },
+				},
+			],
+			ignoreUndefined: true,
+		},
 	);
 
 	if (!updated.acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Fail to update pomodoro");

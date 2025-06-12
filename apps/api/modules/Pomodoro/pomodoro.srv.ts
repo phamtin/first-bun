@@ -43,8 +43,12 @@ const updatePomodoro = async (ctx: Context, pomodoroId: string, request: pv.Upda
 
 		if (!sessionIndex) throw new AppError("BAD_REQUEST", "Invalid session index");
 
-		if ([PomodoroStatus.Completed, PomodoroStatus.Cancelled].includes(sessionIndex.status)) {
+		if (PomodoroStatus.Completed === sessionIndex.status || PomodoroStatus.Cancelled === sessionIndex.status) {
 			throw new AppError("BAD_REQUEST", "Invalid status");
+		}
+
+		if (request.status === PomodoroStatus.Paused) {
+			if (!request.pausedAt) throw new AppError("BAD_REQUEST", "Missing pausedAt");
 		}
 
 		if (request.status === PomodoroStatus.Cancelled) {

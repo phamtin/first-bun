@@ -166,14 +166,14 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 
-		const dayjsEndDate = dayjs(endDate);
-
-		if (!dayjs(startDate).isValid() || !dayjsEndDate.isValid()) {
-			throw new AppError("BAD_REQUEST", "Invalid date");
+		if (startDate) {
+			if (!dayjs(startDate).isValid()) throw new AppError("BAD_REQUEST", "Invalid start date");
 		}
-
+		if (endDate) {
+			if (!dayjs(endDate).isValid()) throw new AppError("BAD_REQUEST", "Invalid end date");
+		}
 		if (startDate && endDate) {
-			if (dayjsEndDate.isSameOrBefore(startDate, "second")) {
+			if (dayjs(endDate).isSameOrBefore(startDate, "second")) {
 				throw new AppError("BAD_REQUEST", "Invalid end date");
 			}
 		}
@@ -190,7 +190,6 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 			},
 		}),
 	];
-
 	if (request.assigneeId) {
 		promisors.push(AccountSrv.findAccountProfile(ctx, { accountId: request.assigneeId }));
 	}

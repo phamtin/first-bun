@@ -34,7 +34,12 @@
 	},
 	"overrides": [
 		{
-			"include": ["test/*", "*util*"],
+			"include": [
+				"test/*",
+				"*util*",
+				"*init-nats*",
+				"*nats-error*"
+			],
 			"linter": {
 				"rules": {
 					"suspicious": {
