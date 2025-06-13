@@ -1,5 +1,5 @@
 import type { TaskModel } from "@/shared/database/model/task/task.model";
-import { taskWatcher } from "@/api/modules/Tasks/task.watcher";
+// import { taskWatcher } from "@/api/modules/Tasks/task.watcher";
 import { connectToDatabase } from "../../../loaders/mongo";
 import type { ChangeStream, ChangeStreamDocument, Document, ChangeStreamOptions } from "mongodb";
 
@@ -65,8 +65,10 @@ export class ChangeStreamSingleton {
 
 async function initChangeStream() {
 	try {
-		const changeStream = await ChangeStreamSingleton.getChangeStream<TaskModel>("tasks");
-		changeStream.on("change", taskWatcher);
+		console.log(initChangeStream);
+
+		// const changeStream = await ChangeStreamSingleton.getChangeStream<TaskModel>("tasks");
+		// changeStream.on("change", taskWatcher);
 	} catch (err) {
 		ChangeStreamSingleton.closeAllChangeStreams();
 		console.error("Failed to start change stream:", err);

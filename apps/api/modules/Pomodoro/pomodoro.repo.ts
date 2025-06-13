@@ -1,16 +1,17 @@
-import type { MatchKeysAndValues, WithoutId } from "mongodb";
+import type { UpdateFilter, WithoutId } from "mongodb";
 
 import { AppError } from "@/shared/utils/error";
 import type { Context } from "hono";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import type { PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
+import type { PomodoroSession, PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
 import { PomodoroColl } from "@/shared/loaders/mongo";
 import type * as pv from "./pomodoro.validator";
 import type { Filter } from "mongodb";
+import dayjs from "dayjs";
 
 const findPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Promise<PomodoroModel[]> => {
 	const query: Filter<PomodoroModel> = {
-		accountId: toObjectId(request.accountId),
+		accountId: toObjectId(ctx.get("user")._id),
 	};
 
 	if (request.durationType) {
@@ -33,9 +34,7 @@ const findById = async (ctx: Context, folderId: string): Promise<PomodoroModel |
 };
 
 const createPomodoro = async (ctx: Context, payload: WithoutId<PomodoroModel>): Promise<PomodoroModel | null> => {
-	const data: WithoutId<PomodoroModel> = {
-		...payload,
-	};
+	const data: WithoutId<PomodoroModel> = payload;
 
 	const insertedId = await PomodoroColl.insertOne(data);
 
@@ -47,24 +46,43 @@ const createPomodoro = async (ctx: Context, payload: WithoutId<PomodoroModel>): 
 	};
 };
 
-const updatePomodoroSession = async (ctx: Context, pomodoroId: string, request: pv.UpdatePomodoroRequest[]): Promise<PomodoroModel | null> => {
+const updatePomodoroSession = async (ctx: Context, pomodoroId: string, payload: PomodoroSession[]): Promise<PomodoroModel | null> => {
+	const updated = await PomodoroColl.findOneAndUpdate(
+		{
+			_id: toObjectId(pomodoroId),
+		},
+		{
+			$set: {
+				pomodoroSessions: payload,
+				updatedAt: dayjs().toDate(),
+			},
+		},
+		{
+			returnDocument: "after",
+		},
+	);
+
+	if (!updated) throw new AppError("INTERNAL_SERVER_ERROR", "Fail to update pomodoro");
+
+	return updated;
+};
+
+const updatePomodoro = async (ctx: Context, pomodoroId: string, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
 	let unsetTaskId: Record<string, true> = {};
 
-	if (request[0].taskId === null) {
+	const updateQuery: UpdateFilter<WithoutId<PomodoroModel>> = {
+		updatedAt: dayjs().toDate(),
+	};
+
+	if (request.taskId === null) {
 		unsetTaskId = {
 			taskId: true,
 		};
+	} else if (request.taskId) {
+		updateQuery.taskId = toObjectId(request.taskId);
 	}
 
-	//	This will update all sessions with the same status
-	//	Apply for only this case: update session status
-	const updateQuery: MatchKeysAndValues<WithoutId<PomodoroModel>> = {
-		"pomodoroSessions.$[elem].status": request[0].status,
-		"pomodoroSessions.$[elem].pausedAt": request[0].pausedAt || undefined,
-		taskId: request[0].taskId ? toObjectId(request[0].taskId) : undefined,
-	};
-
-	const updated = await PomodoroColl.updateOne(
+	const updated = await PomodoroColl.findOneAndUpdate(
 		{
 			_id: toObjectId(pomodoroId),
 		},
@@ -73,24 +91,21 @@ const updatePomodoroSession = async (ctx: Context, pomodoroId: string, request: 
 			$unset: unsetTaskId,
 		},
 		{
-			arrayFilters: [
-				{
-					"elem.index": { $in: request.map((item) => item.sessionIndex) },
-				},
-			],
 			ignoreUndefined: true,
+			returnDocument: "after",
 		},
 	);
 
-	if (!updated.acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Fail to update pomodoro");
+	if (!updated) throw new AppError("INTERNAL_SERVER_ERROR", "Fail to update pomodoro.");
 
-	return findById(ctx, pomodoroId);
+	return updated;
 };
 
 const PomodoroRepo = {
 	findPomodoros,
 	findById,
 	createPomodoro,
+	updatePomodoro,
 	updatePomodoroSession,
 };
 

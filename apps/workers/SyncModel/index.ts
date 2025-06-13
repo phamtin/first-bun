@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { IO_CONCURRENCY, QueueName, type SyncModelQueueJob } from "../../shared/services/bullMQ/type";
+import { IO_CONCURRENCY, QueueName, type SyncModelQueueJob } from "@/shared/services/bullMQ/type";
 import { syncModelProcessor } from "./SyncModel.srv";
 import type Redis from "@/shared/loaders/redis";
 import { connectToRedis } from "@/shared/loaders/redis";

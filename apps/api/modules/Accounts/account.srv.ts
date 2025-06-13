@@ -3,8 +3,8 @@ import type * as av from "./account.validator";
 import dayjs from "@/shared/utils/dayjs";
 import type { Context } from "@/shared/types/app.type";
 import { AppError } from "@/shared/utils/error";
-import { QueueContainer } from "@/shared/services/bullMQ/queue/BaseQueue";
-import { QueueName } from "@/shared/services/bullMQ/type";
+import { APINatsPublisher } from "@/api/init-nats";
+import { NatsEvent } from "@/shared/nats/types/events";
 
 const getMyProfile = async (ctx: Context): Promise<av.GetMyProfileResponse> => {
 	const myProfile = await AccountRepo.getMyProfile(ctx);
@@ -31,12 +31,7 @@ const updateProfile = async (ctx: Context, request: av.UpdateProfileRequest): Pr
 
 	if (!res) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 
-	await QueueContainer().add(QueueName.SyncModelQueue, "SyncModel", {
-		payload: {
-			model: "accounts",
-			payload: res,
-		},
-	});
+	await APINatsPublisher.publish<(typeof NatsEvent)["SyncModel"]>(NatsEvent.SyncModel, { model: "accounts", payload: res });
 
 	return res;
 };

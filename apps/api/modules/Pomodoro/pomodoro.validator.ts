@@ -4,7 +4,6 @@ import { DurationType, PomodoroStatus, vPomodoro } from "@/shared/database/model
 import { httpGETRequestParamArray, stringObjectId } from "@/shared/types/common.type";
 
 export const getPomodorosRequest = v.strictObject({
-	accountId: stringObjectId,
 	durationType: v.optional(v.enum(DurationType)),
 	status: v.optional(v.enum(PomodoroStatus)),
 	taskIds: v.optional(httpGETRequestParamArray(stringObjectId)),
@@ -26,6 +25,7 @@ export const updatePomodoroRequest = v.strictObject({
 	status: v.optional(v.enum(PomodoroStatus)),
 	pausedAt: v.optional(v.number()),
 	taskId: v.optional(stringObjectId),
+	isFinished: v.optional(v.union([v.literal("true"), v.literal("false")])),
 });
 
 export const updatePomodoroResponse = v.strictObject({

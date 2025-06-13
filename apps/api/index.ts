@@ -6,7 +6,8 @@ import { closeRedisConnection, connectToRedis } from "../shared/loaders/redis";
 import { handleError } from "../shared/utils/error";
 import routes from "./routes";
 import { validateEnv } from "../shared/utils/validate";
-import { initBullMQ } from "../shared/services/bullMQ/init";
+// import { initBullMQ } from "../shared/services/bullMQ/init";
+import { initNatsPublisher } from "./init-nats";
 
 validateEnv();
 
@@ -27,7 +28,8 @@ HonoApp.onError(handleError);
 
 await connectToDatabase();
 await connectToRedis();
-await initBullMQ();
+// await initBullMQ();
+await initNatsPublisher();
 
 export default {
 	port: 8000,

@@ -16,23 +16,24 @@ services:
             timeout: 10s
             retries: 3
 
-    # nats:
-    #     image: nats:latest
-    #     container_name: "nats"
-    #     ports:
-    #         - "4222:4222"
-    #         - "6222:6222"
-    #     restart: unless-stopped
-    #     network_mode: host
-    #     healthcheck:
-    #         test: ["CMD", "nats", "cli", "health"]
-    #         interval: 10s
-    #         timeout: 5s
-    #         retries: 5
-    #         start_period: 5s
+    nats:
+        image: nats:latest
+        container_name: "nats"
+        command: ["-js", "-m", "8222"]
+        ports:
+            - "4222:4222"
+            - "8222:8222"
+        restart: unless-stopped
+        network_mode: host
+        healthcheck:
+            test: ["CMD", "nats", "server", "check", "jetstream"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 5s
 
     redis-stack:
-        image: redis:8.0.2-alpine
+        image: redis:8.0.2
         container_name: "redis-stack"
         volumes:
             - ./data/redis:/data
