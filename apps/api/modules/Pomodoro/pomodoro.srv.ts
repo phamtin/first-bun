@@ -6,6 +6,8 @@ import { AppError } from "@/shared/utils/error";
 import { buildPayloadCreate } from "./pomodoro.mapper";
 import TaskSrv from "../Tasks/task.srv";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
+import { PomodoroColl } from "@/shared/loaders/mongo";
+import dayjs from "dayjs";
 
 const getPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Promise<PomodoroModel[]> => {
 	const pomodoros = await PomodoroRepo.findPomodoros(ctx, request);
@@ -34,26 +36,79 @@ const createPomodoro = async (ctx: Context, request: pv.CreatePomodoroRequest): 
 };
 
 const finishPomodoro = async (ctx: Context, pomodoro: PomodoroModel, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
-	const updatedSessions: PomodoroSession[] = [];
+	const updated = await PomodoroColl.findOneAndUpdate(
+		{
+			_id: pomodoro._id,
+		},
+		[
+			{
+				$set: {
+					pomodoroSessions: {
+						$filter: {
+							input: {
+								$map: {
+									input: "$pomodoroSessions",
+									as: "session",
+									in: {
+										index: "$$session.index",
+										durationType: "$$session.durationType",
+										status: {
+											$cond: {
+												if: { $lte: ["$$session.index", request.sessionIndex] },
+												then: PomodoroStatus.Completed,
+												else: "$$session.status",
+											},
+										},
+									},
+								},
+							},
+							as: "sessionAfterMap",
+							cond: { $lte: ["$$sessionAfterMap.index", request.sessionIndex] },
+						},
+					},
+					updatedAt: dayjs().toDate(),
+				},
+			},
+		],
+		{ returnDocument: "after" },
+	);
 
-	for (let i = 0; i < pomodoro.pomodoroSessions.length; i++) {
-		const session = pomodoro.pomodoroSessions[i];
+	return updated;
+};
 
-		// Check mal-function pomo
-		if (i < request.sessionIndex && session.status !== PomodoroStatus.Completed) {
-			throw new AppError("BAD_REQUEST", "Should complete all previous sessions first");
-		}
-		//	Sessions after finished-index will be omitted
-		if (i <= request.sessionIndex) {
-			updatedSessions.push({
-				index: session.index,
-				durationType: session.durationType,
-				status: session.index === request.sessionIndex ? PomodoroStatus.Completed : session.status,
-			});
-		}
-	}
+const completeSession = async (ctx: Context, pomodoro: PomodoroModel, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
+	const updated = await PomodoroColl.findOneAndUpdate(
+		{
+			_id: pomodoro._id,
+		},
+		[
+			{
+				$set: {
+					pomodoroSessions: {
+						$map: {
+							input: "$pomodoroSessions",
+							as: "session",
+							in: {
+								index: "$$session.index",
+								durationType: "$$session.durationType",
+								status: {
+									$cond: {
+										if: { $eq: ["$$session.index", request.sessionIndex] },
+										then: PomodoroStatus.Completed,
+										else: "$$session.status",
+									},
+								},
+							},
+						},
+					},
+					updatedAt: dayjs().toDate(),
+				},
+			},
+		],
+		{ returnDocument: "after" },
+	);
 
-	return PomodoroRepo.updatePomodoroSession(ctx, pomodoro._id.toHexString(), updatedSessions);
+	return updated;
 };
 
 const cancelPomodoro = async (ctx: Context, pomodoro: PomodoroModel, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
@@ -98,8 +153,18 @@ const updatePomodoro = async (ctx: Context, pomodoroId: string, request: pv.Upda
 
 	if (!pomoSession) throw new AppError("BAD_REQUEST", "Invalid pomo session");
 
-	if (PomodoroStatus.Completed === pomoSession.status || PomodoroStatus.Cancelled === pomoSession.status) {
+	if (PomodoroStatus.Cancelled === pomoSession.status) {
 		throw new AppError("BAD_REQUEST", "Invalid status");
+	}
+
+	if (request.taskId) {
+		const task = await TaskSrv.findById(ctx, { id: request.taskId });
+
+		if (!task) throw new AppError("NOT_FOUND", "Task not found");
+
+		if (!task.assigneeInfo?.find((assignee) => assignee._id.toHexString() === ctx.get("user")._id)) {
+			throw new AppError("BAD_REQUEST", "You're not assignee of this task");
+		}
 	}
 
 	if (request.isFinished) {
@@ -120,17 +185,14 @@ const updatePomodoro = async (ctx: Context, pomodoroId: string, request: pv.Upda
 		return updated;
 	}
 
-	if (request.taskId) {
-		const task = await TaskSrv.findById(ctx, { id: request.taskId });
-
-		if (!task) throw new AppError("NOT_FOUND", "Task not found");
-
-		if (!task.assigneeInfo?.find((assignee) => assignee._id.toHexString() === ctx.get("user")._id)) {
-			throw new AppError("BAD_REQUEST", "You're not assignee of this task");
-		}
+	if (request.status === PomodoroStatus.Completed) {
+		const updated = await completeSession(ctx, pomodoro, request);
+		if (!updated) throw new AppError("INTERNAL_SERVER_ERROR");
+		return updated;
 	}
 
 	const updated = await PomodoroRepo.updatePomodoro(ctx, pomodoroId, request);
+
 	if (!updated) throw new AppError("INTERNAL_SERVER_ERROR");
 
 	return updated;
