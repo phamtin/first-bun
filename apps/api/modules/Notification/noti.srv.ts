@@ -8,6 +8,8 @@ import { NotificationColl } from "@/shared/loaders/mongo";
 import { AppError } from "@/shared/utils/error";
 import NotificationRepo from "./noti.repo";
 import { NotificationBuilderFactory } from "./noti.util";
+import { APINatsPublisher } from "@/api/init-nats";
+import { NatsEvent } from "@/shared/nats/types/events";
 
 const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.CreateResponse> => {
 	const newNotification: WithoutId<NotificationModel<NotificationType>> = {
@@ -20,6 +22,13 @@ const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.Creat
 	};
 
 	const created = await NotificationColl.insertOne(newNotification);
+
+	if (!created.acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
+
+	await APINatsPublisher.publish<(typeof NatsEvent)["Notifications"]["Created"]>(NatsEvent.Notifications.Created, {
+		...newNotification,
+		_id: created.insertedId,
+	});
 
 	return created.insertedId;
 };

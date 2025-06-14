@@ -1,9 +1,11 @@
 import { randomUUIDv7 } from "bun";
 import { type TaskActivity, TaskStatus, type TaskModel } from "@/shared/database/model/task/task.model";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import type { UserCheckParser } from "@/shared/types/app.type";
+import type { Context, UserCheckParser } from "@/shared/types/app.type";
 import type { AttributePattern } from "@/shared/types/common.type";
 import dayjs from "dayjs";
+import { type NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
+import NotificationSrv from "../Notification";
 
 const EXCLUDED_TASK_STATUS: Record<TaskStatus, boolean> = {
 	[TaskStatus.Archived]: true,
@@ -332,4 +334,21 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 	return res;
 };
 
-export { EXCLUDED_TASK_STATUS, buildActivities };
+const checkCreateAssignedTaskNotification = async (ctx: Context, taskId: string, assignerId: string, assigneeId?: string) => {
+	if (!assigneeId || assigneeId === ctx.get("user")._id) {
+		return false;
+	}
+	const DEBOUNCE_TIME = 60 * 60 * 1000; // 1 hour;
+	const createdFrom = dayjs().subtract(DEBOUNCE_TIME, "ms").toISOString();
+
+	const exists = (await NotificationSrv.getNotifications(ctx, { accountId: assigneeId, createdFrom })).filter((item) => {
+		const n = item as NotificationModel<NotificationType.AssignedTaskForYou>;
+		return (
+			n.type === NotificationType.AssignedTaskForYou && n.payload.taskId === taskId && n.payload.assigneeId === assigneeId && n.payload.assignerId === assignerId
+		);
+	});
+
+	return exists.length === 0;
+};
+
+export { EXCLUDED_TASK_STATUS, checkCreateAssignedTaskNotification, buildActivities };

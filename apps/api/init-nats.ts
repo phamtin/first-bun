@@ -1,34 +1,13 @@
+import type { NatsEventPayloadMap } from "@/shared/nats/types/events";
 import { randomUUIDv7 } from "bun";
 import { connect as connectNats, StringCodec, nanos, AckPolicy, DeliverPolicy, ReplayPolicy, MsgHdrsImpl } from "nats";
 import type { ConsumerConfig, NatsConnection, Codec, JetStreamManager } from "nats";
-import type { AccountModel } from "@/shared/database/model/account/account.model";
-import type { FolderModel } from "@/shared/database/model/folder/folder.model";
-import type { TaskModel } from "@/shared/database/model/task/task.model";
-import { NatsEvent, type NatsEventSubject } from "@/shared/nats/types/events";
 
 interface PublishMessage {
 	subject: string;
 	messageId: string;
 	data?: any;
 	createdAt: string;
-}
-
-interface SyncModelPayload {
-	model: "accounts" | "folders" | "tasks";
-	payload: AccountModel | FolderModel | TaskModel;
-}
-
-interface EventPayloadMap {
-	[NatsEvent.SyncModel]: SyncModelPayload;
-	[NatsEvent.Accounts.Created]: AccountModel;
-	[NatsEvent.Accounts.Updated]: AccountModel;
-	[NatsEvent.Accounts.Deleted]: AccountModel;
-	[NatsEvent.Folders.Created]: FolderModel;
-	[NatsEvent.Folders.Updated]: FolderModel;
-	[NatsEvent.Folders.Deleted]: FolderModel;
-	[NatsEvent.Tasks.Created]: TaskModel;
-	[NatsEvent.Tasks.Updated]: TaskModel;
-	[NatsEvent.Tasks.Deleted]: TaskModel;
 }
 
 class NatsAPIWrapper {
@@ -108,7 +87,7 @@ class NatsAPIWrapper {
 		}
 	}
 
-	async publish<T extends keyof EventPayloadMap>(subject: T, payload: EventPayloadMap[T]): Promise<void> {
+	async publish<T extends keyof NatsEventPayloadMap>(subject: T, payload: NatsEventPayloadMap[T]): Promise<void> {
 		if (!this.natsConnection) throw new Error("NATS connection not initialized");
 
 		const js = this.natsConnection.jetstream();

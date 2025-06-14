@@ -14,9 +14,10 @@ import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 import type { FolderModel } from "@/shared/database/model/folder/folder.model";
 import FolderSrv from "../Folder/folder.srv";
 import NotificationSrv from "../Notification";
-import { type NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
+import { NotificationType } from "@/shared/database/model/notification/notification.model";
 import { NotificationBuilderFactory } from "../Notification/noti.util";
 import { TITLE_ASSIGNED_TASK_FOR_YOU } from "./task.constant";
+import { checkCreateAssignedTaskNotification } from "./task.helper";
 
 const findById = async (ctx: Context, request: tv.FindTaskByIdRequest): Promise<tv.FindTaskByIdResponse> => {
 	const task = await TaskRepo.findById(ctx, request.id, request.select);
@@ -86,6 +87,11 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 	}
 
 	const assigneeId = request.assigneeId ?? ctx.get("user")._id;
+
+	if (assigneeId !== ctx.get("user")._id) {
+		const [canUserAccess] = await FolderUtil.checkUserIsParticipantFolder(assigneeId, request.folderId);
+		if (!canUserAccess) throw new AppError("INSUFFICIENT_PERMISSIONS", "They're not participant of folder");
+	}
 
 	const assigneeAccount = await AccountSrv.findAccountProfile(ctx, {
 		accountId: assigneeId,
@@ -230,6 +236,9 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 	if (request.assigneeId) {
 		if (!assignee) throw new AppError("NOT_FOUND", "Assignee not found");
 
+		const [canUserAccess] = await FolderUtil.checkUserIsParticipantFolder(request.assigneeId, (task as TaskModel).folderId.toHexString());
+		if (!canUserAccess) throw new AppError("INSUFFICIENT_PERMISSIONS", "They're not participant of folder");
+
 		const assigneeProfile = assignee as AccountModel;
 		const { accountSettings, ...profile } = assigneeProfile;
 		payload.assigneeInfo = [profile];
@@ -257,23 +266,6 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 	}
 
 	return res;
-};
-
-const checkCreateAssignedTaskNotification = async (ctx: Context, taskId: string, assignerId: string, assigneeId?: string) => {
-	if (!assigneeId || assigneeId === ctx.get("user")._id) {
-		return false;
-	}
-	const DEBOUNCE_TIME = 60 * 60 * 1000; // 1 hour;
-	const createdFrom = dayjs().subtract(DEBOUNCE_TIME, "ms").toISOString();
-
-	const exists = (await NotificationSrv.getNotifications(ctx, { accountId: assigneeId, createdFrom })).filter((item) => {
-		const n = item as NotificationModel<NotificationType.AssignedTaskForYou>;
-		return (
-			n.type === NotificationType.AssignedTaskForYou && n.payload.taskId === taskId && n.payload.assigneeId === assigneeId && n.payload.assignerId === assignerId
-		);
-	});
-
-	return exists.length === 0;
 };
 
 const createNotificationAssignedTaskForYou = async (ctx: Context, assignee: AccountModel, folder: FolderModel, res: TaskModel) => {

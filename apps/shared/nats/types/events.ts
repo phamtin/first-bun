@@ -1,3 +1,9 @@
+import type { FolderModel } from "@/shared/database/model/folder/folder.model";
+import type { TaskModel } from "@/shared/database/model/task/task.model";
+import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
+import type { AccountModel } from "@/shared/database/model/account/account.model";
+import type { PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
+
 const NatsEvent = {
 	SyncModel: "events.sync_model",
 
@@ -38,4 +44,37 @@ type ExtractValues<T> = T extends string ? T : T extends Record<string, unknown>
 
 type NatsEventSubject = ExtractValues<typeof NatsEvent>;
 
-export { NatsEvent, type NatsEventSubject };
+interface SyncModelPayload {
+	model: "accounts" | "folders" | "tasks";
+	payload: AccountModel | FolderModel | TaskModel;
+}
+
+interface NatsEventPayloadMap {
+	[NatsEvent.SyncModel]: SyncModelPayload;
+	[NatsEvent.Auth.LoginWithGoogle]: unknown;
+	[NatsEvent.Auth.LoginWithApple]: unknown;
+	[NatsEvent.Auth.Logout]: unknown;
+
+	[NatsEvent.Accounts.Created]: AccountModel;
+	[NatsEvent.Accounts.Updated]: AccountModel;
+	[NatsEvent.Accounts.Deleted]: AccountModel;
+
+	[NatsEvent.Folders.Created]: FolderModel;
+	[NatsEvent.Folders.Updated]: FolderModel;
+	[NatsEvent.Folders.Deleted]: FolderModel;
+	[NatsEvent.Folders.Invited]: FolderModel;
+
+	[NatsEvent.Tasks.Created]: TaskModel;
+	[NatsEvent.Tasks.Updated]: TaskModel;
+	[NatsEvent.Tasks.Deleted]: TaskModel;
+
+	[NatsEvent.Notifications.Created]: NotificationModel<NotificationType>;
+	[NatsEvent.Notifications.Updated]: NotificationModel<NotificationType>;
+	[NatsEvent.Notifications.Deleted]: NotificationModel<NotificationType>;
+
+	[NatsEvent.Pomodoros.Created]: PomodoroModel;
+	[NatsEvent.Pomodoros.Updated]: PomodoroModel;
+	[NatsEvent.Pomodoros.Deleted]: PomodoroModel;
+}
+
+export { NatsEvent, type NatsEventSubject, type NatsEventPayloadMap };

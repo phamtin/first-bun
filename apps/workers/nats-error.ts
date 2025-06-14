@@ -88,25 +88,17 @@ class MessageProcessor {
 
 		try {
 			if (msg.subject.startsWith("events.sync_model")) {
-				return await this.executeWithErrorWrapping(() => SyncWorker(msg, messageData.data));
+				await SyncWorker(msg, messageData.data);
 			}
 			if (msg.subject.startsWith("events.accounts.")) {
-				return await this.executeWithErrorWrapping(() => AccountWorker(msg, messageData.data));
+				await AccountWorker(msg, messageData.data);
 			}
 			if (msg.subject.startsWith("events.folders.")) {
-				return await this.executeWithErrorWrapping(() => FolderWorker(msg, messageData.data));
+				await FolderWorker(msg, messageData.data);
 			}
 			if (msg.subject.startsWith("events.tasks.")) {
-				return await this.executeWithErrorWrapping(() => TaskWorker(msg, messageData.data));
+				await TaskWorker(msg, messageData.data);
 			}
-		} catch (error) {
-			throw this.classifyError(error as Error);
-		}
-	}
-
-	private async executeWithErrorWrapping<T>(operation: () => Promise<T>): Promise<T> {
-		try {
-			return await operation();
 		} catch (error) {
 			throw this.classifyError(error as Error);
 		}
@@ -140,13 +132,13 @@ class MessageProcessor {
 			// NAK with delay for exponential backoff
 			message.nak();
 		} else {
+			message.ack(); // ACK to prevent further redelivery
 			console.log("[TRANSIENT ERROR] Max retries exceeded, sending to DLQ", {
 				messageId: metadata.messageId,
 				attempts: metadata.deliveryCount,
 			});
 
 			await this.sendToDeadLetterQueue(message, error, metadata);
-			message.ack(); // ACK to prevent further redelivery
 		}
 	}
 
