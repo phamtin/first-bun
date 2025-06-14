@@ -24,9 +24,12 @@ export type ProfileInfo = {
 	birthday?: Date;
 };
 
+export type PomodoroSettings = { numOfSession: number; durationWork: number; durationBreak: number };
+
 export type AccountSettings = {
 	theme: Theme;
 	pinnedFolders: ObjectId[];
+	pomodoroSettings: PomodoroSettings;
 };
 
 /**
@@ -59,6 +62,12 @@ export type AccountModel = {
  * =============================
  */
 
+export const vPomodoroSettings = v.strictObject({
+	numOfSession: v.number(),
+	durationWork: v.number(),
+	durationBreak: v.number(),
+}) satisfies v.BaseSchema<PomodoroSettings, PomodoroSettings, v.BaseIssue<unknown>>;
+
 export const vAccountProfile = v.strictObject({
 	_id: objectId,
 	signinMethod: v.enum(SigninMethod),
@@ -76,6 +85,7 @@ export const vAccountProfile = v.strictObject({
 	accountSettings: v.strictObject({
 		theme: v.enum(Theme),
 		pinnedFolders: v.array(objectId),
+		pomodoroSettings: vPomodoroSettings,
 	}),
 	signupAt: v.date(),
 

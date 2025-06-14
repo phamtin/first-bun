@@ -21,6 +21,17 @@ export const updateProfileRequest = v.strictObject({
 		v.strictObject({
 			theme: v.optional(v.enum(Theme)),
 			pinnedFolders: v.optional(v.array(stringObjectId)),
+			pomodoroSettings: v.optional(
+				v.strictObject({
+					numOfSession: v.optional(v.pipe(v.number(), v.minValue(1, "Must be at least 1 session"), v.maxValue(24, "Must be at most 24 sessions"))),
+					durationWork: v.optional(
+						v.pipe(v.number(), v.minValue(5, "Work duration must be at least 5 minutes"), v.maxValue(60, "Work duration must be at most 60 minutes")),
+					),
+					durationBreak: v.optional(
+						v.pipe(v.number(), v.minValue(0.5, "Break duration must be at least 1/2 minute"), v.maxValue(60, "Break duration must be at most 60 minutes")),
+					),
+				}),
+			),
 		}),
 	),
 });

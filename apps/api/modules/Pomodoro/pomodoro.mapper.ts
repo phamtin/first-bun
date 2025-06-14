@@ -3,7 +3,6 @@ import { DurationType, PomodoroStatus, type PomodoroModel } from "@/shared/datab
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import type { Context } from "hono";
 import type { WithoutId } from "mongodb";
-import { DEFAULT_DURATION } from "./pomodoro.const";
 import dayjs from "@/shared/utils/dayjs";
 
 export const buildPayloadCreate = (ctx: Context, request: CreatePomodoroRequest) => {
@@ -11,8 +10,8 @@ export const buildPayloadCreate = (ctx: Context, request: CreatePomodoroRequest)
 
 	const res: WithoutId<PomodoroModel> = {
 		accountId,
-		durationWork: request.durationWork || DEFAULT_DURATION.Work,
-		durationBreak: request.durationBreak || DEFAULT_DURATION.Break,
+		durationWork: request.durationWork,
+		durationBreak: request.durationBreak,
 		createdAt: dayjs().toDate(),
 		pomodoroSessions: [],
 	};

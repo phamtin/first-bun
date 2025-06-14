@@ -13,6 +13,7 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import FolderSrv from "../Folder/folder.srv";
 import AccountCache from "@/shared/services/redis/account";
 import AccountSrv from "../Accounts";
+import { DEFAULT_DURATION } from "../Pomodoro/pomodoro.const";
 
 const oAuth2Client = new OAuth2Client({
 	clientId: Bun.env.GOOGLE_CLIENT_ID,
@@ -41,6 +42,11 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		accountSettings: {
 			theme: Theme.Light,
 			pinnedFolders: [],
+			pomodoroSettings: {
+				numOfSession: 4,
+				durationWork: DEFAULT_DURATION.Work,
+				durationBreak: DEFAULT_DURATION.Break,
+			},
 		},
 		signupAt: now,
 		createdAt: now,
@@ -82,6 +88,11 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		const accountSettings: AccountSettings = {
 			theme: Theme.Light,
 			pinnedFolders: [],
+			pomodoroSettings: {
+				numOfSession: 4,
+				durationWork: DEFAULT_DURATION.Work,
+				durationBreak: DEFAULT_DURATION.Break,
+			},
 		};
 		const { acknowledged, insertedId } = await AccountColl.insertOne({
 			profileInfo,
