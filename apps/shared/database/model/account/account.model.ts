@@ -28,7 +28,7 @@ export type PomodoroSettings = { numOfSession: number; durationWork: number; dur
 
 export type AccountSettings = {
 	theme: Theme;
-	pinnedFolders: ObjectId[];
+	pinnedFolderIds: ObjectId[];
 	pomodoroSettings: PomodoroSettings;
 };
 
@@ -84,7 +84,7 @@ export const vAccountProfile = v.strictObject({
 	}),
 	accountSettings: v.strictObject({
 		theme: v.enum(Theme),
-		pinnedFolders: v.array(objectId),
+		pinnedFolderIds: v.array(objectId),
 		pomodoroSettings: vPomodoroSettings,
 	}),
 	signupAt: v.date(),

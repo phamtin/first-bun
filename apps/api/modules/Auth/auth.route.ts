@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { AppContext } from "@/shared/utils/transfrom";
 import AuthSrv from "./auth.srv";
 import { vValidator } from "@hono/valibot-validator";
 import { LoginGoogleRequestSchema } from "./auth.validator";
@@ -16,13 +17,13 @@ authRoute.post(
 		}
 	}),
 	async (c) => {
-		const r = await AuthSrv.signinWithGoogle(c, c.req.valid("json"));
+		const r = await AuthSrv.signinWithGoogle(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
 
 authRoute.post("/logout", async (c) => {
-	const r = await AuthSrv.logout(c);
+	const r = await AuthSrv.logout(AppContext(c));
 	return responseOK(c, r);
 });
 

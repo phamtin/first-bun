@@ -5,6 +5,7 @@ import { responseOK } from "@/shared/utils/response";
 import { responseInvitationRequest, createFolderRequest, inviteRequest, updateFolderRequest, removeRequest } from "./folder.validator";
 import FolderSrv from "./folder.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
+import { AppContext } from "@/shared/utils/transfrom";
 
 const folderRoute = new Hono();
 
@@ -19,7 +20,7 @@ folderRoute.post(
 		}
 	}),
 	async (c) => {
-		const r = await FolderSrv.createFolder(c, c.req.valid("json"));
+		const r = await FolderSrv.createFolder(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -28,14 +29,14 @@ folderRoute.post(
  * 	Get a list of folders shared with me
  */
 folderRoute.get("/shared-with-me", async (c) => {
-	return responseOK(c, await FolderSrv.getFoldersSharedWithMe(c, {}));
+	return responseOK(c, await FolderSrv.getFoldersSharedWithMe(AppContext(c), {}));
 });
 
 /**
  * 	Get a list of my folders
  */
 folderRoute.get("/my-folders", async (c) => {
-	const r = await FolderSrv.getMyFolders(c);
+	const r = await FolderSrv.getMyFolders(AppContext(c));
 	return responseOK(c, r);
 });
 
@@ -46,7 +47,7 @@ folderRoute.get("/:id", async (c) => {
 	if (!c.req.param("id")) {
 		throw new HTTPException(400, { message: "Folder ID is required" });
 	}
-	const r = await FolderSrv.getFolderById(c, c.req.param("id"));
+	const r = await FolderSrv.getFolderById(AppContext(c), c.req.param("id"));
 	return responseOK(c, r);
 });
 
@@ -64,7 +65,7 @@ folderRoute.patch(
 		if (!c.req.param("id")) {
 			throw new HTTPException(400, { message: "Folder ID is required" });
 		}
-		const r = await FolderSrv.updateFolder(c, c.req.param("id"), c.req.valid("json"));
+		const r = await FolderSrv.updateFolder(AppContext(c), c.req.param("id"), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -76,7 +77,7 @@ folderRoute.delete("/:id", async (c) => {
 	if (!c.req.param("id")) {
 		throw new HTTPException(400, { message: "Folder ID is required" });
 	}
-	const r = await FolderSrv.deleteFolder(c, c.req.param("id"));
+	const r = await FolderSrv.deleteFolder(AppContext(c), c.req.param("id"));
 	return responseOK(c, r);
 });
 
@@ -91,7 +92,7 @@ folderRoute.post(
 		}
 	}),
 	async (c) => {
-		const r = await FolderSrv.invite(c, c.req.valid("json"));
+		const r = await FolderSrv.invite(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -107,7 +108,7 @@ folderRoute.post(
 		}
 	}),
 	async (c) => {
-		const r = await FolderSrv.responseInvitation(c, c.req.valid("json"));
+		const r = await FolderSrv.responseInvitation(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -123,7 +124,7 @@ folderRoute.post(
 		}
 	}),
 	async (c) => {
-		const r = await FolderSrv.removeMember(c, c.req.valid("json"));
+		const r = await FolderSrv.removeMember(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );

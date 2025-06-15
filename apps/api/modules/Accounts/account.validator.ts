@@ -20,7 +20,7 @@ export const updateProfileRequest = v.strictObject({
 	accountSettings: v.optional(
 		v.strictObject({
 			theme: v.optional(v.enum(Theme)),
-			pinnedFolders: v.optional(v.array(stringObjectId)),
+			pinnedFolderIds: v.optional(v.array(stringObjectId)),
 			pomodoroSettings: v.optional(
 				v.strictObject({
 					numOfSession: v.optional(v.pipe(v.number(), v.minValue(1, "Must be at least 1 session"), v.maxValue(24, "Must be at most 24 sessions"))),
@@ -40,7 +40,7 @@ export const getMyProfileResponse = vAccountProfile;
 
 export const getAccountProfileRequest = v.strictObject({
 	accountId: v.optional(stringObjectId),
-	email: v.optional(v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase())),
+	email: v.optional(v.pipe(v.string(), v.trim(), v.email(), v.toLowerCase())),
 });
 
 export const getAccountProfileResponse = v.nullable(vAccountProfile);

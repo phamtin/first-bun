@@ -4,21 +4,21 @@ import { AccountColl } from "@/shared/loaders/mongo";
 import type { Filter } from "mongodb";
 import { AppError } from "@/shared/utils/error";
 import type { AccountModel } from "@/shared/database/model/account/account.model";
-import type { Context } from "hono";
 import type { DeepPartial } from "@/shared/types/common.type";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 import { toObjectId } from "@/shared/services/mongodb/helper";
+import type { Context } from "@/shared/types/app.type";
 
 const getMyProfile = async (ctx: Context): Promise<GetMyProfileResponse> => {
 	const profile = await AccountColl.findOne({
-		"profileInfo.email": ctx.get("user").email,
+		"profileInfo.email": ctx.user.email,
 	});
 
 	if (!profile) throw new AppError("NOT_FOUND", "Profile not found");
 
 	return {
 		...profile,
-		_id: toObjectId(ctx.get("user")._id),
+		_id: toObjectId(ctx.user._id),
 	};
 };
 
@@ -54,14 +54,14 @@ const updateProfile = async (ctx: Context, request: UpdateProfileRequest): Promi
 		},
 		accountSettings: {
 			...request.accountSettings,
-			pinnedFolders: request.accountSettings?.pinnedFolders ? request.accountSettings.pinnedFolders.map((folderId) => toObjectId(folderId)) : undefined,
+			pinnedFolderIds: request.accountSettings?.pinnedFolderIds ? request.accountSettings.pinnedFolderIds.map((folderId) => toObjectId(folderId)) : undefined,
 		},
 		updatedAt: dayjs().toDate(),
 	};
 
 	const updated = await AccountColl.findOneAndUpdate(
 		{
-			_id: toObjectId(ctx.get("user")._id),
+			_id: toObjectId(ctx.user._id),
 		},
 		{
 			$set: toPayloadUpdate(updator),

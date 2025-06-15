@@ -5,6 +5,7 @@ import { vValidator } from "@hono/valibot-validator";
 import { getAccountProfileRequest, updateProfileRequest } from "./account.validator";
 import { HTTPException } from "hono/http-exception";
 import { getValidationErrorMsg } from "@/shared/utils/error";
+import { AppContext } from "@/shared/utils/transfrom";
 
 const accountRoute = new Hono();
 
@@ -12,7 +13,7 @@ const accountRoute = new Hono();
  *  Get user profile
  */
 accountRoute.get("/profile", async (c) => {
-	const r = await AccountSrv.getMyProfile(c);
+	const r = await AccountSrv.getMyProfile(AppContext(c));
 	return responseOK(c, r);
 });
 
@@ -27,7 +28,7 @@ accountRoute.get(
 		}
 	}),
 	async (c) => {
-		const r = await AccountSrv.findAccountProfile(c, c.req.valid("query"));
+		const r = await AccountSrv.findAccountProfile(AppContext(c), c.req.valid("query"));
 		return responseOK(c, r);
 	},
 );
@@ -43,7 +44,7 @@ accountRoute.patch(
 		}
 	}),
 	async (c) => {
-		const r = await AccountSrv.updateProfile(c, c.req.valid("json"));
+		const r = await AccountSrv.updateProfile(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );

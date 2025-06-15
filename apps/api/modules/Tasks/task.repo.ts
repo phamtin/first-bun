@@ -5,7 +5,7 @@ import type { CreateTaskResponse, GetTasksRequest, FindTaskByIdResponse, UpdateT
 
 import { type ExtendTaskModel, type TaskModel, TaskStatus } from "@/shared/database/model/task/task.model";
 import { AppError } from "@/shared/utils/error";
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import { buildActivities } from "./task.helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
@@ -79,7 +79,7 @@ const createTask = async (ctx: Context, payload: WithoutId<TaskModel>, opt?: Ins
 		...payload,
 
 		createdAt: new Date(),
-		createdBy: toObjectId(ctx.get("user")._id),
+		createdBy: toObjectId(ctx.user._id),
 	};
 
 	const { acknowledged, insertedId } = await TaskColl.insertOne(data, opt);
@@ -112,7 +112,7 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 	}
 
 	if (model) {
-		const activities = buildActivities(ctx.get("user"), payload, model);
+		const activities = buildActivities(ctx.user, payload, model);
 		payload.activities = activities.concat(model.activities || []);
 	}
 
@@ -136,7 +136,7 @@ const updateTask = async (ctx: Context, taskId: string, payload: Partial<TaskMod
 };
 
 const getTasks = async (ctx: Context, request: GetTasksRequest): Promise<TaskModel[]> => {
-	const accountId = toObjectId(ctx.get("user")._id);
+	const accountId = toObjectId(ctx.user._id);
 
 	const filter: Filter<TaskModel> = {
 		status: {
@@ -213,7 +213,7 @@ const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
 		{
 			$set: {
 				deletedAt: dayjs().toDate(),
-				deletedBy: toObjectId(ctx.get("user")._id),
+				deletedBy: toObjectId(ctx.user._id),
 			},
 		},
 		{

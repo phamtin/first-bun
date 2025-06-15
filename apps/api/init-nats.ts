@@ -1,9 +1,11 @@
-import type { NatsEventPayloadMap } from "@/shared/nats/types/events";
+import type { Context } from "@/shared/types/app.type";
 import { randomUUIDv7 } from "bun";
+import type { NatsEventPayloadMap } from "@/shared/nats/types/events";
 import { connect as connectNats, StringCodec, nanos, AckPolicy, DeliverPolicy, ReplayPolicy, MsgHdrsImpl } from "nats";
 import type { ConsumerConfig, NatsConnection, Codec, JetStreamManager } from "nats";
 
 interface PublishMessage {
+	ctx: Context;
 	subject: string;
 	messageId: string;
 	data?: any;
@@ -87,15 +89,16 @@ class NatsAPIWrapper {
 		}
 	}
 
-	async publish<T extends keyof NatsEventPayloadMap>(subject: T, payload: NatsEventPayloadMap[T]): Promise<void> {
+	async publish<T extends keyof NatsEventPayloadMap>(subject: T, payload: NatsEventPayloadMap[T] & { ctx: Context }): Promise<void> {
 		if (!this.natsConnection) throw new Error("NATS connection not initialized");
-
 		const js = this.natsConnection.jetstream();
+		const { ctx, ...data } = payload;
 
 		const message: PublishMessage = {
+			ctx,
 			subject,
-			data: payload,
 			messageId: randomUUIDv7(),
+			data,
 			createdAt: new Date().toISOString(),
 		};
 		const headers = new MsgHdrsImpl();
@@ -109,7 +112,7 @@ class NatsAPIWrapper {
 		 */
 		headers.set("Nats-Expected-Stream", "EVENTS");
 
-		console.log(`[API] Publishing message subject=${message.subject} messageId=${message.messageId}`);
+		console.log(`[API]    publishing message subject=${message.subject} messageId=${message.messageId}`);
 
 		await js.publish(subject, this.stringCodec.encode(JSON.stringify(message)), { headers });
 	}

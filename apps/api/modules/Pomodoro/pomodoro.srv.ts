@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import type * as pv from "./pomodoro.validator";
 import PomodoroRepo from "./pomodoro.repo";
 import { type PomodoroSession, PomodoroStatus, type PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
@@ -162,7 +162,7 @@ const updatePomodoro = async (ctx: Context, pomodoroId: string, request: pv.Upda
 
 		if (!task) throw new AppError("NOT_FOUND", "Task not found");
 
-		if (!task.assigneeInfo?.find((assignee) => assignee._id.toHexString() === ctx.get("user")._id)) {
+		if (!task.assigneeInfo?.find((assignee) => assignee._id.toHexString() === ctx.user._id)) {
 			throw new AppError("BAD_REQUEST", "You're not assignee of this task");
 		}
 	}

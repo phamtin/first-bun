@@ -6,6 +6,7 @@ import { responseOK } from "@/shared/utils/response";
 import NotificationSrv from "./noti.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
 import { getNotificationsRequest, markAsReadRequest, updateNotiByIdRequest } from "./noti.validator";
+import { AppContext } from "@/shared/utils/transfrom";
 
 const notificationRoute = new Hono();
 
@@ -20,7 +21,7 @@ notificationRoute.get(
 		}
 	}),
 	async (c) => {
-		const r = await NotificationSrv.getNotifications(c, c.req.valid("query"));
+		const r = await NotificationSrv.getNotifications(AppContext(c), c.req.valid("query"));
 		return responseOK(c, r);
 	},
 );
@@ -36,7 +37,7 @@ notificationRoute.patch(
 		}
 	}),
 	async (c) => {
-		const r = await NotificationSrv.markAsRead(c, c.req.valid("json"));
+		const r = await NotificationSrv.markAsRead(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -55,7 +56,7 @@ notificationRoute.patch(
 		if (!c.req.param("notificationId")) {
 			throw new HTTPException(400, { message: "Notification ID is required" });
 		}
-		const r = await NotificationSrv.updateNotificationById(c, {
+		const r = await NotificationSrv.updateNotificationById(AppContext(c), {
 			...c.req.valid("json"),
 			notificationId: c.req.param("notificationId"),
 		});

@@ -335,19 +335,17 @@ const buildActivities = (account: UserCheckParser, payload: Partial<TaskModel>, 
 };
 
 const checkCreateAssignedTaskNotification = async (ctx: Context, taskId: string, assignerId: string, assigneeId?: string) => {
-	if (!assigneeId || assigneeId === ctx.get("user")._id) {
+	if (!assigneeId || assigneeId === ctx.user._id) {
 		return false;
 	}
 	const DEBOUNCE_TIME = 60 * 60 * 1000; // 1 hour;
 	const createdFrom = dayjs().subtract(DEBOUNCE_TIME, "ms").toISOString();
-
 	const exists = (await NotificationSrv.getNotifications(ctx, { accountId: assigneeId, createdFrom })).filter((item) => {
 		const n = item as NotificationModel<NotificationType.AssignedTaskForYou>;
 		return (
 			n.type === NotificationType.AssignedTaskForYou && n.payload.taskId === taskId && n.payload.assigneeId === assigneeId && n.payload.assignerId === assignerId
 		);
 	});
-
 	return exists.length === 0;
 };
 

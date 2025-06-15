@@ -1,4 +1,4 @@
-import type { Context as HonoContext } from "hono";
+import type { JWTPayload } from "hono/utils/jwt/types";
 
 export type JwtDecoded = {
 	accountId: string;
@@ -16,4 +16,7 @@ export type UserCheckParser = {
 	isPrivateAccount: boolean;
 };
 
-export type Context = HonoContext;
+export type Context = {
+	jwtPayload: JWTPayload;
+	user: UserCheckParser;
+};

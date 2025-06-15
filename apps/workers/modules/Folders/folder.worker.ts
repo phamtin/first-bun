@@ -1,5 +1,5 @@
-import type { JsMsg } from "nats";
+import type { PublishMessage } from "@/api/init-nats";
 
-const FolderWorker = async (msg: JsMsg, msgData: unknown) => {};
+const FolderWorker = async (msg: PublishMessage) => {};
 
 export default FolderWorker;

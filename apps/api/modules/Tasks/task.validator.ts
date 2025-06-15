@@ -21,8 +21,8 @@ export const createTaskRequest = v.strictObject({
 	assigneeId: v.optional(stringObjectId),
 	folderId: stringObjectId,
 	timing: v.strictObject({
-		startDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
-		endDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
+		startDate: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted")))),
+		endDate: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted")))),
 		estimation: v.optional(v.nullable(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours")))),
 	}),
 	priority: v.optional(v.enum(TaskPriority)),
@@ -40,8 +40,8 @@ export const getTasksRequest = v.strictObject({
 	status: v.optional(httpGETRequestParamArray(v.enum(TaskStatus))),
 	priorities: v.optional(httpGETRequestParamArray(v.enum(TaskPriority))),
 	tags: v.optional(httpGETRequestParamArray(stringObjectId)),
-	startDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
-	endDate: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
+	startDate: v.optional(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted"))),
+	endDate: v.optional(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted"))),
 	select: v.optional(httpGETRequestParamArray(v.string())),
 });
 
@@ -55,8 +55,8 @@ export const updateTaskRequest = v.strictObject({
 	priority: v.optional(v.enum(TaskPriority)),
 	timing: v.optional(
 		v.strictObject({
-			startDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
-			endDate: v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted")))),
+			startDate: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted")))),
+			endDate: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted")))),
 			estimation: v.optional(v.nullable(v.pipe(v.number(), v.maxValue(8, "Task duration should be at most 8 hours")))),
 		}),
 	),

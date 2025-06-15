@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import type { WithoutId } from "mongodb";
 
 import { TaskStatus, type TaskTiming, type TaskModel, TaskPriority } from "@/shared/database/model/task/task.model";
@@ -51,7 +51,7 @@ export const buildPayloadCreateTask = (ctx: Context, request: CreateTaskRequest,
 
 	res.createdAt = dayjs().toDate();
 
-	res.createdBy = toObjectId(ctx.get("user")._id);
+	res.createdBy = toObjectId(ctx.user._id);
 
 	return res;
 };

@@ -76,7 +76,11 @@ services:
                   path: ./apps/
                   target: /app/apps/
                   ignore:
+                    - apps/api/resources/
                     - node_modules/
+                    - build/
+                    - bun.lockb
+                    - tsconfig.json
                 
     worker:
         build:
@@ -89,4 +93,18 @@ services:
         depends_on:
             redis-stack:
                 condition: service_healthy
+        develop:
+            watch:
+                - action: rebuild
+                  path: ./apps/workers/
+                  ignore:
+                    - node_modules/
+                - action: sync
+                  path: ./apps/workers/
+                  target: /app/apps/workers/
+                  ignore:
+                    - node_modules/
+                    - build/
+                    - bun.lockb
+                    - tsconfig.json
         

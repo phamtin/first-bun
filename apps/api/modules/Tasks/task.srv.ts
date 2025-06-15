@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import { ObjectId, type WithoutId } from "mongodb";
 import type * as tv from "./task.validator";
 import { toObjectId } from "@/shared/services/mongodb/helper";
@@ -13,11 +13,8 @@ import FolderUtil from "../Folder/folder.util";
 import { buildPayloadCreateTask, buildPayloadUpdateTask } from "./task.mapper";
 import type { FolderModel } from "@/shared/database/model/folder/folder.model";
 import FolderSrv from "../Folder/folder.srv";
-import NotificationSrv from "../Notification";
-import { NotificationType } from "@/shared/database/model/notification/notification.model";
-import { NotificationBuilderFactory } from "../Notification/noti.util";
-import { TITLE_ASSIGNED_TASK_FOR_YOU } from "./task.constant";
-import { checkCreateAssignedTaskNotification } from "./task.helper";
+import { APINatsPublisher } from "@/api/init-nats";
+import { NatsEvent } from "@/shared/nats/types/events";
 
 const findById = async (ctx: Context, request: tv.FindTaskByIdRequest): Promise<tv.FindTaskByIdResponse> => {
 	const task = await TaskRepo.findById(ctx, request.id, request.select);
@@ -59,47 +56,33 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 	if (request.timing) {
 		const { startDate, endDate } = request.timing;
 
-		if (startDate) {
-			if (!dayjs(startDate).isValid()) {
-				throw new AppError("BAD_REQUEST");
-			}
-		}
 		if (endDate) {
 			const headOfTime = startDate ?? new Date();
 
-			if (!dayjs(endDate).isValid()) {
-				throw new AppError("BAD_REQUEST");
-			}
 			if (dayjs(endDate).isSameOrBefore(headOfTime, "second")) {
 				throw new AppError("BAD_REQUEST", "End start is invalid");
 			}
 		}
 	}
 
-	const payload: WithoutId<TaskModel> | undefined = buildPayloadCreateTask(ctx, request);
+	const assigneeId = request.assigneeId ?? ctx.user._id;
 
-	if (!payload) throw new AppError("BAD_REQUEST", "Invalid payload");
+	const [assigneeAccount, [canUserAccess, folder]] = await Promise.all([
+		AccountSrv.findAccountProfile(ctx, { accountId: assigneeId }),
+		FolderUtil.checkUserIsParticipantFolder(ctx.user._id, request.folderId),
+	]);
 
-	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, request.folderId);
+	if (!assigneeAccount) throw new AppError("NOT_FOUND", "Assignee not found");
 
 	if (!canUserAccess || !folder) {
 		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
 	}
 
-	const assigneeId = request.assigneeId ?? ctx.get("user")._id;
+	const payload: WithoutId<TaskModel> | undefined = buildPayloadCreateTask(ctx, request);
 
-	if (assigneeId !== ctx.get("user")._id) {
-		const [canUserAccess] = await FolderUtil.checkUserIsParticipantFolder(assigneeId, request.folderId);
-		if (!canUserAccess) throw new AppError("INSUFFICIENT_PERMISSIONS", "They're not participant of folder");
-	}
+	if (!payload) throw new AppError("BAD_REQUEST");
 
-	const assigneeAccount = await AccountSrv.findAccountProfile(ctx, {
-		accountId: assigneeId,
-	});
-
-	if (!assigneeAccount) throw new AppError("NOT_FOUND", "Assignee not found");
-
-	const { accountSettings, ...restProps } = assigneeAccount; //	exclude accountSettings
+	const { accountSettings, ...restProps } = assigneeAccount; //	omit accountSettings
 
 	payload.assigneeInfo = [restProps];
 
@@ -122,18 +105,14 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 				validTags.push(toObjectId(tag));
 			}
 		}
-		if (!validTags.length) {
-			throw new AppError("BAD_REQUEST", "Invalid tagss");
-		}
+		if (!validTags.length) throw new AppError("BAD_REQUEST", "Invalid tagss");
 
 		payload.tags = validTags;
 	}
 
 	const created = await TaskRepo.createTask(ctx, payload);
 
-	if (await checkCreateAssignedTaskNotification(ctx, created._id.toHexString(), ctx.get("user")._id, assigneeId)) {
-		createNotificationAssignedTaskForYou(ctx, assigneeAccount as AccountModel, folder as FolderModel, created);
-	}
+	await APINatsPublisher.publish<(typeof NatsEvent)["Tasks"]["Created"]>(NatsEvent.Tasks.Created, { ctx, ...created });
 
 	return created;
 };
@@ -209,7 +188,7 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 
 	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
 
-	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, (task as TaskModel).folderId.toHexString());
+	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.user._id, (task as TaskModel).folderId.toHexString());
 
 	if (!canUserAccess || !folder) {
 		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
@@ -257,41 +236,18 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 	}
 	const res = await TaskRepo.updateTask(ctx, taskId, payload, task as TaskModel);
 
-	if (!res?._id) {
-		throw new AppError("INTERNAL_SERVER_ERROR");
-	}
+	if (!res) throw new AppError("INTERNAL_SERVER_ERROR");
 
-	if (await checkCreateAssignedTaskNotification(ctx, res._id.toHexString(), ctx.get("user")._id, request.assigneeId)) {
-		createNotificationAssignedTaskForYou(ctx, assignee as AccountModel, folder as FolderModel, res);
-	}
+	// if (await checkCreateAssignedTaskNotification(ctx, res._id.toHexString(), ctx.user._id, request.assigneeId)) {
+	// 	createNotificationAssignedTaskForYou(ctx, assignee as AccountModel, folder as FolderModel, res);
+	// }
+	await APINatsPublisher.publish<(typeof NatsEvent)["Tasks"]["Updated"]>(NatsEvent.Tasks.Updated, { ctx, ...res });
 
 	return res;
 };
 
-const createNotificationAssignedTaskForYou = async (ctx: Context, assignee: AccountModel, folder: FolderModel, res: TaskModel) => {
-	const newAssignee = assignee as AccountModel;
-	const newAssigneeId = newAssignee._id;
-
-	NotificationSrv.create(ctx, {
-		title: TITLE_ASSIGNED_TASK_FOR_YOU,
-		accountId: newAssigneeId.toHexString(),
-		type: NotificationType.AssignedTaskForYou,
-		payload: NotificationBuilderFactory(NotificationType.AssignedTaskForYou, {
-			title: res.title,
-			taskId: res._id.toHexString(),
-			assigneeId: newAssigneeId.toHexString(),
-			assigneeEmail: newAssignee.profileInfo.email,
-			assignerId: ctx.get("user")._id,
-			assignerAvatar: ctx.get("user").avatar,
-			assignerUsername: ctx.get("user").username,
-			folderId: folder._id.toHexString(),
-			folderName: folder.folderInfo.title,
-		}),
-	});
-};
-
 const deleteTask = async (ctx: Context, taskId: string): Promise<boolean> => {
-	const accountId = toObjectId(ctx.get("user")._id);
+	const accountId = toObjectId(ctx.user._id);
 
 	const taskCount = await TaskColl.countDocuments({
 		_id: toObjectId(taskId),
@@ -321,7 +277,7 @@ const findTasksByFolderIds = async (ctx: Context, folderIds: string[]): Promise<
 	let promisors: Promise<[boolean, FolderModel | null]>[] = [];
 
 	for (const folderId of folderIds) {
-		promisors = promisors.concat(FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, folderId));
+		promisors = promisors.concat(FolderUtil.checkUserIsParticipantFolder(ctx.user._id, folderId));
 	}
 
 	const results = await Promise.all(promisors);

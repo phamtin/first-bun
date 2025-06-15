@@ -5,6 +5,7 @@ import { responseOK } from "@/shared/utils/response";
 import { createPomodoroRequest, getPomodorosRequest, updatePomodoroRequest } from "./pomodoro.validator";
 import PomodoroSrv from "./pomodoro.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
+import { AppContext } from "@/shared/utils/transfrom";
 
 const pomodoroRoute = new Hono();
 
@@ -19,7 +20,7 @@ pomodoroRoute.get(
 		}
 	}),
 	async (c) => {
-		const r = await PomodoroSrv.getPomodoros(c, c.req.valid("query"));
+		const r = await PomodoroSrv.getPomodoros(AppContext(c), c.req.valid("query"));
 		return responseOK(c, r);
 	},
 );
@@ -35,7 +36,7 @@ pomodoroRoute.post(
 		}
 	}),
 	async (c) => {
-		const r = await PomodoroSrv.createPomodoro(c, c.req.valid("json"));
+		const r = await PomodoroSrv.createPomodoro(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -54,7 +55,7 @@ pomodoroRoute.patch(
 		if (!c.req.param("pomodoroId")) {
 			throw new HTTPException(400, { message: "Pomodoro ID is required" });
 		}
-		const r = await PomodoroSrv.updatePomodoro(c, c.req.param("pomodoroId"), c.req.valid("json"));
+		const r = await PomodoroSrv.updatePomodoro(AppContext(c), c.req.param("pomodoroId"), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );

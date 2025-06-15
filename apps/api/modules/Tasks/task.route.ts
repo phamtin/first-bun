@@ -6,6 +6,7 @@ import { responseOK } from "@/shared/utils/response";
 import { createTaskRequest, findTaskByIdRequest, type GetTasksRequest, getTasksRequest, updateTaskRequest } from "./task.validator";
 import TaskSrv from "./task.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
+import { AppContext } from "@/shared/utils/transfrom";
 
 const taskRoute = new Hono();
 
@@ -20,7 +21,7 @@ taskRoute.get(
 		}
 	}),
 	async (c) => {
-		const r = await TaskSrv.getTasks(c, c.req.valid("query") as GetTasksRequest);
+		const r = await TaskSrv.getTasks(AppContext(c), c.req.valid("query") as GetTasksRequest);
 		return responseOK(c, r);
 	},
 );
@@ -36,7 +37,7 @@ taskRoute.post(
 		}
 	}),
 	async (c) => {
-		const r = await TaskSrv.createTask(c, c.req.valid("json"));
+		const r = await TaskSrv.createTask(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -52,7 +53,7 @@ taskRoute.get(
 		}
 	}),
 	async (c) => {
-		const r = await TaskSrv.findById(c, {
+		const r = await TaskSrv.findById(AppContext(c), {
 			id: c.req.param("id"),
 			select: c.req.valid("query").select,
 		});
@@ -74,7 +75,7 @@ taskRoute.patch(
 		if (!c.req.param("id")) {
 			throw new HTTPException(400, { message: "Task ID is required" });
 		}
-		const r = await TaskSrv.updateTask(c, c.req.param("id"), c.req.valid("json"));
+		const r = await TaskSrv.updateTask(AppContext(c), c.req.param("id"), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );
@@ -86,7 +87,7 @@ taskRoute.delete("/:id", async (c) => {
 	if (!c.req.param("id")) {
 		throw new HTTPException(400, { message: "Task ID is required" });
 	}
-	const r = await TaskSrv.deleteTask(c, c.req.param("id"));
+	const r = await TaskSrv.deleteTask(AppContext(c), c.req.param("id"));
 	return responseOK(c, r);
 });
 

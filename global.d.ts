@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 
 declare module "hono" {
 	interface ContextVariableMap extends Context {

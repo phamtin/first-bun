@@ -15,8 +15,8 @@ export const createResponse = objectId;
 
 export const getNotificationsRequest = v.strictObject({
 	accountId: v.optional(stringObjectId),
-	createdFrom: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
-	createdTo: v.optional(v.pipe(v.string(), v.isoTimestamp("Timestamp is bad formatted"))),
+	createdFrom: v.optional(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted"))),
+	createdTo: v.optional(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted"))),
 });
 
 export const markAsReadRequest = v.strictObject({

@@ -1,4 +1,4 @@
-import type { Context } from "../types/app.type";
+import type { Context } from "hono";
 import { type ErrorCode, type ErrorResponse, codeToStatus } from "./error";
 import type { ErrorKey } from "./error-key";
 

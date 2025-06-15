@@ -31,7 +31,11 @@ const updateProfile = async (ctx: Context, request: av.UpdateProfileRequest): Pr
 
 	if (!res) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 
-	await APINatsPublisher.publish<(typeof NatsEvent)["SyncModel"]>(NatsEvent.SyncModel, { model: "accounts", payload: res });
+	await APINatsPublisher.publish<(typeof NatsEvent)["SyncModel"]>(NatsEvent.SyncModel, {
+		ctx,
+		model: "accounts",
+		payload: res,
+	});
 
 	return res;
 };

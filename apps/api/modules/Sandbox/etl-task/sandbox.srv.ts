@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import fs from "node:fs";
 import { parse } from "csv-parse";
 import { ObjectId, type WithoutId } from "mongodb";

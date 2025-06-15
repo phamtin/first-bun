@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import type { Filter } from "mongodb";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
@@ -9,7 +9,7 @@ import { toPayloadUpdate } from "@/shared/utils/transfrom";
 
 const findNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel<NotificationType>[]> => {
 	const query: Filter<NotificationModel<NotificationType>> = {
-		accountId: request.accountId ? toObjectId(request.accountId) : toObjectId(ctx.get("user")._id),
+		accountId: request.accountId ? toObjectId(request.accountId) : toObjectId(ctx.user._id),
 	};
 
 	if (request.createdFrom) {
@@ -30,7 +30,7 @@ const updateNotificationById = async (ctx: Context, request: nv.UpdateNotiByIdRe
 	const payload = toPayloadUpdate(request);
 
 	payload.updatedAt = dayjs().toDate();
-	payload.updatedBy = toObjectId(ctx.get("user")._id);
+	payload.updatedBy = toObjectId(ctx.user._id);
 
 	const updated = await NotificationColl.updateOne(
 		{

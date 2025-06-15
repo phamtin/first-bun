@@ -4,7 +4,7 @@ import { FolderColl } from "@/shared/loaders/mongo";
 import type { GetFolderByIdResponse, GetFoldersRequest } from "./folder.validator";
 import { FolderStatus, type ExtendFolderModel, type FolderModel } from "@/shared/database/model/folder/folder.model";
 import { AppError } from "@/shared/utils/error";
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
 import type { DeepPartial } from "@/shared/types/common.type";
@@ -159,7 +159,7 @@ const deleteFolder = async (ctx: Context, folderId: string): Promise<boolean> =>
 		{
 			$set: {
 				deletedAt: dayjs().toDate(),
-				deletedBy: toObjectId(ctx.get("user")._id),
+				deletedBy: toObjectId(ctx.user._id),
 			},
 		},
 		{
@@ -210,7 +210,7 @@ const removeMember = async (ctx: Context, folderId: string, memberEmail: string)
 			},
 			$set: {
 				updatedAt: dayjs().toDate(),
-				updatedBy: toObjectId(ctx.get("user")._id),
+				updatedBy: toObjectId(ctx.user._id),
 			},
 		},
 		{ ignoreUndefined: true },

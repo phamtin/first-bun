@@ -1,7 +1,7 @@
 import type { UpdateFilter, WithoutId } from "mongodb";
 
 import { AppError } from "@/shared/utils/error";
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import type { PomodoroSession, PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
 import { PomodoroColl } from "@/shared/loaders/mongo";
@@ -11,7 +11,7 @@ import dayjs from "dayjs";
 
 const findPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Promise<PomodoroModel[]> => {
 	const query: Filter<PomodoroModel> = {
-		accountId: toObjectId(ctx.get("user")._id),
+		accountId: toObjectId(ctx.user._id),
 	};
 
 	if (request.durationType) {

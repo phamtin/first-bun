@@ -1,12 +1,12 @@
 import type { CreatePomodoroRequest } from "./pomodoro.validator";
 import { DurationType, PomodoroStatus, type PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import type { WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 
 export const buildPayloadCreate = (ctx: Context, request: CreatePomodoroRequest) => {
-	const accountId = toObjectId(ctx.get("user")._id);
+	const accountId = toObjectId(ctx.user._id);
 
 	const res: WithoutId<PomodoroModel> = {
 		accountId,

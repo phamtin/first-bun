@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import type { Filter, UpdateOptions, WithoutId } from "mongodb";
 import dayjs from "@/shared/utils/dayjs";
 import type * as nv from "./noti.validator";
@@ -16,7 +16,7 @@ const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.Creat
 		title: request.title,
 		type: request.type,
 		payload: NotificationBuilderFactory(request.type, request.payload),
-		accountId: toObjectId(request.accountId ?? ctx.get("user")._id),
+		accountId: toObjectId(request.accountId ?? ctx.user._id),
 		read: false,
 		createdAt: dayjs().toDate(),
 	};
@@ -28,6 +28,7 @@ const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.Creat
 	await APINatsPublisher.publish<(typeof NatsEvent)["Notifications"]["Created"]>(NatsEvent.Notifications.Created, {
 		...newNotification,
 		_id: created.insertedId,
+		ctx,
 	});
 
 	return created.insertedId;
@@ -76,7 +77,7 @@ const markAsRead = async (ctx: Context, request: nv.MarkAsReadRequest): Promise<
 	if (request.markAll) {
 		await NotificationColl.updateMany(
 			{
-				accountId: toObjectId(ctx.get("user")._id),
+				accountId: toObjectId(ctx.user._id),
 			},
 			{
 				$set: { read: true, updatedAt: now },
@@ -104,7 +105,7 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 	if (request.deleteAll) {
 		await NotificationColl.updateMany(
 			{
-				accountId: toObjectId(ctx.get("user")._id),
+				accountId: toObjectId(ctx.user._id),
 			},
 			{
 				$set: { deletedAt: dayjs().toDate() },

@@ -1,4 +1,4 @@
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import type { ClientSession, WithoutId } from "mongodb";
 import type * as pv from "./folder.validator";
 import { toObjectId, withTransaction } from "@/shared/services/mongodb/helper";
@@ -19,7 +19,7 @@ import { NotificationBuilderFactory } from "../Notification/noti.util";
 import { ErrorKey } from "@/shared/utils/error-key";
 
 const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
-	const userId = toObjectId(ctx.get("user")._id);
+	const userId = toObjectId(ctx.user._id);
 	const result = (await FolderColl.aggregate([
 		{
 			$match: {
@@ -112,11 +112,11 @@ const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> =>
 };
 
 const getFoldersCreatedByMe = async (ctx: Context, request: pv.GetFoldersRequest): Promise<FolderModel[]> => {
-	return await FolderRepo.getFolders(ctx, { ownerId: ctx.get("user")._id });
+	return await FolderRepo.getFolders(ctx, { ownerId: ctx.user._id });
 };
 
 const getFoldersSharedWithMe = async (ctx: Context, request: pv.GetFoldersRequest): Promise<FolderModel[]> => {
-	return await FolderRepo.getFolders(ctx, { memberId: ctx.get("user")._id });
+	return await FolderRepo.getFolders(ctx, { memberId: ctx.user._id });
 };
 
 const checkActiveFolder = async (ctx: Context, folderId: string): Promise<FolderModel | null> => {
@@ -124,7 +124,7 @@ const checkActiveFolder = async (ctx: Context, folderId: string): Promise<Folder
 };
 
 const getFolderById = async (ctx: Context, id: string): Promise<pv.GetFolderByIdResponse> => {
-	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.get("user")._id, id);
+	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.user._id, id);
 
 	if (!canUserAccess) throw new AppError("NOT_FOUND", "You're not participant of folder");
 
@@ -134,7 +134,7 @@ const getFolderById = async (ctx: Context, id: string): Promise<pv.GetFolderById
 };
 
 const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDefaultFolder?: boolean): Promise<pv.CreateFolderResponse> => {
-	const ownerId = toObjectId(ctx.get("user")._id);
+	const ownerId = toObjectId(ctx.user._id);
 
 	if (isDefaultFolder) {
 		const folder = await FolderColl.findOne({
@@ -149,7 +149,7 @@ const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDef
 	}
 
 	const _ownerModel = await AccountSrv.findAccountProfile(ctx, {
-		accountId: ctx.get("user")._id,
+		accountId: ctx.user._id,
 	});
 
 	if (!_ownerModel) throw new AppError("NOT_FOUND", "Folder Owner not found");
@@ -205,7 +205,7 @@ const deleteFolder = async (ctx: Context, folderId: string): Promise<boolean> =>
 
 	if (!folder) throw new AppError("NOT_FOUND", "Folder not found");
 
-	if (folder.participantInfo.owner._id.toHexString() !== ctx.get("user")._id) {
+	if (folder.participantInfo.owner._id.toHexString() !== ctx.user._id) {
 		throw new AppError("BAD_REQUEST", "Can't delete folder");
 	}
 	const deletetaskPromisors: Promise<boolean>[] = [];
@@ -234,7 +234,7 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 
 	if (!folder) throw new AppError("NOT_FOUND", "Folder not found");
 
-	if (!folder.participantInfo.owner._id.equals(ctx.get("user")._id)) {
+	if (!folder.participantInfo.owner._id.equals(ctx.user._id)) {
 		throw new AppError("BAD_REQUEST", "Only owner can invite");
 	}
 
@@ -301,10 +301,10 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 						folderName: folder.folderInfo.title,
 						inviteeEmail: i.profileInfo.email,
 						inviteeUsername: i.profileInfo.username,
-						invitorId: ctx.get("user")._id,
-						invitorEmail: ctx.get("user").email,
-						invitorAvatar: ctx.get("user").avatar,
-						invitorUsername: ctx.get("user").username,
+						invitorId: ctx.user._id,
+						invitorEmail: ctx.user.email,
+						invitorAvatar: ctx.user.avatar,
+						invitorUsername: ctx.user.username,
 					}),
 					createdAt: now,
 				})),
@@ -404,7 +404,7 @@ const removeMember = async (ctx: Context, request: pv.RemoveRequest): Promise<pv
 
 	if (!folder) throw new AppError("NOT_FOUND", "Folder not found");
 
-	if (!folder.participantInfo.owner._id.equals(ctx.get("user")._id)) {
+	if (!folder.participantInfo.owner._id.equals(ctx.user._id)) {
 		throw new AppError("BAD_REQUEST", "Only owner can invite");
 	}
 

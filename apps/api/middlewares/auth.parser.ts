@@ -5,6 +5,8 @@ import type { UserCheckParser } from "../../shared/types/app.type";
 import { createMiddleware } from "hono/factory";
 import { AppError } from "@/shared/utils/error";
 import AccountSrv from "@/api/modules/Accounts/account.srv";
+import type { JWTPayload } from "hono/utils/jwt/types";
+import { AppContext } from "@/shared/utils/transfrom";
 
 export const tokenParser = createMiddleware(async (c, next) => {
 	let token = "";
@@ -40,10 +42,12 @@ export const tokenParser = createMiddleware(async (c, next) => {
 
 		const [session, account] = await Promise.all([
 			AccountCache.getAccountSessionById(decoded.accountId as string, token),
-			AccountSrv.findAccountProfile(c, { accountId: decoded.accountId as string }),
+			AccountSrv.findAccountProfile(AppContext(c), { accountId: decoded.accountId as string }),
 		]);
 
-		if (!session || !account) throw new AppError("UNAUTHORIZED");
+		if (!session || !account) throw new AppError("UNAUTHORIZED", "Session's expired");
+
+		c.set("jwtPayload", decoded satisfies JWTPayload);
 
 		user = {
 			_id: decoded.accountId as string,

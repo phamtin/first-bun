@@ -1,6 +1,7 @@
+import type { Context as HonoContext } from "hono";
 import { literal, string, object, union, optional, enum as enumSchema } from "valibot";
 import type { BaseIssue, InferInput } from "valibot";
-import type { Context } from "hono";
+import type { Context } from "@/shared/types/app.type";
 import { HTTPException } from "hono/http-exception";
 import type { StatusCode } from "hono/utils/http-status";
 import { responseError } from "./response";
@@ -87,7 +88,7 @@ export class AppError extends HTTPException {
 	}
 }
 
-export const handleError = (err: Error, c: Context): Response => {
+export const handleError = (err: Error, c: HonoContext): Response => {
 	/**
 	 * 	This is error that we imperatively throw by ourselves
 	 */

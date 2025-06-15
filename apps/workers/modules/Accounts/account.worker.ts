@@ -1,11 +1,12 @@
-import type { JsMsg } from "nats";
+import type { PublishMessage } from "@/api/init-nats";
 
 import { postProcessAccountUpdate } from "./account.fn";
 
-const AccountWorker = async (msg: JsMsg, msgData: unknown) => {
+const AccountWorker = async (msg: PublishMessage) => {
 	switch (msg.subject) {
 		case "events.accounts.updated":
-			return postProcessAccountUpdate(msg);
+			await postProcessAccountUpdate(msg);
+			break;
 		default:
 			return;
 	}

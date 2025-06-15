@@ -51,6 +51,7 @@ interface SyncModelPayload {
 
 interface NatsEventPayloadMap {
 	[NatsEvent.SyncModel]: SyncModelPayload;
+
 	[NatsEvent.Auth.LoginWithGoogle]: unknown;
 	[NatsEvent.Auth.LoginWithApple]: unknown;
 	[NatsEvent.Auth.Logout]: unknown;

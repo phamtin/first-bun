@@ -1,4 +1,3 @@
-import type { JsMsg } from "nats";
 import { AppError } from "@/shared/utils/error";
 import { TaskColl } from "@/shared/loaders/mongo";
 import { toObjectIds, withTransaction } from "@/shared/services/mongodb/helper";
@@ -6,6 +5,7 @@ import type { AccountModel } from "@/shared/database/model/account/account.model
 import { FolderColl } from "@/shared/loaders/mongo";
 import { FolderStatus } from "@/shared/database/model/folder/folder.model";
 import type { ClientSession } from "mongodb";
+import type { PublishMessage } from "@/api/init-nats";
 
 type SyncModelAccountPayload = {
 	model: string;
@@ -14,6 +14,10 @@ type SyncModelAccountPayload = {
 const syncCollectionAccounts = async (payload: SyncModelAccountPayload): Promise<boolean> => {
 	const accountModel = payload.payload;
 	const accountDb = toObjectIds(accountModel) as Omit<AccountModel, "accountSettings">;
+
+	console.log(JSON.parse(JSON.stringify(accountDb, null, 4)));
+
+	// throw new Error("WTF")
 
 	return withTransaction(async (session: ClientSession) => {
 		// PROJECTS: UPDATE OWNER
@@ -68,10 +72,10 @@ const syncCollectionAccounts = async (payload: SyncModelAccountPayload): Promise
 	});
 };
 
-const SyncWorker = async (msg: JsMsg, messageData: SyncModelAccountPayload) => {
-	switch (messageData.model) {
+const SyncWorker = async (msg: PublishMessage) => {
+	switch (msg.data.model) {
 		case "accounts":
-			await syncCollectionAccounts(messageData);
+			await syncCollectionAccounts(msg.data);
 			break;
 
 		default:

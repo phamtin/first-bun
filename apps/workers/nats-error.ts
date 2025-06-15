@@ -4,6 +4,7 @@ import FolderWorker from "./modules/Folders/folder.worker";
 import TaskWorker from "./modules/Tasks/task.worker";
 import SyncWorker from "./modules/Sync/sync.worker";
 import type { PublishMessage } from "@/api/init-nats";
+import type { Context } from "@/shared/types/app.type";
 
 interface JsMsgMetadata {
 	messageId: string;
@@ -44,6 +45,7 @@ class MessageProcessor {
 		try {
 			await this.processWithTimeout(message, this.parsePublishMessage(message));
 			message.ack();
+			console.log(`[WORKER] ack-ed subject=${metadata.subject} messageId=${metadata.messageId}`);
 		} catch (error) {
 			await this.handleProcessingError(message, error as ProcessingError, metadata);
 		} finally {
@@ -73,31 +75,33 @@ class MessageProcessor {
 	private async processWithTimeout(message: JsMsg, messageData: PublishMessage): Promise<void> {
 		const timeoutMs = 30000; // 30 second timeout
 
-		const processingPromise = this.process(message, messageData);
+		const processingPromise = this.process(messageData);
 		const timeoutPromise = new Promise<never>((_, reject) => {
 			setTimeout(() => {
-				reject(this.createError(ErrorType.TRANSIENT, "Processing timeout", true));
+				return reject(this.createError(ErrorType.TRANSIENT, "Message processing timeout", true));
 			}, timeoutMs);
 		});
 
 		await Promise.race([processingPromise, timeoutPromise]);
 	}
 
-	private async process(msg: JsMsg, messageData: PublishMessage): Promise<void> {
-		console.log("do: ", msg.subject, messageData);
+	private async process(messageData: PublishMessage): Promise<void> {
+		const ctx: Context = messageData.ctx;
+		if (!ctx) throw new Error("Missing message context");
 
+		console.log(`[WORKER] processing message subject=${messageData.subject} messageId=${messageData.messageId}`);
 		try {
-			if (msg.subject.startsWith("events.sync_model")) {
-				await SyncWorker(msg, messageData.data);
+			if (messageData.subject.startsWith("events.sync_model")) {
+				await SyncWorker(messageData);
 			}
-			if (msg.subject.startsWith("events.accounts.")) {
-				await AccountWorker(msg, messageData.data);
+			if (messageData.subject.startsWith("events.accounts.")) {
+				await AccountWorker(messageData);
 			}
-			if (msg.subject.startsWith("events.folders.")) {
-				await FolderWorker(msg, messageData.data);
+			if (messageData.subject.startsWith("events.folders.")) {
+				await FolderWorker(messageData);
 			}
-			if (msg.subject.startsWith("events.tasks.")) {
-				await TaskWorker(msg, messageData.data);
+			if (messageData.subject.startsWith("events.tasks.")) {
+				await TaskWorker(messageData);
 			}
 		} catch (error) {
 			throw this.classifyError(error as Error);

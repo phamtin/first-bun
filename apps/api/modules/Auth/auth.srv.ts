@@ -41,7 +41,7 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		},
 		accountSettings: {
 			theme: Theme.Light,
-			pinnedFolders: [],
+			pinnedFolderIds: [],
 			pomodoroSettings: {
 				numOfSession: 4,
 				durationWork: DEFAULT_DURATION.Work,
@@ -87,7 +87,7 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		};
 		const accountSettings: AccountSettings = {
 			theme: Theme.Light,
-			pinnedFolders: [],
+			pinnedFolderIds: [],
 			pomodoroSettings: {
 				numOfSession: 4,
 				durationWork: DEFAULT_DURATION.Work,
@@ -105,23 +105,23 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 
 		if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 
-		ctx.set("user", {
-			_id: insertedId.toHexString(),
-			email,
-			username,
-			firstname,
-			lastname,
-			phoneNumber: "",
-			locale: profileInfo.locale,
-			isPrivateAccount: profileInfo.isPrivateAccount,
-			avatar,
-		});
+		// ctx.set("user", {
+		// 	_id: insertedId.toHexString(),
+		// 	email,
+		// 	username,
+		// 	firstname,
+		// 	lastname,
+		// 	phoneNumber: "",
+		// 	locale: profileInfo.locale,
+		// 	isPrivateAccount: profileInfo.isPrivateAccount,
+		// 	avatar,
+		// });
 
 		try {
 			const defaultFolder = await FolderSrv.createFolder(ctx, { title: `${firstname}'s Folder`, color: "#2fad64" }, true);
 			await AccountSrv.updateProfile(ctx, {
 				accountSettings: {
-					pinnedFolders: [defaultFolder._id.toHexString()],
+					pinnedFolderIds: [defaultFolder._id.toHexString()],
 				},
 			});
 		} catch (error) {
@@ -195,23 +195,23 @@ const generateAuthTokens = async (userId: string) => {
 };
 
 const logout = async (ctx: Context): Promise<boolean> => {
-	await TokenColl.deleteMany({
-		accountId: toObjectId(ctx.get("user")._id),
-	});
+	// await TokenColl.deleteMany({
+	// 	accountId: toObjectId(ctx.user._id),
+	// });
 
-	AccountCache.removeSessionByAccountId(ctx.get("user")._id);
+	// AccountCache.removeSessionByAccountId(ctx.user._id);
 
-	ctx.set("user", {
-		_id: "",
-		email: "",
-		firstname: "",
-		lastname: "",
-		username: "",
-		phoneNumber: "",
-		locale: "",
-		isPrivateAccount: false,
-		avatar: "",
-	});
+	// ctx.set("user", {
+	// 	_id: "",
+	// 	email: "",
+	// 	firstname: "",
+	// 	lastname: "",
+	// 	username: "",
+	// 	phoneNumber: "",
+	// 	locale: "",
+	// 	isPrivateAccount: false,
+	// 	avatar: "",
+	// });
 
 	return true;
 };
