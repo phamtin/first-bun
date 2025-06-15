@@ -56,8 +56,8 @@ export const buildPayloadCreateTask = (ctx: Context, request: CreateTaskRequest,
 	return res;
 };
 
-export const buildPayloadUpdateTask = (ctx: Context, request: UpdateTaskRequest, model?: TaskModel): WithoutId<TaskModel> | undefined => {
-	let res: TaskModel | undefined = undefined;
+export const buildPayloadUpdateTask = (ctx: Context, request: UpdateTaskRequest, model?: TaskModel): WithoutId<TaskModel> => {
+	let res: TaskModel = {} as TaskModel;
 
 	if (Object.keys(request).length === 0) return res;
 

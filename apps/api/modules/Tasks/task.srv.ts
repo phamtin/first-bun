@@ -149,50 +149,42 @@ const validateDateRange = (timingDb?: TaskTiming, timingRequest?: tv.UpdateTaskR
 const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRequest): Promise<tv.UpdateTaskResponse> => {
 	const aa = performance.now();
 	if (request.timing) {
-		const { startDate, endDate } = request.timing;
-
-		if (startDate) {
-			if (!dayjs(startDate).isValid()) throw new AppError("BAD_REQUEST", "Invalid start date");
-		}
-		if (endDate) {
-			if (!dayjs(endDate).isValid()) throw new AppError("BAD_REQUEST", "Invalid end date");
-		}
-		if (startDate && endDate) {
-			if (dayjs(endDate).isSameOrBefore(startDate, "second")) {
+		if (request.timing.startDate && request.timing.endDate) {
+			if (dayjs(request.timing.endDate).isSameOrBefore(request.timing.startDate, "second")) {
 				throw new AppError("BAD_REQUEST", "Invalid end date");
 			}
 		}
 	}
-	const payload = buildPayloadUpdateTask(ctx, request);
-
-	if (!payload) throw new AppError("BAD_REQUEST", "Invalid payload");
 
 	const promisors: Promise<TaskModel | AccountModel | null>[] = [
 		TaskColl.findOne({
 			_id: toObjectId(taskId),
-			deletedAt: {
-				$exists: false,
-			},
+			deletedAt: { $exists: false },
 		}),
 	];
-	if (request.assigneeId) {
-		promisors.push(AccountSrv.findAccountProfile(ctx, { accountId: request.assigneeId }));
-	}
-	console.log("Duration [1] ", performance.now() - aa);
 
+	const mySelfOrAssigneeId = request.assigneeId || ctx.user._id;
+
+	promisors.push(AccountSrv.findAccountProfile(ctx, { accountId: mySelfOrAssigneeId }));
+
+	console.log("Duration [1] ", performance.now() - aa);
 	const [task, assignee] = await Promise.all(promisors);
 
-	if (!task) throw new AppError("NOT_FOUND", "Task not found");
+	if (!task || !assignee) {
+		throw new AppError("NOT_FOUND", "task or assignee not found");
+	}
 
 	const isValidDate = validateDateRange((task as TaskModel).timing, request.timing);
 
 	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
 
-	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.user._id, (task as TaskModel).folderId.toHexString());
+	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(mySelfOrAssigneeId, (task as TaskModel).folderId.toHexString());
 
 	if (!canUserAccess || !folder) {
-		throw new AppError("INSUFFICIENT_PERMISSIONS", "You're not participant of folder");
+		throw new AppError("INSUFFICIENT_PERMISSIONS", "Assignee isn't participant of folder");
 	}
+
+	const payload = buildPayloadUpdateTask(ctx, request);
 
 	if (request.tags) {
 		let isValid = true;
@@ -212,35 +204,16 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 		payload.tags = taskTags;
 	}
 
-	if (request.assigneeId) {
-		if (!assignee) throw new AppError("NOT_FOUND", "Assignee not found");
-
-		const [canUserAccess] = await FolderUtil.checkUserIsParticipantFolder(request.assigneeId, (task as TaskModel).folderId.toHexString());
-		if (!canUserAccess) throw new AppError("INSUFFICIENT_PERMISSIONS", "They're not participant of folder");
-
-		const assigneeProfile = assignee as AccountModel;
-		const { accountSettings, ...profile } = assigneeProfile;
-		payload.assigneeInfo = [profile];
-	}
+	const { accountSettings, ...rest } = assignee as AccountModel;
+	payload.assigneeInfo = [rest];
 
 	if (Array.isArray(request.subTasks)) {
-		if (request.subTasks.length === 0) {
-			payload.subTasks = [];
-		} else {
-			const subTasks = request.subTasks.map((subTask) => ({
-				...subTask,
-				_id: subTask._id ? toObjectId(subTask._id) : new ObjectId(),
-			}));
-			payload.subTasks = subTasks;
-		}
+		payload.subTasks = request.subTasks.map((item) => ({ ...item, _id: item._id ? toObjectId(item._id) : new ObjectId() }));
 	}
 	const res = await TaskRepo.updateTask(ctx, taskId, payload, task as TaskModel);
 
 	if (!res) throw new AppError("INTERNAL_SERVER_ERROR");
 
-	// if (await checkCreateAssignedTaskNotification(ctx, res._id.toHexString(), ctx.user._id, request.assigneeId)) {
-	// 	createNotificationAssignedTaskForYou(ctx, assignee as AccountModel, folder as FolderModel, res);
-	// }
 	await APINatsPublisher.publish<(typeof NatsEvent)["Tasks"]["Updated"]>(NatsEvent.Tasks.Updated, { ctx, ...res });
 
 	return res;

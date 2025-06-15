@@ -14,7 +14,7 @@
 		"mongodb": "^6.17.0",
 		"mutative": "^1.2.0",
 		"nats": "^2.29.3",
-		"piscina": "^5.0.0",
+		"piscina": "^5.1.0",
 		"valibot": "^1.1.0"
 	},
 	"devDependencies": {
