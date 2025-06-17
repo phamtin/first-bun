@@ -86,6 +86,15 @@ export const removeResponse = v.strictObject({
 	success: v.boolean(),
 });
 
+export const withdrawInvitationRequest = v.strictObject({
+	folderId: stringObjectId,
+	inviteeEmail: v.pipe(v.string(), v.email(), v.trim()),
+});
+
+export const withdrawInvitationResponse = v.strictObject({
+	success: v.boolean(),
+});
+
 export type GetFoldersRequest = InferInput<typeof getFoldersRequest>;
 export type GetMyFoldersResponse = InferInput<typeof getMyFoldersResponse>;
 export type CreateFolderRequest = InferInput<typeof createFolderRequest>;
@@ -100,3 +109,5 @@ export type ResponseInvitationRequest = InferInput<typeof responseInvitationRequ
 export type ResponseInvitationResponse = InferInput<typeof responseInvitationResponse>;
 export type RemoveRequest = InferInput<typeof removeRequest>;
 export type RemoveResponse = InferInput<typeof removeResponse>;
+export type WithdrawInvitationRequest = InferInput<typeof withdrawInvitationRequest>;
+export type WithdrawInvitationResponse = InferInput<typeof withdrawInvitationResponse>;

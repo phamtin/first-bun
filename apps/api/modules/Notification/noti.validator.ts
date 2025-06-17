@@ -33,7 +33,7 @@ export const updateNotiByIdRequest = v.strictObject({
 
 export const deleteRequest = v.strictObject({
 	deleteAll: v.optional(v.boolean()),
-	notificationId: v.optional(stringObjectId),
+	notificationIds: v.optional(v.array(stringObjectId)),
 });
 
 export const updateNotificationsRequest = v.strictObject({

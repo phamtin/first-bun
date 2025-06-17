@@ -10,6 +10,9 @@ import { toPayloadUpdate } from "@/shared/utils/transfrom";
 const findNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel<NotificationType>[]> => {
 	const query: Filter<NotificationModel<NotificationType>> = {
 		accountId: request.accountId ? toObjectId(request.accountId) : toObjectId(ctx.user._id),
+		deletedAt: {
+			$exists: false,
+		},
 	};
 
 	if (request.createdFrom) {
@@ -27,10 +30,11 @@ const findNotifications = async (ctx: Context, request: nv.GetNotificationsReque
 };
 
 const updateNotificationById = async (ctx: Context, request: nv.UpdateNotiByIdRequest): Promise<boolean> => {
-	const payload = toPayloadUpdate(request);
-
-	payload.updatedAt = dayjs().toDate();
-	payload.updatedBy = toObjectId(ctx.user._id);
+	const payload = {
+		...toPayloadUpdate(request),
+		updatedAt: dayjs().toDate(),
+		updatedBy: toObjectId(ctx.user._id),
+	};
 
 	const updated = await NotificationColl.updateOne(
 		{

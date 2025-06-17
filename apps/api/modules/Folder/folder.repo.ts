@@ -219,6 +219,28 @@ const removeMember = async (ctx: Context, folderId: string, memberEmail: string)
 	return updated.acknowledged;
 };
 
+const withdrawInvitation = async (ctx: Context, folderId: string, inviteeEmail: string): Promise<boolean> => {
+	const updated = await FolderColl.updateOne(
+		{
+			_id: toObjectId(folderId),
+		},
+		{
+			$pull: {
+				"participantInfo.invitations": {
+					inviteeEmail,
+				},
+			},
+			$set: {
+				updatedAt: dayjs().toDate(),
+				updatedBy: toObjectId(ctx.user._id),
+			},
+		},
+		{ ignoreUndefined: true },
+	);
+
+	return updated.acknowledged;
+};
+
 const FolderRepo = {
 	getFolders,
 	createFolder,
@@ -228,6 +250,7 @@ const FolderRepo = {
 	checkActiveFolder,
 	addMemberToFolder,
 	removeMember,
+	withdrawInvitation,
 };
 
 export default FolderRepo;

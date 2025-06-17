@@ -17,6 +17,8 @@ import { InviteJoinFolderPayloadStatus, NotificationType } from "@/shared/databa
 import { TaskStatus } from "@/shared/database/model/task/task.model";
 import { NotificationBuilderFactory } from "../Notification/noti.util";
 import { ErrorKey } from "@/shared/utils/error-key";
+import { APINatsPublisher } from "@/api/init-nats";
+import { NatsEvent } from "@/shared/nats/types/events";
 
 const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
 	const userId = toObjectId(ctx.user._id);
@@ -140,9 +142,7 @@ const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDef
 		const folder = await FolderColl.findOne({
 			"participantInfo.owner._id": ownerId,
 			"folderInfo.isDefaultFolder": true,
-			deletedAt: {
-				$exists: false,
-			},
+			deletedAt: { $exists: false },
 		});
 
 		if (folder) throw new AppError("BAD_REQUEST", "Hack CC");
@@ -172,7 +172,6 @@ const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDef
 		documents: {
 			urls: [],
 		},
-		tags: [],
 		createdAt: dayjs().toDate(),
 		createdBy: ownerId,
 	};
@@ -417,6 +416,28 @@ const removeMember = async (ctx: Context, request: pv.RemoveRequest): Promise<pv
 	return { success: true };
 };
 
+const withdrawInvitation = async (ctx: Context, request: pv.WithdrawInvitationRequest): Promise<pv.WithdrawInvitationResponse> => {
+	const folder = await checkActiveFolder(ctx, request.folderId);
+
+	if (!folder) throw new AppError("NOT_FOUND", "Folder not found");
+
+	if (!folder.participantInfo.owner._id.equals(ctx.user._id)) {
+		throw new AppError("BAD_REQUEST", "Only owner can withdraw invitation");
+	}
+
+	const invitation = folder.participantInfo.invitations.find((invitation) => invitation.inviteeEmail === request.inviteeEmail);
+
+	if (!invitation) throw new AppError("NOT_FOUND", "Invitation not found");
+
+	const isSuccess = await FolderRepo.withdrawInvitation(ctx, request.folderId, request.inviteeEmail);
+
+	if (!isSuccess) throw new AppError("INTERNAL_SERVER_ERROR");
+
+	await APINatsPublisher.publish<(typeof NatsEvent)["Folders"]["WithdrawInvitation"]>(NatsEvent.Folders.WithdrawInvitation, { ctx, folder, request });
+
+	return { success: true };
+};
+
 const FolderSrv = {
 	getMyFolders,
 	getFoldersSharedWithMe,
@@ -429,6 +450,7 @@ const FolderSrv = {
 	invite,
 	responseInvitation,
 	removeMember,
+	withdrawInvitation,
 };
 
 export default FolderSrv;

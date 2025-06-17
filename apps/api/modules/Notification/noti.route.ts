@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/shared/utils/response";
 import NotificationSrv from "./noti.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
-import { getNotificationsRequest, markAsReadRequest, updateNotiByIdRequest } from "./noti.validator";
+import { deleteRequest, getNotificationsRequest, markAsReadRequest, updateNotiByIdRequest } from "./noti.validator";
 import { AppContext } from "@/shared/utils/transfrom";
 
 const notificationRoute = new Hono();
@@ -60,6 +60,22 @@ notificationRoute.patch(
 			...c.req.valid("json"),
 			notificationId: c.req.param("notificationId"),
 		});
+		return responseOK(c, r);
+	},
+);
+
+/**
+ * 	Delete notification by ID
+ */
+notificationRoute.post(
+	"/delete",
+	vValidator("json", deleteRequest, (result) => {
+		if (!result.success) {
+			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
+		}
+	}),
+	async (c) => {
+		const r = await NotificationSrv.deleteNotifications(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );

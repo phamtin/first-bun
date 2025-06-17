@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { vValidator } from "@hono/valibot-validator";
 import { HTTPException } from "hono/http-exception";
 import { responseOK } from "@/shared/utils/response";
-import { responseInvitationRequest, createFolderRequest, inviteRequest, updateFolderRequest, removeRequest } from "./folder.validator";
+import { responseInvitationRequest, createFolderRequest, inviteRequest, updateFolderRequest, removeRequest, withdrawInvitationRequest } from "./folder.validator";
 import FolderSrv from "./folder.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
 import { AppContext } from "@/shared/utils/transfrom";
@@ -125,6 +125,22 @@ folderRoute.post(
 	}),
 	async (c) => {
 		const r = await FolderSrv.removeMember(AppContext(c), c.req.valid("json"));
+		return responseOK(c, r);
+	},
+);
+
+/**
+ *  Owner remove a member from a folder
+ */
+folderRoute.post(
+	"/invite/withdraw",
+	vValidator("json", withdrawInvitationRequest, (result, c) => {
+		if (!result.success) {
+			throw new HTTPException(400, { message: getValidationErrorMsg(result.issues) });
+		}
+	}),
+	async (c) => {
+		const r = await FolderSrv.withdrawInvitation(AppContext(c), c.req.valid("json"));
 		return responseOK(c, r);
 	},
 );

@@ -1,4 +1,4 @@
-import { connect as connectNats, StringCodec, AckPolicy, DeliverPolicy, nanos, ReplayPolicy, StorageType } from "nats";
+import { connect as connectNats, AckPolicy, DeliverPolicy, nanos, ReplayPolicy, StorageType } from "nats";
 import type { ConsumerConfig, NatsConnection, JetStreamClient, Consumer } from "nats";
 import MessageProcessor from "./nats-error";
 
@@ -22,6 +22,7 @@ interface DeadLetterData {
 }
 
 class NatsWorkerWrapper {
+	private static instance: NatsWorkerWrapper | null = null;
 	static consumerName = "nats-worker";
 	static natsServerUrl = "127.0.0.1:4222";
 	static subject = "events.>";
@@ -49,6 +50,13 @@ class NatsWorkerWrapper {
 
 		this.isShuttingDown = false;
 		this.activeMessages = new Set<string>(); // Track active message processing
+	}
+
+	public static getInstance(): NatsWorkerWrapper {
+		if (!NatsWorkerWrapper.instance) {
+			NatsWorkerWrapper.instance = new NatsWorkerWrapper();
+		}
+		return NatsWorkerWrapper.instance;
 	}
 
 	async connect(): Promise<NatsConnection> {

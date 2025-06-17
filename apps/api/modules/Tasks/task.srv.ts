@@ -105,7 +105,7 @@ const createTask = async (ctx: Context, request: tv.CreateTaskRequest): Promise<
 				validTags.push(toObjectId(tag));
 			}
 		}
-		if (!validTags.length) throw new AppError("BAD_REQUEST", "Invalid tagss");
+		if (!validTags.length) throw new AppError("BAD_REQUEST", "Invalid tags");
 
 		payload.tags = validTags;
 	}
@@ -174,9 +174,9 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 		throw new AppError("NOT_FOUND", "task or assignee not found");
 	}
 
-	const isValidDate = validateDateRange((task as TaskModel).timing, request.timing);
-
-	if (!isValidDate) throw new AppError("BAD_REQUEST", "Invalid date range");
+	if (!validateDateRange((task as TaskModel).timing, request.timing)) {
+		throw new AppError("BAD_REQUEST", "Invalid date range");
+	}
 
 	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(mySelfOrAssigneeId, (task as TaskModel).folderId.toHexString());
 
@@ -214,7 +214,7 @@ const updateTask = async (ctx: Context, taskId: string, request: tv.UpdateTaskRe
 
 	if (!res) throw new AppError("INTERNAL_SERVER_ERROR");
 
-	await APINatsPublisher.publish<(typeof NatsEvent)["Tasks"]["Updated"]>(NatsEvent.Tasks.Updated, { ctx, ...res });
+	await APINatsPublisher.publish<(typeof NatsEvent)["Tasks"]["Updated"]>(NatsEvent.Tasks.Updated, { ctx, request, task: res });
 
 	return res;
 };

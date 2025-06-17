@@ -90,7 +90,13 @@ class NatsAPIWrapper {
 	}
 
 	async publish<T extends keyof NatsEventPayloadMap>(subject: T, payload: NatsEventPayloadMap[T] & { ctx: Context }): Promise<void> {
-		if (!this.natsConnection) throw new Error("NATS connection not initialized");
+		if (!this.natsConnection) {
+			console.log("- Initializing NATS connection...");
+			await this.initialize();
+		}
+		if (!this.natsConnection) {
+			throw new Error("NATS connection not initialized");
+		}
 		const js = this.natsConnection.jetstream();
 		const { ctx, ...data } = payload;
 

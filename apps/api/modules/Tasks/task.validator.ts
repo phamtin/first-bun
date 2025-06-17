@@ -18,7 +18,7 @@ export const createTaskRequest = v.strictObject({
 	title: v.pipe(v.string(), v.minLength(2, "Title min 2 characters long")),
 	description: v.optional(v.string()),
 	status: v.optional(v.enum(TaskStatus)),
-	assigneeId: v.optional(stringObjectId),
+	assigneeId: stringObjectId,
 	folderId: stringObjectId,
 	timing: v.strictObject({
 		startDate: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.isoTimestamp("Timestamp is bad formatted")))),

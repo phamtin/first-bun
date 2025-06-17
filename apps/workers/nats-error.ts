@@ -75,14 +75,13 @@ class MessageProcessor {
 	private async processWithTimeout(message: JsMsg, messageData: PublishMessage): Promise<void> {
 		const timeoutMs = 30000; // 30 second timeout
 
-		const processingPromise = this.process(messageData);
 		const timeoutPromise = new Promise<never>((_, reject) => {
 			setTimeout(() => {
 				return reject(this.createError(ErrorType.TRANSIENT, "Message processing timeout", true));
 			}, timeoutMs);
 		});
 
-		await Promise.race([processingPromise, timeoutPromise]);
+		return await Promise.race([this.process(messageData), timeoutPromise]);
 	}
 
 	private async process(messageData: PublishMessage): Promise<void> {

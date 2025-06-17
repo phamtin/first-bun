@@ -99,7 +99,7 @@ const markAsRead = async (ctx: Context, request: nv.MarkAsReadRequest): Promise<
 };
 
 const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Promise<boolean> => {
-	if ((request.deleteAll && request.notificationId) || (!request.deleteAll && !request.notificationId)) {
+	if ((request.deleteAll && request.notificationIds?.length) || (!request.deleteAll && !request.notificationIds)) {
 		throw new AppError("BAD_REQUEST", "Should use one criterial");
 	}
 	if (request.deleteAll) {
@@ -112,10 +112,10 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 			},
 		);
 	}
-	if (request.notificationId) {
-		await NotificationColl.updateOne(
+	if (request.notificationIds?.length) {
+		await NotificationColl.updateMany(
 			{
-				_id: toObjectId(request.notificationId),
+				_id: { $in: request.notificationIds.map((id) => toObjectId(id)) },
 			},
 			{
 				$set: { deletedAt: dayjs().toDate() },

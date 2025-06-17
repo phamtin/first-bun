@@ -3,6 +3,8 @@ import type { TaskModel } from "@/shared/database/model/task/task.model";
 import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
 import type { AccountModel } from "@/shared/database/model/account/account.model";
 import type { PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
+import type { WithdrawInvitationRequest } from "@/api/modules/Folder/folder.validator";
+import type { UpdateTaskRequest } from "@/api/modules/Tasks/task.validator";
 
 const NatsEvent = {
 	SyncModel: "events.sync_model",
@@ -22,6 +24,7 @@ const NatsEvent = {
 		Updated: "events.folders.updated",
 		Deleted: "events.folders.deleted",
 		Invited: "events.folders.invited",
+		WithdrawInvitation: "events.folders.withdraw_invitation",
 	},
 	Tasks: {
 		Created: "events.tasks.created",
@@ -64,9 +67,10 @@ interface NatsEventPayloadMap {
 	[NatsEvent.Folders.Updated]: FolderModel;
 	[NatsEvent.Folders.Deleted]: FolderModel;
 	[NatsEvent.Folders.Invited]: FolderModel;
+	[NatsEvent.Folders.WithdrawInvitation]: { folder: FolderModel; request: WithdrawInvitationRequest };
 
 	[NatsEvent.Tasks.Created]: TaskModel;
-	[NatsEvent.Tasks.Updated]: TaskModel;
+	[NatsEvent.Tasks.Updated]: { task: TaskModel; request: UpdateTaskRequest };
 	[NatsEvent.Tasks.Deleted]: TaskModel;
 
 	[NatsEvent.Notifications.Created]: NotificationModel<NotificationType>;
@@ -78,4 +82,6 @@ interface NatsEventPayloadMap {
 	[NatsEvent.Pomodoros.Deleted]: PomodoroModel;
 }
 
-export { NatsEvent, type NatsEventSubject, type NatsEventPayloadMap };
+type EventPayload<T extends NatsEventSubject> = NatsEventPayloadMap[T];
+
+export { NatsEvent, type NatsEventSubject, type NatsEventPayloadMap, type EventPayload };
