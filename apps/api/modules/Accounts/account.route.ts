@@ -45,6 +45,18 @@ accountRoute.patch(
 	}),
 	async (c) => {
 		const r = await AccountSrv.updateProfile(AppContext(c), c.req.valid("json"));
+		const { profileInfo } = r;
+		c.set("user" as any, {
+			_id: r._id,
+			email: profileInfo.email,
+			username: profileInfo.username,
+			firstname: profileInfo.firstname,
+			lastname: profileInfo.lastname,
+			avatar: profileInfo.avatar,
+			phoneNumber: profileInfo.phoneNumber,
+			locale: profileInfo.locale,
+			isPrivateAccount: profileInfo.isPrivateAccount,
+		});
 		return responseOK(c, r);
 	},
 );

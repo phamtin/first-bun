@@ -1,11 +1,11 @@
-import type { Context } from "@/shared/types/app.type";
 import type { Filter } from "mongodb";
-import { toObjectId } from "@/shared/services/mongodb/helper";
 import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
 import { NotificationColl } from "@/shared/loaders/mongo";
-import type * as nv from "./noti.validator";
+import { toObjectId } from "@/shared/services/mongodb/helper";
+import type { Context } from "@/shared/types/app.type";
 import dayjs from "@/shared/utils/dayjs";
 import { toPayloadUpdate } from "@/shared/utils/transfrom";
+import type * as nv from "./noti.validator";
 
 const findNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel<NotificationType>[]> => {
 	const query: Filter<NotificationModel<NotificationType>> = {
@@ -51,10 +51,7 @@ const updateNotificationById = async (ctx: Context, request: nv.UpdateNotiByIdRe
 
 const updateNotifications = async (
 	ctx: Context,
-	request: {
-		filter: Filter<NotificationModel<NotificationType>>;
-		payload: nv.UpdateNotificationsRequest;
-	},
+	request: { filter: Filter<NotificationModel<NotificationType>>; payload: nv.UpdateNotificationsRequest },
 ): Promise<boolean> => {
 	const { filter, payload } = request;
 

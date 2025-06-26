@@ -1,10 +1,11 @@
 import { type JsMsg, StringCodec } from "nats";
-import AccountWorker from "./modules/Accounts/account.worker";
-import FolderWorker from "./modules/Folders/folder.worker";
-import TaskWorker from "./modules/Tasks/task.worker";
-import SyncWorker from "./modules/Sync/sync.worker";
 import type { PublishMessage } from "@/api/init-nats";
 import type { Context } from "@/shared/types/app.type";
+import AccountWorker from "./modules/Accounts/account.worker";
+import FolderWorker from "./modules/Folders/folder.worker";
+import NotificationWorker from "./modules/Notification/noti.worker";
+import SyncWorker from "./modules/Sync/sync.worker";
+import TaskWorker from "./modules/Tasks/task.worker";
 
 interface JsMsgMetadata {
 	messageId: string;
@@ -72,7 +73,7 @@ class MessageProcessor {
 		}
 	}
 
-	private async processWithTimeout(message: JsMsg, messageData: PublishMessage): Promise<void> {
+	private async processWithTimeout(jsMsg: JsMsg, messageData: PublishMessage): Promise<void> {
 		const timeoutMs = 30000; // 30 second timeout
 
 		const timeoutPromise = new Promise<never>((_, reject) => {
@@ -81,10 +82,10 @@ class MessageProcessor {
 			}, timeoutMs);
 		});
 
-		return await Promise.race([this.process(messageData), timeoutPromise]);
+		return await Promise.race([this.process(jsMsg, messageData), timeoutPromise]);
 	}
 
-	private async process(messageData: PublishMessage): Promise<void> {
+	private async process(jsMsg: JsMsg, messageData: PublishMessage): Promise<void> {
 		const ctx: Context = messageData.ctx;
 		if (!ctx) throw new Error("Missing message context");
 
@@ -101,6 +102,9 @@ class MessageProcessor {
 			}
 			if (messageData.subject.startsWith("events.tasks.")) {
 				await TaskWorker(messageData);
+			}
+			if (messageData.subject.startsWith("events.notifications.")) {
+				await NotificationWorker(jsMsg, messageData);
 			}
 		} catch (error) {
 			throw this.classifyError(error as Error);

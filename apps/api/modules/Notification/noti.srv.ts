@@ -1,15 +1,15 @@
-import type { Context } from "@/shared/types/app.type";
-import type { Filter, UpdateOptions, WithoutId } from "mongodb";
-import dayjs from "@/shared/utils/dayjs";
-import type * as nv from "./noti.validator";
+import type { Filter, ObjectId, UpdateOptions, WithoutId } from "mongodb";
+import { APINatsPublisher } from "@/api/init-nats";
 import type { NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
-import { toObjectId } from "@/shared/services/mongodb/helper";
 import { NotificationColl } from "@/shared/loaders/mongo";
+import { NatsEvent } from "@/shared/nats/types/events";
+import { toObjectId } from "@/shared/services/mongodb/helper";
+import type { Context } from "@/shared/types/app.type";
+import dayjs from "@/shared/utils/dayjs";
 import { AppError } from "@/shared/utils/error";
 import NotificationRepo from "./noti.repo";
 import { NotificationBuilderFactory } from "./noti.util";
-import { APINatsPublisher } from "@/api/init-nats";
-import { NatsEvent } from "@/shared/nats/types/events";
+import type * as nv from "./noti.validator";
 
 const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.CreateResponse> => {
 	const newNotification: WithoutId<NotificationModel<NotificationType>> = {
@@ -40,7 +40,7 @@ const updateNotificationById = async (ctx: Context, request: nv.UpdateNotiByIdRe
 	return updated;
 };
 
-const bulkCreate = async (ctx: Context, request: nv.CreateRequest[], option?: UpdateOptions): Promise<boolean> => {
+const bulkCreate = async (ctx: Context, request: nv.CreateRequest[], option?: UpdateOptions): Promise<{ [key: string]: ObjectId }> => {
 	for (const r of request) {
 		if (!r.accountId && !r.email) {
 			throw new AppError("BAD_REQUEST", "Missing accountId and Email");
@@ -60,7 +60,7 @@ const bulkCreate = async (ctx: Context, request: nv.CreateRequest[], option?: Up
 	}
 	const created = await NotificationColl.insertMany(payload, { ...option });
 
-	return created.acknowledged;
+	return created.insertedIds;
 };
 
 const getNotifications = async (ctx: Context, request: nv.GetNotificationsRequest): Promise<NotificationModel<NotificationType>[]> => {
@@ -128,10 +128,7 @@ const deleteNotifications = async (ctx: Context, request: nv.DeleteRequest): Pro
 
 const updateNotifications = async (
 	ctx: Context,
-	request: {
-		filter: Filter<NotificationModel<NotificationType>>;
-		payload: nv.UpdateNotificationsRequest;
-	},
+	request: { filter: Filter<NotificationModel<NotificationType>>; payload: nv.UpdateNotificationsRequest },
 ): Promise<boolean> => {
 	const updated = await NotificationRepo.updateNotifications(ctx, {
 		filter: request.filter,

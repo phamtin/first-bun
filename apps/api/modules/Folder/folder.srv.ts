@@ -1,24 +1,23 @@
-import type { Context } from "@/shared/types/app.type";
-import type { ClientSession, WithoutId } from "mongodb";
-import type * as pv from "./folder.validator";
-import { toObjectId, withTransaction } from "@/shared/services/mongodb/helper";
-import FolderRepo from "./folder.repo";
-import { FolderColl } from "@/shared/loaders/mongo";
-import { type FolderInvitation, FolderStatus, type FolderModel } from "@/shared/database/model/folder/folder.model";
-import { AppError } from "@/shared/utils/error";
-import { buildPayloadUpdate } from "./folder.mapper";
-import AccountSrv from "../Accounts";
-import FolderUtil from "./folder.util";
-import dayjs from "@/shared/utils/dayjs";
-import TaskSrv from "../Tasks/task.srv";
-import { DEFAULT_INVITATION_TITLE, PROJECT_INVITATION_EXPIRED_MINUTE } from "./folder.const";
-import NotificationSrv from "../Notification";
+import type { WithoutId } from "mongodb";
+import { APINatsPublisher } from "@/api/init-nats";
+import { type FolderInvitation, type FolderModel, FolderStatus } from "@/shared/database/model/folder/folder.model";
 import { InviteJoinFolderPayloadStatus, NotificationType } from "@/shared/database/model/notification/notification.model";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
-import { NotificationBuilderFactory } from "../Notification/noti.util";
-import { ErrorKey } from "@/shared/utils/error-key";
-import { APINatsPublisher } from "@/api/init-nats";
+import { FolderColl } from "@/shared/loaders/mongo";
 import { NatsEvent } from "@/shared/nats/types/events";
+import { toObjectId } from "@/shared/services/mongodb/helper";
+import type { Context } from "@/shared/types/app.type";
+import dayjs from "@/shared/utils/dayjs";
+import { AppError } from "@/shared/utils/error";
+import { ErrorKey } from "@/shared/utils/error-key";
+import AccountSrv from "../Accounts";
+import NotificationSrv from "../Notification";
+import TaskSrv from "../Tasks/task.srv";
+import { DEFAULT_INVITATION_TITLE, PROJECT_INVITATION_EXPIRED_MINUTE } from "./folder.const";
+import { buildPayloadUpdate } from "./folder.mapper";
+import FolderRepo from "./folder.repo";
+import FolderUtil from "./folder.util";
+import type * as pv from "./folder.validator";
 
 const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
 	const userId = toObjectId(ctx.user._id);
@@ -65,13 +64,19 @@ const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> =>
 							_id: "$folderId",
 							Total: { $sum: 1 },
 							[TaskStatus.NotStartYet]: {
-								$sum: { $cond: [{ $eq: ["$status", TaskStatus.NotStartYet] }, 1, 0] },
+								$sum: {
+									$cond: [{ $eq: ["$status", TaskStatus.NotStartYet] }, 1, 0],
+								},
 							},
 							[TaskStatus.InProgress]: {
-								$sum: { $cond: [{ $eq: ["$status", TaskStatus.InProgress] }, 1, 0] },
+								$sum: {
+									$cond: [{ $eq: ["$status", TaskStatus.InProgress] }, 1, 0],
+								},
 							},
 							[TaskStatus.Pending]: {
-								$sum: { $cond: [{ $eq: ["$status", TaskStatus.Pending] }, 1, 0] },
+								$sum: {
+									$cond: [{ $eq: ["$status", TaskStatus.Pending] }, 1, 0],
+								},
 							},
 							[TaskStatus.Done]: {
 								$sum: { $cond: [{ $eq: ["$status", TaskStatus.Done] }, 1, 0] },
@@ -242,7 +247,10 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 	const { participantInfo } = folder;
 
 	for (const requestEmail of request.emails) {
-		if (participantInfo.owner.profileInfo.email !== requestEmail && participantInfo.members.map((mem) => mem.profileInfo.email).indexOf(requestEmail) === -1) {
+		if (
+			participantInfo.owner.profileInfo.email !== requestEmail &&
+			participantInfo.members.map((mem) => mem.profileInfo.email).indexOf(requestEmail) === -1
+		) {
 			validEmails.push(requestEmail);
 		}
 	}
@@ -268,51 +276,21 @@ const invite = async (ctx: Context, request: pv.InviteRequest): Promise<pv.Invit
 		});
 	}
 
-	const isTransactionSuccess = await withTransaction(async (session: ClientSession) => {
-		//	ADD INVITATIONS TO PROJECT
-		await FolderColl.updateOne(
-			{
-				_id: toObjectId(request.folderId),
+	const r = await FolderColl.updateOne(
+		{
+			_id: toObjectId(request.folderId),
+		},
+		{
+			$push: {
+				"participantInfo.invitations": { $each: invitations },
 			},
-			{
-				$push: {
-					"participantInfo.invitations": { $each: invitations },
-				},
-				$set: {
-					updatedAt: now,
-				},
-			},
-			{ session },
-		);
+			$set: { updatedAt: now },
+		},
+	);
 
-		//	CREATE NOTIFICATION
-		await NotificationSrv.bulkCreate(
-			ctx,
-			invitees
-				.filter((i) => !!i)
-				.map((i) => ({
-					title: DEFAULT_INVITATION_TITLE,
-					type: NotificationType.InviteJoinFolder,
-					accountId: i._id.toHexString(),
-					payload: NotificationBuilderFactory(NotificationType.InviteJoinFolder, {
-						status: InviteJoinFolderPayloadStatus.Active,
-						folderId: request.folderId,
-						folderName: folder.folderInfo.title,
-						inviteeEmail: i.profileInfo.email,
-						inviteeUsername: i.profileInfo.username,
-						invitorId: ctx.user._id,
-						invitorEmail: ctx.user.email,
-						invitorAvatar: ctx.user.avatar,
-						invitorUsername: ctx.user.username,
-					}),
-					createdAt: now,
-				})),
-			{ session },
-		);
-		return true;
-	});
+	await APINatsPublisher.publish<(typeof NatsEvent)["Folders"]["Invited"]>(NatsEvent.Folders.Invited, { ctx, folder, request });
 
-	return { success: isTransactionSuccess };
+	return { success: r.acknowledged };
 };
 
 const responseInvitation = async (ctx: Context, request: pv.ResponseInvitationRequest): Promise<pv.ResponseInvitationResponse> => {

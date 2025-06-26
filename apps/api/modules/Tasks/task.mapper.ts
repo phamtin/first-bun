@@ -7,7 +7,7 @@ import { toObjectId } from "@/shared/services/mongodb/helper";
 import dayjs from "@/shared/utils/dayjs";
 
 export const buildPayloadCreateTask = (ctx: Context, request: CreateTaskRequest, model?: TaskModel): WithoutId<TaskModel> | undefined => {
-	let res: TaskModel | undefined = undefined;
+	let res: TaskModel | undefined ;
 
 	if (Object.keys(request).length === 0) return res;
 

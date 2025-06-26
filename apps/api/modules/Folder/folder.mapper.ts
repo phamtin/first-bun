@@ -1,11 +1,11 @@
-import type { DeepPartial } from "@/shared/types/common.type";
-import type { FolderModel } from "@/shared/database/model/folder/folder.model";
-import type { UpdateFolderRequest } from "./folder.validator";
 import { ObjectId } from "mongodb";
+import type { FolderModel } from "@/shared/database/model/folder/folder.model";
 import { toObjectId } from "@/shared/services/mongodb/helper";
+import type { DeepPartial } from "@/shared/types/common.type";
+import type { UpdateFolderRequest } from "./folder.validator";
 
 export const buildPayloadUpdate = (request: UpdateFolderRequest, model?: Readonly<FolderModel>): DeepPartial<FolderModel> | undefined => {
-	let res: DeepPartial<FolderModel> | undefined = undefined;
+	let res: DeepPartial<FolderModel> | undefined;
 
 	if (Object.keys(request).length === 0) return res;
 
@@ -43,7 +43,7 @@ export const buildPayloadUpdate = (request: UpdateFolderRequest, model?: Readonl
 			};
 		});
 
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		// biome-ignore lint/suspicious/noExplicitAny: ok
 		const mapping = {} as Record<string, any>;
 
 		for (const tag of tagsToUpdate) {

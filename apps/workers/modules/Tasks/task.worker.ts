@@ -1,18 +1,17 @@
-import { NatsEvent } from "@/shared/nats/types/events";
-
-import { onTaskCreated, onTaskDeleted, onTaskUpdated } from "./task.fn";
 import type { PublishMessage } from "@/api/init-nats";
+import { NatsEvent } from "@/shared/nats/types/events";
+import { TaskFn } from "./task.fn";
 
 const TaskWorker = async (msg: PublishMessage) => {
 	switch (msg.subject) {
 		case NatsEvent.Tasks.Created:
-			await onTaskCreated(msg);
+			await TaskFn.onTaskCreated(msg);
 			break;
 		case NatsEvent.Tasks.Updated:
-			await onTaskUpdated(msg);
+			await TaskFn.onTaskUpdated(msg);
 			break;
 		case NatsEvent.Tasks.Deleted:
-			await onTaskDeleted(msg);
+			await TaskFn.onTaskDeleted(msg);
 			break;
 		default:
 			break;

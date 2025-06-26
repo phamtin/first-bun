@@ -1,8 +1,8 @@
-import type { Context } from "@/shared/types/app.type";
 import { randomUUIDv7 } from "bun";
+import type { Codec, ConsumerConfig, JetStreamManager, NatsConnection } from "nats";
+import { AckPolicy, connect as connectNats, DeliverPolicy, MsgHdrsImpl, nanos, ReplayPolicy, StringCodec } from "nats";
 import type { NatsEventPayloadMap } from "@/shared/nats/types/events";
-import { connect as connectNats, StringCodec, nanos, AckPolicy, DeliverPolicy, ReplayPolicy, MsgHdrsImpl } from "nats";
-import type { ConsumerConfig, NatsConnection, Codec, JetStreamManager } from "nats";
+import type { Context } from "@/shared/types/app.type";
 
 interface PublishMessage {
 	ctx: Context;
