@@ -69,10 +69,13 @@ const onInvited = async (msg: PublishMessage) => {
 			})),
 	);
 
-	await APINatsPublisher.publish<typeof NatsEvent.Notifications.Expired>(NatsEvent.Notifications.Expired, {
+	await APINatsPublisher.publish<typeof NatsEvent.Scheduled.ExpiredInvitation>(NatsEvent.Scheduled.ExpiredInvitation, {
 		ctx,
-		expiredAt: dayjs().add(PROJECT_INVITATION_EXPIRED_MINUTE, "minute").toDate(),
-		notiIds: Object.values(res).map((id) => id.toHexString()),
+		data: {
+			expiredAt: dayjs().add(PROJECT_INVITATION_EXPIRED_MINUTE, "minute").toDate(),
+			folderId: request.folderId,
+			notiIds: Object.values(res).map((id) => id.toHexString()),
+		},
 	});
 };
 

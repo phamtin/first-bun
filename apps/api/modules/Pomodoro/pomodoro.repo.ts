@@ -1,13 +1,13 @@
-import type { UpdateFilter, WithoutId } from "mongodb";
-
-import { AppError } from "@/shared/utils/error";
-import type { Context } from "@/shared/types/app.type";
-import { toObjectId } from "@/shared/services/mongodb/helper";
-import type { PomodoroSession, PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
-import { PomodoroColl } from "@/shared/loaders/mongo";
-import type * as pv from "./pomodoro.validator";
-import type { Filter } from "mongodb";
 import dayjs from "dayjs";
+import type { Filter, UpdateFilter, WithoutId } from "mongodb";
+import type { PomodoroModel, PomodoroSession } from "@/shared/database/model/pomodoro/pomodoro.model";
+import { PomodoroColl } from "@/shared/loaders/mongo";
+import { toObjectId } from "@/shared/services/mongodb/helper";
+import type { Context } from "@/shared/types/app.type";
+import { AppError } from "@/shared/utils/error";
+import FolderSrv from "../Folder/folder.srv";
+import TaskSrv from "../Tasks/task.srv";
+import type * as pv from "./pomodoro.validator";
 
 const findPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Promise<PomodoroModel[]> => {
 	const query: Filter<PomodoroModel> = {
@@ -77,9 +77,20 @@ const updatePomodoro = async (ctx: Context, pomodoroId: string, request: pv.Upda
 	if (request.taskId === null) {
 		unsetTaskId = {
 			taskId: true,
+			folderId: true,
 		};
 	} else if (request.taskId) {
 		updateQuery.taskId = toObjectId(request.taskId);
+		const [createdFolders, sharedFolders, task] = await Promise.all([
+			FolderSrv.getFoldersCreatedByMe(ctx, {}),
+			FolderSrv.getFoldersSharedWithMe(ctx, {}),
+			TaskSrv.findById(ctx, { id: request.taskId }),
+		]);
+		const folderId = createdFolders.concat(sharedFolders).find((f) => f._id.equals(task.folderId));
+
+		if (!folderId) throw new AppError("NOT_FOUND", "Folder not found");
+
+		updateQuery.folderId = folderId._id;
 	}
 
 	const updated = await PomodoroColl.findOneAndUpdate(

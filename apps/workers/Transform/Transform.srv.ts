@@ -1,10 +1,10 @@
-import { ObjectId, type WithoutId } from "mongodb";
-import { type SubTask, TaskPriority, TaskStatus, type TaskModel } from "@/shared/database/model/task/task.model";
-import type { ETLQueueJob, QueueName, QueueStruct } from "@/shared/services/bullMQ/type";
 import type { Job } from "bullmq";
-import dayjs from "@/shared/utils/dayjs";
-import { FolderColl, TaskColl } from "@/shared/loaders/mongo";
+import { ObjectId, type WithoutId } from "mongodb";
 import type { FolderModel } from "@/shared/database/model/folder/folder.model";
+import { type SubTask, type TaskModel, TaskPriority, TaskStatus } from "@/shared/database/model/task/task.model";
+import { FolderColl, TaskColl } from "@/shared/loaders/mongo";
+import type { ETLQueueJob, QueueName, QueueStruct } from "@/shared/services/bullMQ/type";
+import dayjs from "@/shared/utils/dayjs";
 
 const PREDEFINED_DATA: Record<string, FolderModel[]> = {
 	folders: [],
@@ -18,7 +18,6 @@ const transformDataProcessor = async (job: Job<ETLQueueJob>) => {
 	console.log(`-------------------- START job ${job.id} --------------------`);
 
 	const transformPayload = job.data.payload as QueueStruct[QueueName.ETLQueue]["Transform"]["payload"];
-	const batchId = transformPayload.batchId;
 	const now = dayjs().toDate();
 
 	if (PREDEFINED_DATA.folders.length === 0) {

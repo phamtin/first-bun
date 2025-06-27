@@ -1,10 +1,10 @@
 import { randomUUIDv7 } from "bun";
+import dayjs from "dayjs";
 import { type NotificationModel, NotificationType } from "@/shared/database/model/notification/notification.model";
-import { type TaskActivity, TaskStatus, type TaskModel } from "@/shared/database/model/task/task.model";
+import { type TaskActivity, type TaskModel, TaskStatus } from "@/shared/database/model/task/task.model";
 import { toObjectId } from "@/shared/services/mongodb/helper";
 import type { Context, UserCheckParser } from "@/shared/types/app.type";
 import type { AttributePattern } from "@/shared/types/common.type";
-import dayjs from "dayjs";
 import NotificationSrv from "../Notification";
 
 const EXCLUDED_TASK_STATUS: Record<TaskStatus, boolean> = {
@@ -342,7 +342,10 @@ const checkRenewAssignedTaskNotification = async (ctx: Context, taskId: string, 
 	const exists = (await NotificationSrv.getNotifications(ctx, { accountId: assigneeId, createdFrom })).filter((item) => {
 		const n = item as NotificationModel<NotificationType.AssignedTaskForYou>;
 		return (
-			n.type === NotificationType.AssignedTaskForYou && n.payload.taskId === taskId && n.payload.assigneeId === assigneeId && n.payload.assignerId === assignerId
+			n.type === NotificationType.AssignedTaskForYou &&
+			n.payload.taskId === taskId &&
+			n.payload.assigneeId === assigneeId &&
+			n.payload.assignerId === assignerId
 		);
 	});
 

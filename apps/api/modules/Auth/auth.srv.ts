@@ -1,19 +1,18 @@
 import { OAuth2Client } from "google-auth-library";
 import { sign } from "hono/jwt";
-import { ObjectId } from "mongodb";
-import dayjs from "@/shared/utils/dayjs";
-import { AccountColl, TokenColl } from "@/shared/loaders/mongo";
-
-import type { LoginGoogleRequest, LoginGoogleResponse } from "./auth.validator";
-import { type AccountSettings, type ProfileInfo, SigninMethod, Theme } from "@/shared/database/model/account/account.model";
 import type { JWTPayload } from "hono/utils/jwt/types";
-import type { Context } from "@/shared/types/app.type";
-import { AppError } from "@/shared/utils/error";
+import { ObjectId } from "mongodb";
+import { type AccountSettings, AccountStatus, type ProfileInfo, SigninMethod, Theme } from "@/shared/database/model/account/account.model";
+import { AccountColl, TokenColl } from "@/shared/loaders/mongo";
 import { toObjectId } from "@/shared/services/mongodb/helper";
-import FolderSrv from "../Folder/folder.srv";
 import AccountCache from "@/shared/services/redis/account";
+import type { Context } from "@/shared/types/app.type";
+import dayjs from "@/shared/utils/dayjs";
+import { AppError } from "@/shared/utils/error";
 import AccountSrv from "../Accounts";
+import FolderSrv from "../Folder/folder.srv";
 import { DEFAULT_DURATION } from "../Pomodoro/pomodoro.const";
+import type { LoginGoogleRequest, LoginGoogleResponse } from "./auth.validator";
 
 const oAuth2Client = new OAuth2Client({
 	clientId: Bun.env.GOOGLE_CLIENT_ID,
@@ -22,7 +21,7 @@ const oAuth2Client = new OAuth2Client({
 });
 
 export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest): Promise<LoginGoogleResponse> => {
-	const { clientId, credential, isMobile } = request;
+	const { clientId, credential } = request;
 	const now = dayjs().toDate();
 
 	let res: LoginGoogleResponse = {
@@ -30,6 +29,7 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		jwt: "",
 		signinMethod: SigninMethod.Google,
 		profileInfo: {
+			status: AccountStatus.Active,
 			email: "",
 			username: "",
 			firstname: "",
@@ -52,10 +52,7 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		createdAt: now,
 	};
 
-	const ticket = await oAuth2Client.verifyIdToken({
-		idToken: credential,
-		audience: clientId,
-	});
+	const ticket = await oAuth2Client.verifyIdToken({ idToken: credential, audience: clientId });
 
 	const payload = ticket.getPayload();
 
@@ -74,8 +71,10 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 	const account = await AccountColl.findOne({ "profileInfo.email": email });
 
 	if (!account) {
+		const status: AccountStatus = AccountStatus.Active;
 		const signinMethod: SigninMethod = SigninMethod.Google;
 		const profileInfo: ProfileInfo = {
+			status,
 			email,
 			username,
 			firstname,
@@ -105,18 +104,6 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 
 		if (!acknowledged) throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 
-		// ctx.set("user", {
-		// 	_id: insertedId.toHexString(),
-		// 	email,
-		// 	username,
-		// 	firstname,
-		// 	lastname,
-		// 	phoneNumber: "",
-		// 	locale: profileInfo.locale,
-		// 	isPrivateAccount: profileInfo.isPrivateAccount,
-		// 	avatar,
-		// });
-
 		try {
 			const defaultFolder = await FolderSrv.createFolder(ctx, { title: `${firstname}'s Folder`, color: "#2fad64" }, true);
 			await AccountSrv.updateProfile(ctx, {
@@ -124,7 +111,7 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 					pinnedFolderIds: [defaultFolder._id.toHexString()],
 				},
 			});
-		} catch (error) {
+		} catch {
 			throw new AppError("INTERNAL_SERVER_ERROR", "Internal Server Error");
 		}
 
@@ -135,12 +122,14 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 		res.signupAt = now;
 		res.createdAt = now;
 	} else {
+		if (account.profileInfo.status !== AccountStatus.Active) {
+			throw new AppError("UNAUTHORIZED", "Account was deactivated");
+		}
 		res = { ...account, jwt: "" };
 	}
 
 	res.jwt = await generateAuthTokens(res._id.toHexString());
 
-	//  Add session into redis
 	AccountCache.addAccountSession({ ...res.profileInfo, _id: res._id, token: res.jwt });
 
 	return res;
@@ -195,23 +184,11 @@ const generateAuthTokens = async (userId: string) => {
 };
 
 const logout = async (ctx: Context): Promise<boolean> => {
-	// await TokenColl.deleteMany({
-	// 	accountId: toObjectId(ctx.user._id),
-	// });
+	await TokenColl.deleteMany({
+		accountId: toObjectId(ctx.user._id),
+	});
 
-	// AccountCache.removeSessionByAccountId(ctx.user._id);
-
-	// ctx.set("user", {
-	// 	_id: "",
-	// 	email: "",
-	// 	firstname: "",
-	// 	lastname: "",
-	// 	username: "",
-	// 	phoneNumber: "",
-	// 	locale: "",
-	// 	isPrivateAccount: false,
-	// 	avatar: "",
-	// });
+	AccountCache.removeSessionByAccountId(ctx.user._id);
 
 	return true;
 };

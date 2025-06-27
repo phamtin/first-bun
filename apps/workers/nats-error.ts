@@ -6,6 +6,7 @@ import FolderWorker from "./modules/Folders/folder.worker";
 import NotificationWorker from "./modules/Notification/noti.worker";
 import SyncWorker from "./modules/Sync/sync.worker";
 import TaskWorker from "./modules/Tasks/task.worker";
+import SchedulerWorker from "./Scheduler/scheduler.worker";
 
 interface JsMsgMetadata {
 	messageId: string;
@@ -105,6 +106,9 @@ class MessageProcessor {
 			}
 			if (messageData.subject.startsWith("events.notifications.")) {
 				await NotificationWorker(jsMsg, messageData);
+			}
+			if (messageData.subject.startsWith("events.scheduled.")) {
+				await SchedulerWorker(jsMsg, messageData);
 			}
 		} catch (error) {
 			throw this.classifyError(error as Error);

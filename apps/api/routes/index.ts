@@ -1,14 +1,13 @@
 import { Hono } from "hono";
-
-import authRoute from "../modules/Auth/auth.route";
-import accountRoute from "../modules/Accounts/account.route";
 import { tokenParser } from "../middlewares/auth.parser";
-import taskRoute from "../modules/Tasks/task.route";
-import folderRoute from "../modules/Folder/folder.route";
-import pomodoroRoute from "../modules/Pomodoro/pomodoro.route";
 import { creadentialParser } from "../middlewares/credential.parser";
+import accountRoute from "../modules/Accounts/account.route";
+import authRoute from "../modules/Auth/auth.route";
+import folderRoute from "../modules/Folder/folder.route";
 // import sandboxRoute from "../modules/Sandbox/etl-task/sandbox.route";
 import notificationRoute from "../modules/Notification/noti.route";
+import pomodoroRoute from "../modules/Pomodoro/pomodoro.route";
+import taskRoute from "../modules/Tasks/task.route";
 
 const routes = new Hono();
 

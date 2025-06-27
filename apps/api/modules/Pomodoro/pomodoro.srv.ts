@@ -1,13 +1,13 @@
-import type { Context } from "@/shared/types/app.type";
-import type * as pv from "./pomodoro.validator";
-import PomodoroRepo from "./pomodoro.repo";
-import { type PomodoroSession, PomodoroStatus, type PomodoroModel } from "@/shared/database/model/pomodoro/pomodoro.model";
-import { AppError } from "@/shared/utils/error";
-import { buildPayloadCreate } from "./pomodoro.mapper";
-import TaskSrv from "../Tasks/task.srv";
+import dayjs from "dayjs";
+import { type PomodoroModel, type PomodoroSession, PomodoroStatus } from "@/shared/database/model/pomodoro/pomodoro.model";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
 import { PomodoroColl } from "@/shared/loaders/mongo";
-import dayjs from "dayjs";
+import type { Context } from "@/shared/types/app.type";
+import { AppError } from "@/shared/utils/error";
+import TaskSrv from "../Tasks/task.srv";
+import { buildPayloadCreate } from "./pomodoro.mapper";
+import PomodoroRepo from "./pomodoro.repo";
+import type * as pv from "./pomodoro.validator";
 
 const getPomodoros = async (ctx: Context, request: pv.GetPomodorosRequest): Promise<PomodoroModel[]> => {
 	const pomodoros = await PomodoroRepo.findPomodoros(ctx, request);
@@ -26,7 +26,7 @@ const createPomodoro = async (ctx: Context, request: pv.CreatePomodoroRequest): 
 		}
 	}
 
-	const payload = buildPayloadCreate(ctx, request);
+	const payload = await buildPayloadCreate(ctx, request);
 
 	const item = await PomodoroRepo.createPomodoro(ctx, payload);
 
@@ -36,6 +36,9 @@ const createPomodoro = async (ctx: Context, request: pv.CreatePomodoroRequest): 
 };
 
 const finishPomodoro = async (ctx: Context, pomodoro: PomodoroModel, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
+	if (request.sessionIndex === undefined) {
+		throw new AppError("BAD_REQUEST", "Missing session index");
+	}
 	const updated = await PomodoroColl.findOneAndUpdate(
 		{
 			_id: pomodoro._id,
@@ -77,6 +80,9 @@ const finishPomodoro = async (ctx: Context, pomodoro: PomodoroModel, request: pv
 };
 
 const completeSession = async (ctx: Context, pomodoro: PomodoroModel, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
+	if (request.sessionIndex === undefined) {
+		throw new AppError("BAD_REQUEST", "Missing session index");
+	}
 	const updated = await PomodoroColl.findOneAndUpdate(
 		{
 			_id: pomodoro._id,
@@ -112,6 +118,9 @@ const completeSession = async (ctx: Context, pomodoro: PomodoroModel, request: p
 };
 
 const cancelPomodoro = async (ctx: Context, pomodoro: PomodoroModel, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
+	if (request.sessionIndex === undefined) {
+		throw new AppError("BAD_REQUEST", "Missing session index");
+	}
 	const updatedSessions: PomodoroSession[] = [];
 
 	for (let i = 0; i < pomodoro.pomodoroSessions.length; i++) {
@@ -127,6 +136,9 @@ const cancelPomodoro = async (ctx: Context, pomodoro: PomodoroModel, request: pv
 };
 
 const pausePomodoro = async (ctx: Context, pomodoro: PomodoroModel, request: pv.UpdatePomodoroRequest): Promise<PomodoroModel | null> => {
+	if (request.sessionIndex === undefined) {
+		throw new AppError("BAD_REQUEST", "Missing session index");
+	}
 	if (!request.pausedAt) throw new AppError("BAD_REQUEST", "Missing paused time");
 
 	const updatedSessions: PomodoroSession[] = pomodoro.pomodoroSessions.map((session) => {
@@ -149,12 +161,14 @@ const updatePomodoro = async (ctx: Context, pomodoroId: string, request: pv.Upda
 
 	if (!pomodoro) throw new AppError("NOT_FOUND", "Pomodoro not found");
 
-	const pomoSession = pomodoro.pomodoroSessions[request.sessionIndex];
+	if (request.sessionIndex !== undefined) {
+		const pomoSession = pomodoro.pomodoroSessions[request.sessionIndex];
 
-	if (!pomoSession) throw new AppError("BAD_REQUEST", "Invalid pomo session");
+		if (!pomoSession) throw new AppError("BAD_REQUEST", "Invalid pomo session");
 
-	if (PomodoroStatus.Cancelled === pomoSession.status) {
-		throw new AppError("BAD_REQUEST", "Invalid status");
+		if (PomodoroStatus.Cancelled === pomoSession.status) {
+			throw new AppError("BAD_REQUEST", "Invalid status");
+		}
 	}
 
 	if (request.taskId) {

@@ -1,11 +1,11 @@
-import { Hono } from "hono";
-import AccountSrv from "./account.srv";
-import { responseOK } from "@/shared/utils/response";
 import { vValidator } from "@hono/valibot-validator";
-import { getAccountProfileRequest, updateProfileRequest } from "./account.validator";
+import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { getValidationErrorMsg } from "@/shared/utils/error";
+import { responseOK } from "@/shared/utils/response";
 import { AppContext } from "@/shared/utils/transfrom";
+import AccountSrv from "./account.srv";
+import { getAccountProfileRequest, updateProfileRequest } from "./account.validator";
 
 const accountRoute = new Hono();
 
@@ -60,5 +60,13 @@ accountRoute.patch(
 		return responseOK(c, r);
 	},
 );
+
+/**
+ *  Deactivate account
+ */
+accountRoute.post("/deactivate", async (c) => {
+	const r = await AccountSrv.deactivateAccount(AppContext(c));
+	return responseOK(c, r);
+});
 
 export default accountRoute;

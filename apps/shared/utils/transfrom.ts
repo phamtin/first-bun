@@ -1,6 +1,6 @@
 import type { Context as HonoContext } from "hono";
 import { ObjectId } from "mongodb";
-import type { Context } from "../types/app.type";
+import type { Context, UserCheckParser } from "../types/app.type";
 
 export function sanitize<T>(obj: T): T {
 	for (const propName in obj) {
@@ -98,6 +98,6 @@ export const toPayloadUpdate = (obj: FlattenedObject, parentKey = "", result: Fl
 export const AppContext = (ctx: HonoContext): Context => {
 	return {
 		jwtPayload: ctx.get("jwtPayload"),
-		user: ctx.get("user"),
+		user: ctx.get("user") as UserCheckParser,
 	};
 };

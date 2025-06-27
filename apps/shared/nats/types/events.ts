@@ -17,9 +17,31 @@ interface SyncModelPayload {
 	payload: AccountModel | FolderModel | TaskModel;
 }
 
+type ExpiredInvitation = {
+	data: {
+		folderId: string;
+		notiIds: string[];
+		expiredAt: Date;
+	};
+};
+
+type ExpiredPomodoro = {
+	data: {
+		pomodoroId: string;
+		accountId: string;
+		folderId: string;
+		folderName: string;
+		taskName: string;
+	};
+};
+
 const NatsEvent = {
 	SyncModel: "events.sync_model",
 
+	Scheduled: {
+		ExpiredInvitation: "events.scheduled.expired_invitation",
+		ExpiredPomodoro: "events.scheduled.expired_pomodoro",
+	},
 	Auth: {
 		LoginWithGoogle: "events.auth.login_with_google",
 		LoginWithApple: "events.auth.login_with_apple",
@@ -46,7 +68,6 @@ const NatsEvent = {
 		Created: "events.notifications.created",
 		Updated: "events.notifications.updated",
 		Deleted: "events.notifications.deleted",
-		Expired: "events.notifications.expired",
 	},
 	Pomodoros: {
 		Created: "events.pomodoros.created",
@@ -57,6 +78,9 @@ const NatsEvent = {
 
 interface NatsEventPayloadMap {
 	[NatsEvent.SyncModel]: SyncModelPayload;
+
+	[NatsEvent.Scheduled.ExpiredInvitation]: ExpiredInvitation;
+	[NatsEvent.Scheduled.ExpiredPomodoro]: ExpiredPomodoro;
 
 	[NatsEvent.Auth.LoginWithGoogle]: unknown;
 	[NatsEvent.Auth.LoginWithApple]: unknown;
@@ -79,7 +103,6 @@ interface NatsEventPayloadMap {
 	[NatsEvent.Notifications.Created]: NotificationModel<NotificationType>;
 	[NatsEvent.Notifications.Updated]: NotificationModel<NotificationType>;
 	[NatsEvent.Notifications.Deleted]: NotificationModel<NotificationType>;
-	[NatsEvent.Notifications.Expired]: { notiIds: string[]; expiredAt: Date };
 
 	[NatsEvent.Pomodoros.Created]: PomodoroModel;
 	[NatsEvent.Pomodoros.Updated]: PomodoroModel;

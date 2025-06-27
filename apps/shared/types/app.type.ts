@@ -1,4 +1,5 @@
 import type { JWTPayload } from "hono/utils/jwt/types";
+import type { AccountStatus } from "../database/model/account/account.model";
 
 export type JwtDecoded = {
 	accountId: string;
@@ -6,6 +7,7 @@ export type JwtDecoded = {
 
 export type UserCheckParser = {
 	_id: string;
+	status: AccountStatus;
 	email: string;
 	username: string;
 	firstname: string;

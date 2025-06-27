@@ -1,6 +1,6 @@
-import { objectId } from "../../../types/common.type";
 import type { ObjectId } from "mongodb";
 import * as v from "valibot";
+import { objectId } from "../../../types/common.type";
 
 export enum SigninMethod {
 	Google = "Google",
@@ -12,7 +12,14 @@ export enum Theme {
 	Dark = "Dark",
 }
 
+export enum AccountStatus {
+	Active = "Active",
+	Deactivated = "Deactivated",
+	Deleted = "Deleted",
+}
+
 export type ProfileInfo = {
+	status: AccountStatus;
 	email: string;
 	username: string;
 	firstname: string;
@@ -72,6 +79,7 @@ export const vAccountProfile = v.strictObject({
 	_id: objectId,
 	signinMethod: v.enum(SigninMethod),
 	profileInfo: v.strictObject({
+		status: v.enum(AccountStatus),
 		email: v.pipe(v.string(), v.email(), v.trim(), v.toLowerCase()),
 		username: v.string(),
 		firstname: v.string(),

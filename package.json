@@ -4,7 +4,7 @@
 	"module": "./src/index",
 	"private": true,
 	"scripts": {
-		"lint": "bun tsc --noEmit && bunx biome lint --write ./apps",
+		"lint": "bun tsc --noEmit && bunx biome lint --write --reporter=compact ./apps",
 		"dev": "bun lint && bun run --watch src/pkgs/api/index.ts",
 		"dcu": "bun tsc --noEmit && docker compose -f ./docker-compose.dev.yaml up --build",
 		"build-prod": "bun tsc --noEmit && docker compose -f ./docker-compose.build.yml build",

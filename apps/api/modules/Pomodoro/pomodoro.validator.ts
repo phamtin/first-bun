@@ -1,5 +1,5 @@
-import * as v from "valibot";
 import type { InferInput } from "valibot";
+import * as v from "valibot";
 import { DurationType, PomodoroStatus, vPomodoro } from "@/shared/database/model/pomodoro/pomodoro.model";
 import { httpGETRequestParamArray, stringObjectId } from "@/shared/types/common.type";
 
@@ -14,14 +14,18 @@ export const getPomodorosResponse = v.array(vPomodoro);
 export const createPomodoroRequest = v.strictObject({
 	numOfSession: v.pipe(v.number(), v.minValue(1, "Must be at least 1 session"), v.maxValue(24, "Must be at most 24 sessions")),
 	durationWork: v.pipe(v.number(), v.minValue(5, "Work duration must be at least 5 minutes"), v.maxValue(60, "Work duration must be at most 60 minutes")),
-	durationBreak: v.pipe(v.number(), v.minValue(0.5, "Break duration must be at least 1/2 minute"), v.maxValue(60, "Break duration must be at most 60 minutes")),
+	durationBreak: v.pipe(
+		v.number(),
+		v.minValue(0.5, "Break duration must be at least 1/2 minute"),
+		v.maxValue(60, "Break duration must be at most 60 minutes"),
+	),
 	taskId: v.optional(stringObjectId),
 });
 
 export const createPomodoroResponse = vPomodoro;
 
 export const updatePomodoroRequest = v.strictObject({
-	sessionIndex: v.pipe(v.number(), v.minValue(0, "WTF ?")),
+	sessionIndex: v.optional(v.pipe(v.number(), v.minValue(0, "WTF ?"))),
 	status: v.optional(v.enum(PomodoroStatus)),
 	pausedAt: v.optional(v.number()),
 	taskId: v.optional(stringObjectId),

@@ -1,12 +1,13 @@
-import { verify } from "hono/jwt";
-import { responseError } from "@/shared/utils/response";
-import AccountCache from "@/shared/services/redis/account";
-import type { UserCheckParser } from "../../shared/types/app.type";
 import { createMiddleware } from "hono/factory";
-import { AppError } from "@/shared/utils/error";
-import AccountSrv from "@/api/modules/Accounts/account.srv";
+import { verify } from "hono/jwt";
 import type { JWTPayload } from "hono/utils/jwt/types";
+import AccountSrv from "@/api/modules/Accounts/account.srv";
+import { AccountStatus } from "@/shared/database/model/account/account.model";
+import AccountCache from "@/shared/services/redis/account";
+import { AppError } from "@/shared/utils/error";
+import { responseError } from "@/shared/utils/response";
 import { AppContext } from "@/shared/utils/transfrom";
+import type { UserCheckParser } from "../../shared/types/app.type";
 
 export const tokenParser = createMiddleware(async (c, next) => {
 	let token = "";
@@ -14,6 +15,7 @@ export const tokenParser = createMiddleware(async (c, next) => {
 
 	let user: UserCheckParser = {
 		_id: "",
+		status: AccountStatus.Active,
 		email: "",
 		firstname: "",
 		lastname: "",
@@ -47,10 +49,15 @@ export const tokenParser = createMiddleware(async (c, next) => {
 
 		if (!session || !account) throw new AppError("UNAUTHORIZED", "Session's expired");
 
+		if (session.status !== AccountStatus.Active) {
+			throw new AppError("UNAUTHORIZED", "Account was deactivated");
+		}
+
 		c.set("jwtPayload", decoded satisfies JWTPayload);
 
 		user = {
 			_id: decoded.accountId as string,
+			status: session.status,
 			email: session.email,
 			username: session.username,
 			firstname: session.firstname,

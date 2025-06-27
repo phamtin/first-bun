@@ -1,6 +1,6 @@
-import { objectId } from "../../../types/common.type";
 import type { ObjectId } from "mongodb";
 import * as v from "valibot";
+import { objectId } from "../../../types/common.type";
 
 export enum DurationType {
 	Work = "Work",
@@ -37,6 +37,7 @@ export type PomodoroModel = {
 	durationBreak: number;
 	pomodoroSessions: PomodoroSession[];
 	taskId?: ObjectId;
+	folderId?: ObjectId;
 
 	createdAt: Date;
 	updatedAt?: Date;
@@ -68,6 +69,7 @@ export const vPomodoro = v.strictObject({
 	durationBreak: v.number(),
 	pomodoroSessions: v.array(vPomodoroSession),
 	taskId: v.optional(objectId),
+	folderId: v.optional(objectId),
 
 	createdAt: v.date(),
 	createdBy: v.optional(objectId),
