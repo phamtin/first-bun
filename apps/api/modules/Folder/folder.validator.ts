@@ -1,9 +1,8 @@
-import * as v from "valibot";
 import type { InferInput } from "valibot";
-import { stringObjectId } from "@/shared/types/common.type";
-
+import * as v from "valibot";
 import { FolderStatus, vExtendFolderModel, vFolderModel } from "@/shared/database/model/folder/folder.model";
 import { TaskStatus } from "@/shared/database/model/task/task.model";
+import { stringObjectId } from "@/shared/types/common.type";
 
 export const getFoldersRequest = v.strictObject({
 	ownerId: v.optional(stringObjectId),
@@ -32,8 +31,9 @@ export const createFolderRequest = v.strictObject({
 });
 
 export const createFolderResponse = v.strictObject({
-	...vFolderModel.entries,
-	...vExtendFolderModel.entries,
+	folder: vFolderModel,
+	taskStats: v.pick(vExtendFolderModel, ["taskStats"]),
+	timeStats: v.pick(vExtendFolderModel, ["timeStats"]),
 });
 
 export const updateFolderRequest = v.strictObject({
@@ -45,17 +45,19 @@ export const updateFolderRequest = v.strictObject({
 });
 
 export const updateFolderResponse = v.strictObject({
-	...vFolderModel.entries,
-	...vExtendFolderModel.entries,
+	folder: vFolderModel,
+	taskStats: v.pick(vExtendFolderModel, ["taskStats"]),
+	timeStats: v.pick(vExtendFolderModel, ["timeStats"]),
 });
 
-export const getFolderByIdRequest = v.strictObject({
+export const getFolderDetailRequest = v.strictObject({
 	folderId: stringObjectId,
 });
 
-export const getFolderByIdResponse = v.strictObject({
-	...vFolderModel.entries,
-	...vExtendFolderModel.entries,
+export const getFolderDetailResponse = v.strictObject({
+	folder: vFolderModel,
+	taskStats: v.pick(vExtendFolderModel, ["taskStats"]),
+	timeStats: v.pick(vExtendFolderModel, ["timeStats"]),
 });
 
 export const inviteRequest = v.strictObject({
@@ -101,8 +103,8 @@ export type CreateFolderRequest = InferInput<typeof createFolderRequest>;
 export type CreateFolderResponse = InferInput<typeof createFolderResponse>;
 export type UpdateFolderRequest = InferInput<typeof updateFolderRequest>;
 export type UpdateFolderResponse = InferInput<typeof updateFolderResponse>;
-export type GetFolderByIdRequest = InferInput<typeof getFolderByIdRequest>;
-export type GetFolderByIdResponse = InferInput<typeof getFolderByIdResponse>;
+export type GetFolderDetailRequest = InferInput<typeof getFolderDetailRequest>;
+export type GetFolderDetailResponse = InferInput<typeof getFolderDetailResponse>;
 export type InviteRequest = InferInput<typeof inviteRequest>;
 export type InviteResponse = InferInput<typeof inviteResponse>;
 export type ResponseInvitationRequest = InferInput<typeof responseInvitationRequest>;

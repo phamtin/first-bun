@@ -47,7 +47,7 @@ class MessageProcessor {
 		try {
 			await this.processWithTimeout(message, this.parsePublishMessage(message));
 			message.ack();
-			console.log(`[WORKER] ack-ed subject=${metadata.subject} messageId=${metadata.messageId}`);
+			console.log(`ack-ed subject=${metadata.subject} messageId=${metadata.messageId}`);
 		} catch (error) {
 			await this.handleProcessingError(message, error as ProcessingError, metadata);
 		} finally {
@@ -90,7 +90,7 @@ class MessageProcessor {
 		const ctx: Context = messageData.ctx;
 		if (!ctx) throw new Error("Missing message context");
 
-		console.log(`[WORKER] processing message subject=${messageData.subject} messageId=${messageData.messageId}`);
+		console.log(`processing subject=${messageData.subject} messageId=${messageData.messageId}`);
 		try {
 			if (messageData.subject.startsWith("events.sync_model")) {
 				await SyncWorker(messageData);

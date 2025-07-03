@@ -1,9 +1,9 @@
 import type { ObjectId } from "mongodb";
 import * as v from "valibot";
 
-import { objectId, vAttributePattern, type AttributePattern } from "../../../types/common.type";
-import { vAccountProfile, type AccountModel } from "../account/account.model";
-import { type InlineTaskModel, vInlineTaskModel } from "../task/task.model";
+import { type AttributePattern, objectId, vAttributePattern } from "../../../types/common.type";
+import { type AccountModel, vAccountProfile } from "../account/account.model";
+import { TaskPriority, TaskStatus } from "../task/task.model";
 
 export type FolderDocument = {
 	urls: AttributePattern[];
@@ -64,7 +64,24 @@ export type FolderModel = {
 };
 
 export type ExtendFolderModel = {
-	tasks: InlineTaskModel[];
+	taskStats: {
+		Total: number;
+		[TaskStatus.NotStartYet]: number;
+		[TaskStatus.InProgress]: number;
+		[TaskStatus.Pending]: number;
+		[TaskStatus.Done]: number;
+		[TaskPriority.Critical]: number;
+		[TaskPriority.High]: number;
+		[TaskPriority.Medium]: number;
+		[TaskPriority.Low]: number;
+	};
+	timeStats: {
+		Total: number;
+		[TaskStatus.NotStartYet]: number;
+		[TaskStatus.InProgress]: number;
+		[TaskStatus.Pending]: number;
+		[TaskStatus.Done]: number;
+	};
 };
 
 /**
@@ -119,5 +136,22 @@ export const vFolderModel = v.strictObject({
 }) satisfies v.BaseSchema<FolderModel, FolderModel, v.BaseIssue<unknown>>;
 
 export const vExtendFolderModel = v.strictObject({
-	tasks: v.array(vInlineTaskModel),
+	taskStats: v.strictObject({
+		Total: v.number(),
+		[TaskStatus.NotStartYet]: v.number(),
+		[TaskStatus.InProgress]: v.number(),
+		[TaskStatus.Pending]: v.number(),
+		[TaskStatus.Done]: v.number(),
+		[TaskPriority.Critical]: v.number(),
+		[TaskPriority.High]: v.number(),
+		[TaskPriority.Medium]: v.number(),
+		[TaskPriority.Low]: v.number(),
+	}),
+	timeStats: v.strictObject({
+		Total: v.number(),
+		[TaskStatus.NotStartYet]: v.number(),
+		[TaskStatus.InProgress]: v.number(),
+		[TaskStatus.Pending]: v.number(),
+		[TaskStatus.Done]: v.number(),
+	}),
 }) satisfies v.BaseSchema<ExtendFolderModel, ExtendFolderModel, v.BaseIssue<unknown>>;

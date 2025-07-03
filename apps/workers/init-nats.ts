@@ -1,5 +1,8 @@
-import { connect as connectNats, AckPolicy, DeliverPolicy, nanos, ReplayPolicy, StorageType } from "nats";
-import type { ConsumerConfig, NatsConnection, JetStreamClient, Consumer } from "nats";
+import type { Consumer, ConsumerConfig, NatsConnection, StreamInfo } from "nats";
+import { AckPolicy, connect as connectNats, DeliverPolicy, nanos, ReplayPolicy, StorageType } from "nats";
+import { INatsWrapper } from "@/shared/nats/classes";
+import type { NatsEventPayloadMap } from "@/shared/nats/types/events";
+import type { Context } from "@/shared/types/app.type";
 import MessageProcessor from "./nats-error";
 
 interface MessageData {
@@ -21,32 +24,31 @@ interface DeadLetterData {
 	consumerName: string;
 }
 
-class NatsWorkerWrapper {
+class NatsWorkerWrapper extends INatsWrapper {
 	private static instance: NatsWorkerWrapper | null = null;
-	static consumerName = "nats-worker";
-	static natsServerUrl = "127.0.0.1:4222";
-	static subject = "events.>";
+	protected readonly consumerName = "nats-worker";
+	protected readonly natsServerUrl = "127.0.0.1:4222";
+	protected readonly subject = "events.>";
 
-	private consumerConfig: ConsumerConfig;
-	private natsConnection: NatsConnection | null = null;
-	private jetStream: JetStreamClient | null = null;
-	private consumer: Consumer | null = null;
-	private isShuttingDown: boolean;
-	private activeMessages: Set<string>;
+	protected consumerConfig: ConsumerConfig;
+	protected natsConnection: NatsConnection | null = null;
+	protected isShuttingDown: boolean;
+	protected activeMessages: Set<string>;
 
 	constructor() {
+		super();
 		this.consumerConfig = {
-			name: NatsWorkerWrapper.consumerName,
-			durable_name: NatsWorkerWrapper.consumerName,
+			name: this.consumerName,
+			durable_name: this.consumerName,
 			description: "Worker - Nats consumer",
 			max_deliver: 6,
 			backoff: [nanos(5000), nanos(10000), nanos(10000), nanos(10000), nanos(10000)],
-			filter_subjects: [NatsWorkerWrapper.subject],
+			filter_subjects: [this.subject],
 			ack_policy: AckPolicy.Explicit,
 			deliver_policy: DeliverPolicy.All,
 			replay_policy: ReplayPolicy.Instant,
 		};
-		this.connect();
+		this.initialize();
 
 		this.isShuttingDown = false;
 		this.activeMessages = new Set<string>(); // Track active message processing
@@ -59,10 +61,33 @@ class NatsWorkerWrapper {
 		return NatsWorkerWrapper.instance;
 	}
 
+	public async publish<T extends keyof NatsEventPayloadMap>(subject: T, payload: NatsEventPayloadMap[T] & { ctx: Context }): Promise<void> {
+		// TODO: implement publish
+	}
+
+	public async initialize(): Promise<void> {
+		if (this.natsConnection && !this.natsConnection.isClosed()) {
+			return;
+		}
+		if (this.isConnecting) {
+			return;
+		}
+		this.isConnecting = true;
+
+		try {
+			await this.connect();
+			this.isConnecting = false;
+		} catch (error) {
+			this.isConnecting = false;
+			throw error;
+		}
+	}
+
 	async connect(): Promise<NatsConnection> {
+		this.isConnecting = true;
 		try {
 			this.natsConnection = await connectNats({
-				servers: [NatsWorkerWrapper.natsServerUrl],
+				servers: [this.natsServerUrl],
 				name: this.consumerConfig.name,
 				reconnect: true,
 				reconnectTimeWait: 5000,
@@ -70,12 +95,14 @@ class NatsWorkerWrapper {
 			});
 			if (!this.natsConnection.info) throw new Error("NATS connection not available");
 
-			this.jetStream = this.natsConnection.jetstream();
+			this.jetStream = await this.natsConnection.jetstreamManager();
 
 			return this.natsConnection;
 		} catch (error) {
 			console.log("Failed to connect to NATS server:", error);
 			throw error;
+		} finally {
+			this.isConnecting = false;
 		}
 	}
 
@@ -91,7 +118,7 @@ class NatsWorkerWrapper {
 		} catch (error: any) {
 			if (error.code === "404") {
 				console.log("Creating EVENTS stream...");
-				await jsm.streams.add({ name: "EVENTS", subjects: [NatsWorkerWrapper.subject], storage: StorageType.File });
+				await jsm.streams.add({ name: "EVENTS", subjects: [this.subject], storage: StorageType.File });
 			} else {
 				throw error;
 			}
@@ -108,7 +135,7 @@ class NatsWorkerWrapper {
 		}
 	}
 
-	async createSubscription(): Promise<Consumer> {
+	async createSubscription(): Promise<void> {
 		if (!this.natsConnection) throw new Error("NATS connection not established. Call connect() first.");
 
 		if (!this.jetStream) throw new Error("JetStream not initialized.");
@@ -116,9 +143,7 @@ class NatsWorkerWrapper {
 		try {
 			await this.createOrUpdateStreamAndConsumer();
 
-			this.consumer = await this.jetStream.consumers.get("EVENTS", this.consumerConfig.name);
-
-			return this.consumer;
+			if (!this.consumerConfig.name) throw new Error("Consumer name not specified");
 		} catch (error) {
 			console.log("Failed to create NATS JetStream consumer:", error);
 			throw error;
@@ -126,9 +151,11 @@ class NatsWorkerWrapper {
 	}
 
 	async startConsuming(): Promise<void> {
-		if (!this.consumer) throw new Error("Consumer not created, create one first");
+		if (!this.consumerName) throw new Error("Consumer not created, create one first");
 
-		const messages = await this.consumer.consume();
+		if (!this.jetStream) throw new Error("JetStream not initialized.");
+
+		const messages = await (await this.jetStream.jetstream().consumers.get("EVENTS", this.consumerName)).consume();
 
 		for await (const message of messages) {
 			if (this.isShuttingDown) {
@@ -160,6 +187,20 @@ class NatsWorkerWrapper {
 
 	private sleep(ms: number): Promise<void> {
 		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+
+	public async getStreamInfo(): Promise<StreamInfo> {
+		if (!this.jetStream?.streams) {
+			throw new Error("JetStream not initialized");
+		}
+
+		const streamInfo = (await this.jetStream.streams.get("EVENTS")).info();
+		return streamInfo;
+	}
+
+	public get isConnected(): boolean {
+		this.greet();
+		return this.natsConnection ? !this.natsConnection.isClosed() : false;
 	}
 }
 

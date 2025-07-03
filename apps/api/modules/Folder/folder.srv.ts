@@ -19,6 +19,10 @@ import FolderRepo from "./folder.repo";
 import FolderUtil from "./folder.util";
 import type * as pv from "./folder.validator";
 
+const getFolderById = async (ctx: Context, id: string): Promise<FolderModel | null> => {
+	return FolderRepo.getFolderById(ctx, id);
+};
+
 const getMyFolders = async (ctx: Context): Promise<pv.GetMyFoldersResponse[]> => {
 	const userId = toObjectId(ctx.user._id);
 	const result = (await FolderColl.aggregate([
@@ -130,14 +134,23 @@ const checkActiveFolder = async (ctx: Context, folderId: string): Promise<Folder
 	return FolderRepo.checkActiveFolder(ctx, folderId);
 };
 
-const getFolderById = async (ctx: Context, id: string): Promise<pv.GetFolderByIdResponse> => {
-	const [canUserAccess, folder] = await FolderUtil.checkUserIsParticipantFolder(ctx.user._id, id);
+const getFolderDetail = async (ctx: Context, id: string): Promise<pv.GetFolderDetailResponse> => {
+	const [[canUserAccess, folder], folderStats] = await Promise.all([
+		FolderUtil.checkUserIsParticipantFolder(ctx.user._id, id),
+		FolderUtil.buildFolderStats(id),
+	]);
 
 	if (!canUserAccess) throw new AppError("NOT_FOUND", "You're not participant of folder");
 
-	if (!folder) throw new AppError("NOT_FOUND", "Folder not found");
+	if (!folder || !folderStats || folder.folderInfo.status === FolderStatus.Archived) {
+		throw new AppError("NOT_FOUND", "Folder not found");
+	}
 
-	return FolderRepo.getFolderById(ctx, id);
+	return {
+		folder,
+		taskStats: folderStats.taskStats,
+		timeStats: folderStats.timeStats,
+	};
 };
 
 const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDefaultFolder?: boolean): Promise<pv.CreateFolderResponse> => {
@@ -152,14 +165,11 @@ const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDef
 
 		if (folder) throw new AppError("BAD_REQUEST", "Hack CC");
 	}
+	const ownerModel = await AccountSrv.findAccountProfile(ctx, { accountId: ctx.user._id });
 
-	const _ownerModel = await AccountSrv.findAccountProfile(ctx, {
-		accountId: ctx.user._id,
-	});
+	if (!ownerModel) throw new AppError("NOT_FOUND", "Folder Owner not found");
 
-	if (!_ownerModel) throw new AppError("NOT_FOUND", "Folder Owner not found");
-
-	const { accountSettings, ...ownerModel } = _ownerModel;
+	const { accountSettings, ..._ownerModel } = ownerModel;
 
 	const payload: WithoutId<FolderModel> = {
 		folderInfo: {
@@ -170,7 +180,7 @@ const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDef
 			status: request.status ?? FolderStatus.Planning,
 		},
 		participantInfo: {
-			owner: ownerModel,
+			owner: _ownerModel,
 			members: [],
 			invitations: [],
 		},
@@ -183,7 +193,7 @@ const createFolder = async (ctx: Context, request: pv.CreateFolderRequest, isDef
 
 	const insertedId = await FolderRepo.createFolder(ctx, payload);
 
-	return FolderRepo.getFolderById(ctx, insertedId.toHexString());
+	return getFolderDetail(ctx, insertedId.toHexString());
 };
 
 const updateFolder = async (ctx: Context, folderId: string, request: pv.UpdateFolderRequest): Promise<pv.UpdateFolderResponse> => {
@@ -201,7 +211,7 @@ const updateFolder = async (ctx: Context, folderId: string, request: pv.UpdateFo
 		throw new AppError("INTERNAL_SERVER_ERROR");
 	}
 
-	return FolderRepo.getFolderById(ctx, folderId);
+	return getFolderDetail(ctx, folderId);
 };
 
 const deleteFolder = async (ctx: Context, folderId: string): Promise<boolean> => {
@@ -417,12 +427,13 @@ const withdrawInvitation = async (ctx: Context, request: pv.WithdrawInvitationRe
 };
 
 const FolderSrv = {
+	getFolderById,
 	getMyFolders,
 	getFoldersSharedWithMe,
 	getFoldersCreatedByMe,
 	updateFolder,
 	createFolder,
-	getFolderById,
+	getFolderDetail,
 	deleteFolder,
 	checkActiveFolder,
 	invite,

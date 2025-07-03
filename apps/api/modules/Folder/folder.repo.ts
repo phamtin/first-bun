@@ -1,15 +1,14 @@
 import type { Filter, ObjectId, WithoutId } from "mongodb";
-import dayjs from "@/shared/utils/dayjs";
-import { FolderColl } from "@/shared/loaders/mongo";
-import type { GetFolderByIdResponse, GetFoldersRequest } from "./folder.validator";
-import { FolderStatus, type ExtendFolderModel, type FolderModel } from "@/shared/database/model/folder/folder.model";
-import { AppError } from "@/shared/utils/error";
-import type { Context } from "@/shared/types/app.type";
-import { toObjectId } from "@/shared/services/mongodb/helper";
-import { toPayloadUpdate } from "@/shared/utils/transfrom";
-import type { DeepPartial } from "@/shared/types/common.type";
-import { TaskStatus } from "@/shared/database/model/task/task.model";
 import type { AccountModel } from "@/shared/database/model/account/account.model";
+import { type FolderModel, FolderStatus } from "@/shared/database/model/folder/folder.model";
+import { FolderColl } from "@/shared/loaders/mongo";
+import { toObjectId } from "@/shared/services/mongodb/helper";
+import type { Context } from "@/shared/types/app.type";
+import type { DeepPartial } from "@/shared/types/common.type";
+import dayjs from "@/shared/utils/dayjs";
+import { AppError } from "@/shared/utils/error";
+import { toPayloadUpdate } from "@/shared/utils/transfrom";
+import type { GetFoldersRequest } from "./folder.validator";
 
 const checkActiveFolder = async (ctx: Context, folderId: string): Promise<FolderModel | null> => {
 	const p = await FolderColl.findOne({
@@ -65,55 +64,24 @@ const getFolders = async (ctx: Context, request: GetFoldersRequest): Promise<Fol
 	return res;
 };
 
-const getFolderById = async (ctx: Context, id: string): Promise<GetFolderByIdResponse> => {
-	const res = (await FolderColl.aggregate([
+const getFolderById = async (ctx: Context, id: string): Promise<FolderModel | null> => {
+	const res = await FolderColl.findOne(
 		{
-			$match: {
-				_id: toObjectId(id),
+			_id: toObjectId(id),
 
-				deletedAt: { $exists: false },
-			},
+			deletedAt: { $exists: false },
 		},
 		{
-			$lookup: {
-				from: "tasks",
-				localField: "_id",
-				foreignField: "folderId",
-				pipeline: [
-					{
-						$match: {
-							status: { $ne: TaskStatus.Archived },
-							deletedAt: { $exists: false },
-						},
-					},
-					{
-						$project: {
-							"assigneeInfo._id": 1,
-							title: 1,
-							status: 1,
-							priority: 1,
-							folderId: 1,
-							timing: 1,
-							createdAt: 1,
-						},
-					},
-				],
-				as: "tasks",
-			},
-		},
-		{
-			$project: {
+			projection: {
 				"participantInfo.owner.accountSettings": 0,
 				"participantInfo.members.accountSettings": 0,
 			},
 		},
-	]).toArray()) as [FolderModel & ExtendFolderModel];
+	);
 
-	if (res.length !== 1) {
-		throw new AppError("INTERNAL_SERVER_ERROR", "Something went wrong");
-	}
+	if (!res) throw new AppError("NOT_FOUND", "Folder not found");
 
-	return res[0];
+	return res;
 };
 
 const createFolder = async (ctx: Context, payload: WithoutId<FolderModel>): Promise<ObjectId> => {

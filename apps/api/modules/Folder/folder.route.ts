@@ -1,11 +1,18 @@
-import { Hono } from "hono";
 import { vValidator } from "@hono/valibot-validator";
+import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { responseOK } from "@/shared/utils/response";
-import { responseInvitationRequest, createFolderRequest, inviteRequest, updateFolderRequest, removeRequest, withdrawInvitationRequest } from "./folder.validator";
-import FolderSrv from "./folder.srv";
 import { getValidationErrorMsg } from "@/shared/utils/error";
+import { responseOK } from "@/shared/utils/response";
 import { AppContext } from "@/shared/utils/transfrom";
+import FolderSrv from "./folder.srv";
+import {
+	createFolderRequest,
+	inviteRequest,
+	removeRequest,
+	responseInvitationRequest,
+	updateFolderRequest,
+	withdrawInvitationRequest,
+} from "./folder.validator";
 
 const folderRoute = new Hono();
 
@@ -47,7 +54,7 @@ folderRoute.get("/:id", async (c) => {
 	if (!c.req.param("id")) {
 		throw new HTTPException(400, { message: "Folder ID is required" });
 	}
-	const r = await FolderSrv.getFolderById(AppContext(c), c.req.param("id"));
+	const r = await FolderSrv.getFolderDetail(AppContext(c), c.req.param("id"));
 	return responseOK(c, r);
 });
 

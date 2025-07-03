@@ -1,6 +1,7 @@
 import { randomUUIDv7 } from "bun";
-import type { Codec, ConsumerConfig, JetStreamManager, NatsConnection } from "nats";
-import { AckPolicy, connect as connectNats, DeliverPolicy, MsgHdrsImpl, nanos, ReplayPolicy, StringCodec } from "nats";
+import type { ConsumerConfig, NatsConnection, StreamInfo } from "nats";
+import { AckPolicy, connect as connectNats, DeliverPolicy, MsgHdrsImpl, nanos, ReplayPolicy } from "nats";
+import { INatsWrapper } from "@/shared/nats/classes";
 import type { NatsEventPayloadMap } from "@/shared/nats/types/events";
 import type { Context } from "@/shared/types/app.type";
 
@@ -12,68 +13,58 @@ interface PublishMessage {
 	createdAt: string;
 }
 
-class NatsAPIWrapper {
+class NatsAPIWrapper extends INatsWrapper {
 	private static instance: NatsAPIWrapper | null = null;
 
-	static consumerName = "nats-api";
-	static natsServerUrl = "127.0.0.1:4222";
-	static subject = "events.>";
-
-	private consumerConfig: ConsumerConfig;
-	private natsConnection: NatsConnection | null = null;
-	private jetStream: JetStreamManager | null = null;
-	private stringCodec: Codec<string>;
-	private isConnecting = false;
-	private connectionPromise: Promise<NatsConnection> | null = null;
+	protected readonly consumerName = "nats-api";
+	protected readonly natsServerUrl = "127.0.0.1:4222";
+	protected readonly subject = "events.>";
+	protected readonly consumerConfig: ConsumerConfig;
 
 	private constructor() {
+		super();
 		this.consumerConfig = {
-			name: NatsAPIWrapper.consumerName,
-			durable_name: NatsAPIWrapper.consumerName,
+			name: this.consumerName,
+			durable_name: this.consumerName,
 			description: "API - Nats consumer",
 			max_deliver: 4,
 			backoff: [nanos(5000), nanos(10000), nanos(15000)],
-			filter_subjects: [NatsAPIWrapper.subject],
+			filter_subjects: [this.subject],
 			ack_policy: AckPolicy.Explicit,
 			deliver_policy: DeliverPolicy.All,
 			replay_policy: ReplayPolicy.Instant,
 		};
-
-		this.stringCodec = StringCodec();
 	}
 
-	public static getInstance(): NatsAPIWrapper {
+	static getInstance(): NatsAPIWrapper {
 		if (!NatsAPIWrapper.instance) {
 			NatsAPIWrapper.instance = new NatsAPIWrapper();
 		}
 		return NatsAPIWrapper.instance;
 	}
 
-	public async initialize(): Promise<void> {
+	async initialize(): Promise<void> {
 		if (this.natsConnection && !this.natsConnection.isClosed()) {
 			return;
 		}
-		if (this.isConnecting && this.connectionPromise) {
-			await this.connectionPromise;
+		if (this.isConnecting) {
 			return;
 		}
 		this.isConnecting = true;
-		this.connectionPromise = this.connect();
 
 		try {
-			await this.connectionPromise;
+			await this.connect();
 			this.isConnecting = false;
 		} catch (error) {
 			this.isConnecting = false;
-			this.connectionPromise = null;
 			throw error;
 		}
 	}
 
-	private async connect(): Promise<NatsConnection> {
+	protected async connect(): Promise<NatsConnection> {
 		try {
 			this.natsConnection = await connectNats({
-				servers: [NatsAPIWrapper.natsServerUrl],
+				servers: [this.natsServerUrl],
 				name: this.consumerConfig.name,
 				reconnect: true,
 				reconnectTimeWait: 3000,
@@ -81,7 +72,7 @@ class NatsAPIWrapper {
 			});
 			this.jetStream = await this.natsConnection.jetstreamManager();
 
-			console.log("- API connected to NATS server ");
+			console.log("- API connected to NATS server");
 			return this.natsConnection;
 		} catch (error) {
 			console.error("Failed to connect to NATS server:", error);
@@ -110,20 +101,20 @@ class NatsAPIWrapper {
 		const headers = new MsgHdrsImpl();
 
 		/**
-		 *  Nats-Msg-Id enable auto de-duplicate message by nats
+		 * Nats-Msg-Id enables auto de-duplicate message by nats
 		 */
 		headers.set("Nats-Msg-Id", message.messageId);
 		/**
-		 *  Nats-Expected-Stream assure message is published to correct stream
+		 * Nats-Expected-Stream assures message is published to correct stream
 		 */
 		headers.set("Nats-Expected-Stream", "EVENTS");
 
-		console.log(`[API]    publishing message subject=${message.subject} messageId=${message.messageId}`);
+		console.log(`publishing subject=${message.subject} messageId=${message.messageId}`);
 
 		await js.publish(subject, this.stringCodec.encode(JSON.stringify(message)), { headers });
 	}
 
-	async getStreamInfo(): Promise<any> {
+	async getStreamInfo(): Promise<StreamInfo> {
 		if (!this.jetStream?.streams) {
 			throw new Error("JetStream not initialized");
 		}
@@ -139,12 +130,12 @@ class NatsAPIWrapper {
 		this.jetStream = null;
 		this.natsConnection = null;
 		this.isConnecting = false;
-		this.connectionPromise = null;
 		NatsAPIWrapper.instance = null;
 		console.log("NATS API shutdown completed");
 	}
 
 	get isConnected(): boolean {
+		this.greet();
 		return this.natsConnection ? !this.natsConnection.isClosed() : false;
 	}
 }

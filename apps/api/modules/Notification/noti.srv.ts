@@ -15,8 +15,8 @@ const create = async (ctx: Context, request: nv.CreateRequest): Promise<nv.Creat
 	const newNotification: WithoutId<NotificationModel<NotificationType>> = {
 		title: request.title,
 		type: request.type,
-		payload: NotificationBuilderFactory(request.type, request.payload),
 		accountId: toObjectId(request.accountId ?? ctx.user._id),
+		payload: NotificationBuilderFactory(request.type, request.payload),
 		read: false,
 		createdAt: dayjs().toDate(),
 	};

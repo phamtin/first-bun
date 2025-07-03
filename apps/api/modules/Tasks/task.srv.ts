@@ -26,25 +26,23 @@ const getTasks = async (ctx: Context, request: tv.GetTasksRequest): Promise<tv.G
 	if (request.endDate) {
 		const { startDate, endDate } = request;
 
-		if (startDate) {
-			if (dayjs(endDate).isSameOrBefore(startDate, "second")) {
-				throw new AppError("BAD_REQUEST", "Start date - end date range is invalid");
-			}
+		if (startDate && dayjs(endDate).isSameOrBefore(startDate, "second")) {
+			throw new AppError("BAD_REQUEST", "Start date - end date range is invalid");
 		}
 	}
 	const [folderCreatedByMe, folderSharedWithMe] = await Promise.all([FolderSrv.getFoldersCreatedByMe(ctx, {}), FolderSrv.getFoldersSharedWithMe(ctx, {})]);
 
-	const grandFolderIds = folderCreatedByMe.concat(folderSharedWithMe).map((f) => f._id.toHexString());
+	const grantedFolderIds = folderCreatedByMe.concat(folderSharedWithMe).map((f) => f._id.toHexString());
 
 	const requestFolderIds = request.folderIds || [];
 
 	if (requestFolderIds.length > 0) {
-		if (requestFolderIds.some((id) => grandFolderIds.indexOf(id) === -1)) {
+		if (requestFolderIds.some((id) => grantedFolderIds.indexOf(id) === -1)) {
 			throw new AppError("BAD_REQUEST", "You're not participant of folder");
 		}
 		request.folderIds = requestFolderIds;
 	} else {
-		request.folderIds = grandFolderIds;
+		request.folderIds = grantedFolderIds;
 	}
 
 	const tasks = await TaskRepo.getTasks(ctx, request);

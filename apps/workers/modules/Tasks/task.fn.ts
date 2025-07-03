@@ -16,6 +16,8 @@ const createAssignedTaskNotification = async (ctx: Context, task: StringId<TaskM
 		FolderSrv.getFolderById(ctx, task.folderId),
 	]);
 
+	if (!folder) return;
+
 	if (checkRenewNotiIds) await NotificationSrv.deleteNotifications(ctx, { notificationIds: checkRenewNotiIds });
 
 	await NotificationSrv.create(ctx, {

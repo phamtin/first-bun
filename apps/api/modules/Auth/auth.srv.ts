@@ -108,7 +108,7 @@ export const signinWithGoogle = async (ctx: Context, request: LoginGoogleRequest
 			const defaultFolder = await FolderSrv.createFolder(ctx, { title: `${firstname}'s Folder`, color: "#2fad64" }, true);
 			await AccountSrv.updateProfile(ctx, {
 				accountSettings: {
-					pinnedFolderIds: [defaultFolder._id.toHexString()],
+					pinnedFolderIds: [defaultFolder.folder._id.toHexString()],
 				},
 			});
 		} catch {
